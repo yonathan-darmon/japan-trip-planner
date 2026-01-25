@@ -31,6 +31,7 @@ import { ItineraryModule } from './itinerary/itinerary.module';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Set to false in production
         logging: true,
+        ssl: process.env.DATABASE_HOST !== 'localhost' ? { rejectUnauthorized: false } : false,
       }),
       inject: [ConfigService],
     }),
