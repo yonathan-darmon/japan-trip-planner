@@ -1,0 +1,52 @@
+<div class="user-list-container fade-in">
+    <div class="header-actions">
+        <h1>👥 Gestion des Utilisateurs</h1>
+        <button class="btn btn-primary" routerLink="/users/new">
+            + Nouvel Utilisateur
+        </button>
+    </div>
+
+    <div class="error-alert" *ngIf="error">
+        {{ error }}
+    </div>
+
+    <div class="card glass">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom d'utilisateur</th>
+                        <th>Rôle</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let user of users">
+                        <td>#{{ user.id }}</td>
+                        <td>
+                            <div class="user-info">
+                                <span class="avatar">{{ user.username.charAt(0).toUpperCase() }}</span>
+                                {{ user.username }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge" [ngClass]="getRoleBadgeClass(user.role)">
+                                {{ user.role }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-ghost" (click)="deleteUser(user.id)"
+                                [disabled]="user.role === 'super_admin' && user.id === 1">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                    <tr *ngIf="users.length === 0 && !loading">
+                        <td colspan="5" class="text-center">Aucun utilisateur trouvé</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
