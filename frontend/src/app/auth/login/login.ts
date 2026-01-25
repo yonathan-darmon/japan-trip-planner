@@ -54,10 +54,6 @@ import { NgIf } from '@angular/common';
             <span *ngIf="isLoading">Connexion...</span>
           </button>
         </form>
-        
-        <div class="login-footer">
-          <p>Super Admin par défaut : <strong>admin</strong> / <strong>AdminPassword123!</strong></p>
-        </div>
       </div>
     </div>
   `,
