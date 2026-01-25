@@ -19,15 +19,13 @@ export class AppService implements OnModuleInit {
 
     if (superAdminUsername && superAdminPassword) {
       try {
-        const passwordHash = await this.authService.hashPassword(superAdminPassword);
-
         // Check if user exists
         const existing = await this.usersService.findByUsername(superAdminUsername);
 
         if (!existing) {
           await this.usersService.create({
             username: superAdminUsername,
-            passwordHash: passwordHash,
+            password: superAdminPassword,
             role: UserRole.SUPER_ADMIN,
           });
           console.log('✅ Super admin user created successfully');

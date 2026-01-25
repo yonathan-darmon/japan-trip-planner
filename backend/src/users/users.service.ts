@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { AuthService } from '../auth/auth.service';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        private authService: AuthService,
     ) { }
 
     async countAll(): Promise<number> {
@@ -26,8 +29,15 @@ export class UsersService {
         return this.usersRepository.findOneBy({ username });
     }
 
-    async create(user: Partial<User>): Promise<User> {
-        const newUser = this.usersRepository.create(user);
+    async create(createUserDto: CreateUserDto): Promise<User> {
+        const passwordHash = await this.authService.hashPassword(createUserDto.password);
+
+        const newUser = this.usersRepository.create({
+            username: createUserDto.username,
+            passwordHash: passwordHash,
+            role: createUserDto.role || undefined
+        });
+
         return this.usersRepository.save(newUser);
     }
 
