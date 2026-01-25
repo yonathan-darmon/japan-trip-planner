@@ -24,7 +24,7 @@ import { NgIf } from '@angular/common';
               type="text" 
               class="form-input" 
               formControlName="username"
-              placeholder="Ex: admin"
+              placeholder="Nom d'utilisateur"
             >
             <div class="error-msg" *ngIf="loginForm.get('username')?.touched && loginForm.get('username')?.invalid">
               Nom d'utilisateur requis
