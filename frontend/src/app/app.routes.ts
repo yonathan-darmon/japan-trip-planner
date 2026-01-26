@@ -46,6 +46,11 @@ export const routes: Routes = [
                 path: 'itinerary/:id',
                 loadComponent: () => import('./itinerary/itinerary-viewer').then(m => m.ItineraryViewerComponent)
             },
+            // Help / Guide
+            {
+                path: 'help',
+                loadComponent: () => import('./help/help.component').then(m => m.HelpComponent)
+            },
             // Administration - Users
             {
                 path: 'users',

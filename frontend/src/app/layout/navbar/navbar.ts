@@ -28,6 +28,7 @@ import { AsyncPipe, NgIf } from '@angular/common';
         <div class="nav-links" [class.open]="menuOpen" *ngIf="isAuthenticated$ | async">
           <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Accueil</a>
           <a routerLink="/suggestions" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Suggestions</a>
+          <a routerLink="/help" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Guide</a>
           
           <ng-container *ngIf="currentUser$ | async as user">
             <a *ngIf="user.role === 'super_admin'" 
