@@ -47,8 +47,25 @@ import * as L from 'leaflet';
         <div class="day-card fade-in" *ngFor="let day of itinerary.days" 
              [style.animation-delay]="(day.dayNumber * 50) + 'ms'">
           <div class="day-header">
-            <h2>Jour {{ day.dayNumber }}</h2>
-            <span class="day-date" *ngIf="day.date">{{ formatDate(day.date) }}</span>
+            <div class="day-header-top">
+              <h2>Jour {{ day.dayNumber }}</h2>
+              <span class="day-date" *ngIf="day.date">{{ formatDate(day.date) }}</span>
+            </div>
+            
+            <div class="day-load-section">
+              <div class="load-info">
+                <span class="load-label">Charge journalière</span>
+                <span class="load-val" [class.warning]="calculateDayLoad(day) > 8">
+                  {{ calculateDayLoad(day) | number:'1.0-1' }}h / 8h
+                </span>
+              </div>
+              <div class="load-track">
+                <div class="load-progress" 
+                     [style.width.%]="getLoadPercent(day)"
+                     [class.overloaded]="calculateDayLoad(day) > 8">
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="activities-list" 
@@ -93,6 +110,64 @@ import * as L from 'leaflet';
             <div class="no-activities" *ngIf="day.activities.length === 0">
               <p>Glissez une activité ici</p>
             </div>
+          </div>
+
+          <!-- ACCOMMODATION (NIGHT) -->
+          <div class="accommodation-section" *ngIf="day.accommodation || editingDayNumber === day.dayNumber">
+            
+            <!-- VIEW MODE -->
+            <div class="acc-card glass" *ngIf="day.accommodation && editingDayNumber !== day.dayNumber">
+              <div class="acc-icon-box">
+                <span class="moon-icon">🌙</span>
+              </div>
+              <div class="acc-details">
+                <div class="acc-header">
+                  <h4>Nuit à : {{ day.accommodation.name }}</h4>
+                  <span class="acc-price" *ngIf="day.accommodation.price">{{ day.accommodation.price }}€</span>
+                </div>
+                <p class="acc-location">📍 {{ day.accommodation.location }}</p>
+                <div class="acc-badges">
+                   <span class="badge badge-outline">Hébergement</span>
+                </div>
+              </div>
+              <div class="acc-actions">
+                 <button class="btn-icon-sm" (click)="startEditAccommodation(day.dayNumber)" title="Changer l'hôtel">🔄</button>
+              </div>
+            </div>
+
+            <!-- EDIT MODE -->
+            <div class="acc-edit-mode glass fade-in" *ngIf="editingDayNumber === day.dayNumber">
+                <div class="edit-header">
+                    <h4>🏨 Choisir un hébergement pour cette nuit</h4>
+                    <button class="btn-cancel-link" (click)="editingDayNumber = null">Annuler</button>
+                </div>
+                
+                <div class="acc-grid">
+                    <div class="acc-option-card" 
+                         *ngFor="let acc of availableAccommodations" 
+                         (click)="selectAccommodation(day, acc.id)"
+                         [class.selected]="day.accommodation?.id === acc.id">
+                        <div class="acc-opt-header">
+                            <span class="acc-opt-name">{{ acc.name }}</span>
+                            <span class="acc-opt-price" *ngIf="acc.price">{{ acc.price }}€</span>
+                        </div>
+                        <span class="acc-opt-loc">📍 {{ acc.location }}</span>
+                    </div>
+                    
+                    <!-- Remove Option -->
+                    <div class="acc-option-card remove" (click)="selectAccommodation(day, null)">
+                        <span>❌ Pas d'hôtel ce jour-là</span>
+                    </div>
+                </div>
+            </div>
+
+          </div>
+
+          <!-- EMPTY STATE (Add Hotel) -->
+          <div class="accommodation-section empty-state" *ngIf="!day.accommodation && editingDayNumber !== day.dayNumber">
+            <button class="btn-add-acc" (click)="startEditAccommodation(day.dayNumber)">
+               ➕ Ajouter un hébergement pour la nuit
+            </button>
           </div>
         </div>
       </div>
@@ -174,12 +249,54 @@ import * as L from 'leaflet';
     }
 
     .day-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: block;
       margin-bottom: 1.5rem;
       padding-bottom: 1rem;
       border-bottom: 2px solid var(--color-border);
+    }
+
+    .day-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .day-load-section {
+      background: rgba(0,0,0,0.05);
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+    }
+
+    .load-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .load-val.warning {
+      color: #FFA07A;
+      font-weight: bold;
+    }
+
+    .load-track {
+      height: 8px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .load-progress {
+      height: 100%;
+      background: var(--color-success);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .load-progress.overloaded {
+      background: #FF6B6B;
     }
 
     .day-header h2 {
@@ -328,18 +445,154 @@ import * as L from 'leaflet';
       .itinerary-container {
         padding: 1rem;
       }
-
       .header-stats {
         gap: 1rem;
       }
-
       .activity-item {
         flex-direction: column;
       }
-
       .activity-order {
         align-self: flex-start;
       }
+    }
+
+    /* Accommodation Styles */
+    .accommodation-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 2px dashed var(--color-border);
+    }
+    .acc-card {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      background: rgba(44, 62, 80, 0.05);
+      align-items: center;
+      border: 1px solid rgba(44, 62, 80, 0.1);
+    }
+    .acc-icon-box {
+      width: 40px;
+      height: 40px;
+      background: #2c3e50;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .acc-details {
+      flex: 1;
+    }
+    .acc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .acc-header h4 {
+      margin: 0;
+      color: var(--color-text-primary);
+      font-size: 1rem;
+    }
+    .acc-price {
+      font-weight: bold;
+      color: var(--color-text-secondary);
+    }
+    .acc-location {
+      font-size: 0.85rem;
+      color: var(--color-text-tertiary);
+      margin: 0 0 0.5rem 0;
+    }
+    .btn-icon-sm {
+      text-decoration: none;
+      font-size: 1rem;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+      cursor: pointer;
+    }
+    .btn-icon-sm:hover {
+      opacity: 1;
+    }
+    .acc-badges {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* Edit Mode Styles */
+    .acc-edit-mode {
+        padding: 1rem;
+        background: white;
+        border: 2px solid var(--color-primary);
+        border-radius: var(--radius-md);
+    }
+    .edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .edit-header h4 { margin: 0; color: var(--color-primary); }
+    
+    .btn-cancel-link {
+        background: none; border: none; color: #666; cursor: pointer; text-decoration: underline;
+    }
+
+    .acc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .acc-option-card {
+        padding: 0.75rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f9f9f9;
+    }
+    .acc-option-card:hover {
+        border-color: var(--color-primary);
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .acc-option-card.selected {
+        border-color: var(--color-success);
+        background: #e8f8f5;
+        box-shadow: 0 0 0 2px var(--color-success) inset;
+    }
+    .acc-opt-header {
+        display: flex; justify-content: space-between; font-weight: bold; font-size: 0.9rem; margin-bottom: 0.25rem;
+    }
+    .acc-opt-loc {
+        font-size: 0.8rem; color: #666; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .acc-option-card.remove {
+        border-style: dashed;
+        color: #e74c3c;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold;
+    }
+    .acc-option-card.remove:hover {
+        background: #fceae9;
+        border-color: #e74c3c;
+    }
+
+    /* Empty State */
+    .accommodation-section.empty-state {
+        text-align: center;
+        border-top: none;
+        padding-top: 0;
+    }
+    .btn-add-acc {
+        background: none; border: 2px dashed #ccc; color: #888; padding: 0.75rem 1.5rem;
+        border-radius: 2rem; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-add-acc:hover {
+        border-color: var(--color-primary); color: var(--color-primary);
     }
   `]
 })
@@ -349,15 +602,55 @@ export class ItineraryViewerComponent implements OnInit, AfterViewInit, OnDestro
   private map: L.Map | null = null;
   private markersLayer: L.LayerGroup | null = null;
 
+  costBreakdown: { [key: string]: number } = {};
+  costBreakdownKeys: string[] = [];
+
+  availableAccommodations: Suggestion[] = [];
+  editingDayNumber: number | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private itineraryService: ItineraryService,
+    private suggestionsService: SuggestionsService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
   ngOnInit() {
     this.itineraryId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadItinerary();
+    this.loadAccommodations();
+  }
+
+  loadAccommodations() {
+    this.suggestionsService.getAll().subscribe(list => {
+      // Filter only accommodations that are voted/selected? Or all created?
+      // Ideally voted ones. But getAll() returns all. Let's filter by category.
+      this.availableAccommodations = list.filter(s => s.category === SuggestionCategory.HEBERGEMENT);
+    });
+  }
+
+  startEditAccommodation(dayNumber: number) {
+    this.editingDayNumber = dayNumber;
+  }
+
+  selectAccommodation(day: ItineraryDay, suggestionId: number | null) {
+    this.itineraryService.updateAccommodation(this.itineraryId, day.dayNumber, suggestionId).subscribe({
+      next: (updatedItinerary) => {
+        // Update local state smoothly
+        // Only update this day's accommodation to avoid full re-render flickering
+        const updatedDay = updatedItinerary.days.find(d => d.dayNumber === day.dayNumber);
+        if (updatedDay) {
+          day.accommodation = updatedDay.accommodation;
+          // day.activities might have changed too (if cost/ordering logic changed), but usually not accommodation
+        }
+        // Update stats
+        this.itinerary = updatedItinerary;
+        this.calculateBreakdown(); // update cost breakdown
+        this.updateMapLayers(); // update map markers
+        this.editingDayNumber = null;
+      },
+      error: (err) => console.error(err)
+    });
   }
 
   ngAfterViewInit() {
@@ -455,8 +748,7 @@ export class ItineraryViewerComponent implements OnInit, AfterViewInit, OnDestro
     });
   }
 
-  costBreakdown: { [key: string]: number } = {};
-  costBreakdownKeys: string[] = [];
+
 
   // ...
 
@@ -539,6 +831,20 @@ export class ItineraryViewerComponent implements OnInit, AfterViewInit, OnDestro
     });
   }
 
+  calculateDayLoad(day: ItineraryDay): number {
+    return day.activities.reduce((total, act) => {
+      // Cast to prevent type issues if interface is lagging
+      const duration = Number((act.suggestion as any).durationHours) || 2.0;
+      return total + duration;
+    }, 0);
+  }
+
+  getLoadPercent(day: ItineraryDay): number {
+    const load = this.calculateDayLoad(day);
+    // Cap at 100% for bar width
+    return Math.min(100, (load / 8) * 100);
+  }
+
   deleteItinerary() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet itinéraire ?')) {
       return;
@@ -604,23 +910,34 @@ export class ItineraryViewerComponent implements OnInit, AfterViewInit, OnDestro
       shadowSize: [41, 41]
     });
 
+    const hotelIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
     console.log('🎯 === UPDATING MARKERS ===');
 
     // Add markers for each activity
     this.itinerary.days.forEach((day, dayIndex) => {
+      // 1. Activities
       day.activities.forEach((activity, actIndex) => {
         const lat = parseFloat(activity.suggestion.latitude as any);
         const lng = parseFloat(activity.suggestion.longitude as any);
 
         if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-          const point: L.LatLngExpression = [lat, lng];
+          // Add slight jitter to avoid perfect overlap if multiple activities are at same location
+          const jitterLat = lat + (Math.random() - 0.5) * 0.0004;
+          const jitterLng = lng + (Math.random() - 0.5) * 0.0004;
+          const point: L.LatLngExpression = [jitterLat, jitterLng];
           allPoints.push(point);
 
-          // Use explicit icon instance
           const marker = L.marker(point, { icon: defaultIcon });
           markerCount++;
 
-          // Add popup with activity details
           marker.bindPopup(`
             <div style="min-width: 200px; font-family: sans-serif;">
               <h3 style="margin: 0 0 5px 0; color: ${colors[dayIndex % colors.length]};">
@@ -636,10 +953,42 @@ export class ItineraryViewerComponent implements OnInit, AfterViewInit, OnDestro
             </div>
           `);
 
-          // Add to layer group instead of map directly
           this.markersLayer?.addLayer(marker);
         }
       });
+
+      // 2. Accommodation
+      if (day.accommodation) {
+        const lat = parseFloat(day.accommodation.latitude as any);
+        const lng = parseFloat(day.accommodation.longitude as any);
+
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          // We don't add accommodation to "allPoints" for the route line to avoid zig-zags at night,
+          // unless we want to show travel to hotel. Let's exclude it from the main polyline for clarity
+          // OR include it as the last point. Let's include it.
+          // Add jitter to accommodations too
+          const jitterLat = lat + (Math.random() - 0.5) * 0.0004;
+          const jitterLng = lng + (Math.random() - 0.5) * 0.0004;
+          const point: L.LatLngExpression = [jitterLat, jitterLng];
+          allPoints.push(point);
+
+          const marker = L.marker(point, { icon: hotelIcon, opacity: 0.9, zIndexOffset: -500 });
+
+          marker.bindPopup(`
+            <div style="min-width: 200px; font-family: sans-serif;">
+              <h3 style="margin: 0 0 5px 0; color: #8e44ad;">
+                🏨 Nuit Jour ${day.dayNumber}
+              </h3>
+              <div style="font-weight: bold; margin-bottom: 5px;">${day.accommodation.name}</div>
+              <div style="font-size: 0.9em; color: #666;">
+                📍 ${day.accommodation.location}
+              </div>
+            </div>
+          `);
+
+          this.markersLayer?.addLayer(marker);
+        }
+      }
     });
 
     // Draw route line

@@ -6,6 +6,7 @@ import { SuggestionsService, Suggestion, SuggestionCategory } from '../../core/s
 import { AuthService } from '../../core/services/auth';
 import { PreferencesService, UserPreference } from '../../core/services/preferences';
 import { PreferenceSelectorComponent } from '../preference-selector/preference-selector';
+import { WebSocketService } from '../../core/services/websocket.service';
 
 @Component({
   selector: 'app-suggestion-list',
@@ -323,6 +324,7 @@ export class SuggestionListComponent implements OnInit {
   // Use Signal for reactive state
   suggestions: WritableSignal<Suggestion[]> = signal([]);
   retryingGeocode: number | null = null;
+  currentUser: any;
 
   // Filter Signals
   searchQuery = signal('');
@@ -367,14 +369,16 @@ export class SuggestionListComponent implements OnInit {
     }
   });
 
-  currentUser: any;
-
   constructor(
     private suggestionsService: SuggestionsService,
     private preferencesService: PreferencesService,
-    private authService: AuthService
+    private authService: AuthService,
+    private wsService: WebSocketService
   ) {
     this.authService.currentUser$.subscribe(user => this.currentUser = user);
+
+    // Initialize Real-time synchronization
+    this.setupRealtimeSync();
   }
 
   ngOnInit() {
@@ -388,36 +392,80 @@ export class SuggestionListComponent implements OnInit {
     });
   }
 
-  // Get my preference for a specific suggestion from its own loaded preferences
+  setupRealtimeSync() {
+    // 1. Handle Suggestion Changes (Create, Update, Delete)
+    this.wsService.onSuggestionChange().subscribe(({ action, data }) => {
+      console.log(`🔄 Real-time Update [${action}]:`, data);
+
+      this.suggestions.update(current => {
+        if (action === 'create') {
+          // Check if already exists to avoid dupes 
+          if (current.some(s => s.id === data.id)) return current;
+          return [{ ...data, preferences: [] }, ...current];
+        }
+
+        if (action === 'update') {
+          return current.map(s => {
+            if (s.id !== data.id) return s;
+            return { ...s, ...data, preferences: s.preferences };
+          });
+        }
+
+        if (action === 'delete') {
+          return current.filter(s => s.id !== data.id);
+        }
+
+        return current;
+      });
+    });
+
+    // 2. Handle Vote Changes
+    this.wsService.onVoteChange().subscribe(({ suggestionId, data }) => {
+      console.log(`🗳️ Real-time Vote [Suggestion ${suggestionId}]:`, data);
+
+      this.suggestions.update(current => {
+        return current.map(s => {
+          if (s.id !== suggestionId) return s;
+
+          // Update preferences
+          const prefs = s.preferences ? [...s.preferences] : [];
+          const existingIndex = prefs.findIndex(p => p.userId === data.userId);
+
+          if (existingIndex > -1) {
+            prefs[existingIndex] = { ...prefs[existingIndex], ...data.preference };
+          } else {
+            prefs.push(data.preference);
+          }
+
+          return { ...s, preferences: prefs };
+        });
+      });
+    });
+  }
+
+  // --- Actions ---
+
   getPreference(suggestion: Suggestion): UserPreference | undefined {
     return suggestion.preferences?.find(p => p.userId === this.currentUser?.id);
   }
 
   onPreferenceChange(suggestion: Suggestion, updatedPref: UserPreference) {
-    console.log('Updating preference:', updatedPref, 'for suggestion:', suggestion.id);
+    // Optimistic UI update
     this.suggestions.update(currentSuggestions => {
       return currentSuggestions.map(s => {
         if (s.id !== suggestion.id) return s;
 
-        // Clone preferences array efficiently
         const newPreferences = s.preferences ? [...s.preferences] : [];
         const existingIndex = newPreferences.findIndex(p => p.userId === this.currentUser.id);
 
         if (existingIndex > -1) {
-          // MERGE with existing preference instead of replacing completely
           const existingPref = newPreferences[existingIndex];
           newPreferences[existingIndex] = {
-            ...existingPref,           // Keep all existing fields
-            ...updatedPref,            // Override with new values from backend
-            user: updatedPref.user || existingPref.user || this.currentUser  // Ensure user is always present
-          };
-          console.log('Merged preference:', newPreferences[existingIndex]);
-        } else {
-          // New preference - ensure user is attached
-          newPreferences.push({
+            ...existingPref,
             ...updatedPref,
-            user: updatedPref.user || this.currentUser
-          });
+            user: updatedPref.user || existingPref.user || this.currentUser
+          };
+        } else {
         }
 
         return { ...s, preferences: newPreferences };

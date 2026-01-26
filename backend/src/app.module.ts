@@ -9,6 +9,7 @@ import { SuggestionsModule } from './suggestions/suggestions.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { TripConfigModule } from './trip-config/trip-config.module';
 import { ItineraryModule } from './itinerary/itinerary.module';
+import { SyncModule } from './sync/sync.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ItineraryModule } from './itinerary/itinerary.module';
     PreferencesModule,
     TripConfigModule,
     ItineraryModule,
+    SyncModule,
   ],
   controllers: [AppController],
   providers: [AppService],

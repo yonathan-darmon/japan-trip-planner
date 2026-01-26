@@ -17,6 +17,7 @@ interface DayPlan {
         orderInDay: number;
         suggestion: Suggestion;
     }[];
+    accommodation: Suggestion | null;
 }
 
 @Injectable()
@@ -94,75 +95,114 @@ export class ItineraryService {
         totalDays: number,
         maxPerDay: number
     ): DayPlan[] {
-        // Separate accommodations from other activities
+        // 1. Separate accommodations
         const accommodations = activities.filter(a => a.category === SuggestionCategory.HEBERGEMENT);
         const otherActivities = activities.filter(a => a.category !== SuggestionCategory.HEBERGEMENT);
 
+        const days: DayPlan[] = Array.from({ length: totalDays }, (_, i) => ({
+            dayNumber: i + 1,
+            date: null,
+            activities: [],
+            accommodation: null,
+        }));
+
         if (otherActivities.length === 0) {
-            // Only accommodations, create empty days
-            return Array.from({ length: totalDays }, (_, i) => ({
-                dayNumber: i + 1,
-                date: null,
-                activities: accommodations[i] ? [{
-                    suggestionId: accommodations[i].id,
-                    orderInDay: 1,
-                    suggestion: accommodations[i],
-                }] : [],
-            }));
-        }
-
-        // Cluster activities by geographic proximity
-        const numClusters = Math.min(Math.ceil(otherActivities.length / maxPerDay), otherActivities.length);
-        const clusters = this.clusterByLocation(otherActivities, numClusters);
-
-        console.log(`Distributing ${otherActivities.length} activities across ${totalDays} days`);
-
-        // Flatten clusters and distribute evenly across days
-        const allActivitiesOrdered: Suggestion[] = [];
-        for (const cluster of clusters) {
-            // Sort cluster by nearest neighbor for optimal routing
-            const sorted = this.nearestNeighbor(cluster);
-            allActivitiesOrdered.push(...sorted);
-        }
-
-        // Calculate spacing between activities to distribute evenly
-        const spacing = totalDays / allActivitiesOrdered.length;
-
-        const days: DayPlan[] = [];
-        let nextActivityIndex = 0;
-
-        for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
-            const dayActivities: Suggestion[] = [];
-
-            // Determine if this day should have activities
-            const expectedActivityIndex = Math.floor((dayNum - 1) / spacing);
-
-            // Add activities for this day (up to maxPerDay)
-            while (nextActivityIndex < allActivitiesOrdered.length &&
-                nextActivityIndex <= expectedActivityIndex &&
-                dayActivities.length < maxPerDay) {
-                dayActivities.push(allActivitiesOrdered[nextActivityIndex]);
-                nextActivityIndex++;
-            }
-
-            // Add accommodation if available
-            const accommodation = accommodations[dayNum - 1];
-            if (accommodation) {
-                dayActivities.push(accommodation);
-            }
-
-            days.push({
-                dayNumber: dayNum,
-                date: null,
-                activities: dayActivities.map((s, idx) => ({
-                    suggestionId: s.id,
-                    orderInDay: idx + 1,
-                    suggestion: s,
-                })),
+            // Just spread accommodations if any
+            accommodations.forEach((acc, i) => {
+                if (i < totalDays) days[i].accommodation = acc;
             });
+            return days;
+        }
 
-            if (dayActivities.length > 0) {
-                console.log(`Day ${dayNum}: ${dayActivities.map(a => a.name).join(', ')}`);
+        // 2. Intelligent Clustering
+        // We cluster activities to group them by region/neighborhood.
+        // Heuristic: We try to create as many clusters as there are days, but bounded by activity count.
+        // This encourages "Day 1 = Zone A, Day 2 = Zone B".
+        const k = Math.min(totalDays, otherActivities.length);
+        const clusters = this.clusterByLocation(otherActivities, k);
+
+        console.log(`Clustering: Created ${clusters.length} clusters for ${totalDays} days.`);
+
+        // 3. Assign activities and match accommodation per cluster
+        let currentDayIndex = 0;
+        let currentDayHours = 0;
+        const dailyTargetHours = 8.0;
+
+        // TODO: Ideally, we should sort clusters by TSP (Traveling Salesman) to minimize inter-cluster travel.
+        // For now, we rely on the order returned from K-means (random-ish but stable-ish).
+
+        for (const cluster of clusters) {
+            // Sort internal activities by Nearest Neighbor
+            const sortedActivities = this.nearestNeighbor(cluster);
+
+            // Find best accommodation for this cluster (Centroid-based)
+            const bestHotel = this.findBestAccommodationForCluster(cluster, accommodations);
+
+            if (bestHotel) {
+                console.log(`Cluster assigned to hotel: ${bestHotel.name} (Cluster size: ${cluster.length})`);
+            }
+
+            // Fill days with this cluster's activities
+            // We track the start day to back-fill accommodation if needed
+            const startDayIndex = currentDayIndex;
+
+            // Force day change if we are starting a new cluster and the current day is not empty
+            // This prevents mixing Osaka and Tokyo in the same day unless it's a travel day logic (which we simplify here)
+            if (days[currentDayIndex].activities.length > 0 && currentDayIndex < totalDays - 1) {
+                currentDayIndex++;
+                currentDayHours = 0;
+            }
+
+            for (const activity of sortedActivities) {
+                const duration = Number(activity.durationHours) || 2.0; // Default 2h if missing
+
+                // If current day is full, move to next
+                // But avoid overflowing totalDays
+                if (currentDayHours + duration > dailyTargetHours && currentDayIndex < totalDays - 1) {
+                    currentDayIndex++;
+                    currentDayHours = 0;
+                }
+
+                days[currentDayIndex].activities.push({
+                    suggestionId: activity.id,
+                    orderInDay: days[currentDayIndex].activities.length + 1,
+                    suggestion: activity,
+                });
+
+                // Assign hotel to this day immediately
+                if (bestHotel && !days[currentDayIndex].accommodation) {
+                    days[currentDayIndex].accommodation = bestHotel;
+                }
+
+                currentDayHours += duration;
+            }
+
+            // Back-fill / Forward-fill accommodation for the range of days touched by this cluster
+            // This ensures that if a cluster spans 2 days, both get the hotel.
+            // Also if a day was partially started by previous cluster, we might check if we should override?
+            // Strategy: "First come first served" or "Majority wins"? 
+            // Current strategy: If day has no accommodation, take this one.
+            for (let d = startDayIndex; d <= currentDayIndex; d++) {
+                if (bestHotel && !days[d].accommodation) {
+                    days[d].accommodation = bestHotel;
+                }
+            }
+        }
+
+        // 4. Fallback: Fill holes in accommodation (Safety Net)
+        // If some days have no accommodation (e.g. empty days at end, or start), propagate neighbors.
+
+        // Forward fill
+        for (let i = 1; i < totalDays; i++) {
+            if (!days[i].accommodation && days[i - 1].accommodation) {
+                days[i].accommodation = days[i - 1].accommodation;
+            }
+        }
+
+        // Backward fill (for Day 1 if empty)
+        for (let i = totalDays - 2; i >= 0; i--) {
+            if (!days[i].accommodation && days[i + 1].accommodation) {
+                days[i].accommodation = days[i + 1].accommodation;
             }
         }
 
@@ -170,54 +210,85 @@ export class ItineraryService {
     }
 
     /**
-     * K-means clustering by geographic location
+     * Finds the accommodation closest to the centroid of a cluster of activities.
+     */
+    private findBestAccommodationForCluster(cluster: Suggestion[], accommodations: Suggestion[]): Suggestion | null {
+        if (accommodations.length === 0) return null;
+        if (cluster.length === 0) return accommodations[0]; // Should not happen, but safe fallback
+
+        // Calculate centroid of the cluster
+        let sumLat = 0, sumLng = 0;
+        cluster.forEach(a => {
+            sumLat += Number(a.latitude);
+            sumLng += Number(a.longitude);
+        });
+        const centerLat = sumLat / cluster.length;
+        const centerLng = sumLng / cluster.length;
+
+        // Find nearest hotel to centroid
+        let bestHotel: Suggestion | null = null;
+        let minDist = Infinity;
+
+        for (const hotel of accommodations) {
+            const dist = this.distance(centerLat, centerLng, Number(hotel.latitude), Number(hotel.longitude));
+            if (dist < minDist) {
+                minDist = dist;
+                bestHotel = hotel;
+            }
+        }
+
+        return bestHotel;
+    }
+
+    /**
+     * Distance-based clustering (Simple Threshold)
+     * Better than K-means for travel because it naturally separates cities (Tokyo vs Osaka)
+     * regardless of the number of activities.
      */
     private clusterByLocation(activities: Suggestion[], k: number): Suggestion[][] {
         if (activities.length === 0) return [];
-        if (k === 1 || activities.length <= k) return [activities];
 
-        // Adjust k if we have fewer activities than requested clusters
-        const actualK = Math.min(k, activities.length);
+        const clusters: Suggestion[][] = [];
+        const thresholdKm = 100; // Max distance to be considered "same area"
 
-        console.log(`=== CLUSTERING: ${activities.length} activities into ${actualK} clusters ===`);
-
-        // Simple k-means implementation
-        const clusters: Suggestion[][] = Array(actualK).fill(null).map(() => []);
-
-        // Initialize centroids randomly
-        const centroids = activities
-            .sort(() => Math.random() - 0.5)
-            .slice(0, actualK)
-            .map(a => ({ lat: a.latitude, lng: a.longitude }));
-
-        // Assign each activity to nearest centroid
         for (const activity of activities) {
-            let minDist = Infinity;
-            let bestCluster = 0;
+            let added = false;
 
-            for (let i = 0; i < actualK; i++) {
+            // Try to fit into an existing cluster
+            for (const cluster of clusters) {
+                // Check distance to the first item (or centroid) of the cluster
+                // Using first item is simpler and efficient enough for this scale
+                const reference = cluster[0];
                 const dist = this.distance(
-                    activity.latitude,
-                    activity.longitude,
-                    centroids[i].lat,
-                    centroids[i].lng
+                    Number(activity.latitude),
+                    Number(activity.longitude),
+                    Number(reference.latitude),
+                    Number(reference.longitude)
                 );
-                if (dist < minDist) {
-                    minDist = dist;
-                    bestCluster = i;
+
+                if (dist < thresholdKm) {
+                    cluster.push(activity);
+                    added = true;
+                    break;
                 }
             }
 
-            clusters[bestCluster].push(activity);
+            // If not added to any cluster, create a new one
+            if (!added) {
+                clusters.push([activity]);
+            }
         }
 
-        const result = clusters.filter(c => c.length > 0);
-        console.log(`Clusters created: ${result.length}`);
-        result.forEach((cluster, idx) => {
-            console.log(`  Cluster ${idx + 1}: ${cluster.map(a => a.name).join(', ')}`);
+        console.log(`=== DISTANCE CLUSTERING: Created ${clusters.length} clusters (Threshold: ${thresholdKm}km) ===`);
+        clusters.forEach((cluster, idx) => {
+            console.log(`  Cluster ${idx + 1}: ${cluster.length} items - ${cluster.map(a => a.name).join(', ')}`);
         });
 
-        return result;
+        // Optional: If we have way too many clusters compared to days, maybe merge nearest?
+        // But for now, let's respect geography. 
+        // If user visits 5 cities in 3 days, they will just move a lot.
+
+        return clusters;
     }
 
     /**
@@ -288,6 +359,11 @@ export class ItineraryService {
                 const price = parseFloat(activity.suggestion.price as any) || 0;
                 total += price;
             }
+            // Add accommodation cost if any
+            if (day.accommodation) {
+                const price = parseFloat(day.accommodation.price as any) || 0;
+                total += price;
+            }
         }
         return total;
     }
@@ -328,6 +404,9 @@ export class ItineraryService {
             day.activities.forEach(a => {
                 console.log(`  - ${a.suggestion.name} at (${a.suggestion.latitude}, ${a.suggestion.longitude})`);
             });
+            if (day.accommodation) {
+                console.log(`  - 🌙 Nuit à : ${day.accommodation.name}`);
+            }
         });
 
         // Add dates if trip has start date
@@ -389,6 +468,10 @@ export class ItineraryService {
     ): Promise<Itinerary> {
         const itinerary = await this.findOne(id, userId);
 
+        if (!itinerary) {
+            throw new Error('Itinerary not found');
+        }
+
         // Target day index
         const targetDayIndex = dto.dayNumber - 1;
         const targetDay = itinerary.days[targetDayIndex];
@@ -403,7 +486,6 @@ export class ItineraryService {
         // 1. Collect and remove from source
         for (const suggestionId of dto.newOrder) {
             let foundActivity: any = null;
-            let foundDayIndex = -1;
 
             // Search in all days
             for (let d = 0; d < itinerary.days.length; d++) {
@@ -412,8 +494,6 @@ export class ItineraryService {
 
                 if (activityIndex !== -1) {
                     foundActivity = day.activities[activityIndex];
-                    foundDayIndex = d;
-
                     // Remove from source day
                     day.activities.splice(activityIndex, 1);
                     break;
@@ -421,10 +501,10 @@ export class ItineraryService {
             }
 
             if (!foundActivity) {
-                // Should strictly not happen if frontend is synced, but let's handle graceful failure or error
-                console.warn(`Activity with suggestion ID ${suggestionId} not found in itinerary usually implies sync error.`);
-                // Option: Skip or Throw. Throwing is safer for data integrity.
-                throw new Error(`Activity with suggestion ID ${suggestionId} not found`);
+                // If not found in current itinerary activities, fetch from DB?
+                // For now, ignore if not found (robustness)
+                console.warn(`Activity with suggestion ID ${suggestionId} not found in current itinerary.`);
+                continue;
             }
 
             NewTargetActivities.push(foundActivity);
@@ -444,6 +524,39 @@ export class ItineraryService {
             });
         });
 
+        return this.itineraryRepository.save(itinerary);
+    }
+    async updateAccommodation(
+        id: number,
+        dayNumber: number,
+        suggestionId: number | null,
+        userId: number
+    ): Promise<Itinerary> {
+        const itinerary = await this.findOne(id, userId);
+
+        if (dayNumber < 1 || dayNumber > itinerary.days.length) {
+            throw new Error('Day number out of range');
+        }
+
+        const dayIndex = dayNumber - 1;
+
+        if (!suggestionId) {
+            // Remove accommodation
+            itinerary.days[dayIndex].accommodation = null;
+        } else {
+            // Find suggestion and set it
+            const suggestion = await this.suggestionsService.findOne(suggestionId);
+            if (!suggestion) {
+                throw new Error('Accommodation suggestion not found');
+            }
+            // For flexibility, we allow changing category if user really wants to sleep in a museum... 
+            // but let's warn or check. Let's strictly enforce if current logic expects it.
+            // Actually, keep it flexible for now, but logical.
+            itinerary.days[dayIndex].accommodation = suggestion;
+        }
+
+        // Recalculate cost
+        itinerary.totalCost = this.calculateCost(itinerary.days);
 
         return this.itineraryRepository.save(itinerary);
     }

@@ -6,6 +6,7 @@ import {
     OneToMany,
     JoinColumn,
 } from 'typeorm';
+import { Suggestion } from '../../suggestions/entities/suggestion.entity';
 
 @Entity('itinerary_days')
 export class ItineraryDay {
@@ -23,4 +24,8 @@ export class ItineraryDay {
 
     @OneToMany('ItineraryActivity', 'dayId', { eager: true, cascade: true })
     activities: any[];
+
+    @ManyToOne(() => Suggestion, { nullable: true, eager: true })
+    @JoinColumn({ name: 'accommodation_id' })
+    accommodation: Suggestion;
 }

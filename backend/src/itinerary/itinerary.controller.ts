@@ -49,4 +49,18 @@ export class ItineraryController {
     ) {
         return this.itineraryService.reorder(id, dto, req.user.id);
     }
+    @Patch(':id/days/:dayNumber/accommodation')
+    async updateAccommodation(
+        @Param('id', ParseIntPipe) id: number,
+        @Param('dayNumber', ParseIntPipe) dayNumber: number,
+        @Body() body: { suggestionId: number | null },
+        @Request() req
+    ) {
+        return this.itineraryService.updateAccommodation(
+            id,
+            dayNumber,
+            body.suggestionId,
+            req.user.id
+        );
+    }
 }

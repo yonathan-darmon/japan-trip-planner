@@ -11,6 +11,7 @@ import { UpdateSuggestionDto } from './dto/update-suggestion.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { S3Service } from './s3.service';
 import { GeocodingService } from './geocoding.service';
+import { SyncGateway } from '../sync/sync.gateway';
 
 @Injectable()
 export class SuggestionsService {
@@ -19,6 +20,7 @@ export class SuggestionsService {
         private suggestionsRepository: Repository<Suggestion>,
         private s3Service: S3Service,
         private geocodingService: GeocodingService,
+        private syncGateway: SyncGateway,
     ) { }
 
     async create(
@@ -48,7 +50,9 @@ export class SuggestionsService {
             }
         }
 
-        return this.suggestionsRepository.save(suggestion);
+        const savedSuggestion = await this.suggestionsRepository.save(suggestion);
+        this.syncGateway.sendSuggestionUpdate('create', savedSuggestion);
+        return savedSuggestion;
     }
 
     async findAll(): Promise<Suggestion[]> {
@@ -114,7 +118,9 @@ export class SuggestionsService {
             }
         }
 
-        return this.suggestionsRepository.save(suggestion);
+        const updatedSuggestion = await this.suggestionsRepository.save(suggestion);
+        this.syncGateway.sendSuggestionUpdate('update', updatedSuggestion);
+        return updatedSuggestion;
     }
 
     async remove(id: number, user: User): Promise<void> {
@@ -128,6 +134,7 @@ export class SuggestionsService {
         }
 
         await this.suggestionsRepository.softRemove(suggestion);
+        this.syncGateway.sendSuggestionUpdate('delete', { id });
     }
 
     /**

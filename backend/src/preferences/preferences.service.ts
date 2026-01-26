@@ -5,11 +5,14 @@ import { UserPreference, Priority } from './entities/user-preference.entity';
 import { UpdatePreferenceDto } from './dto/update-preference.dto';
 import { User } from '../users/entities/user.entity';
 
+import { SyncGateway } from '../sync/sync.gateway';
+
 @Injectable()
 export class PreferencesService {
     constructor(
         @InjectRepository(UserPreference)
         private preferencesRepository: Repository<UserPreference>,
+        private syncGateway: SyncGateway,
     ) { }
 
     async updatePreference(
@@ -32,10 +35,17 @@ export class PreferencesService {
 
         Object.assign(preference, dto);
 
-        // If unselecting, reset default values to keep DB clean (optional choice)
-        // But keeping history is often better.
+        const saved = await this.preferencesRepository.save(preference);
 
-        return this.preferencesRepository.save(preference);
+        // Notify everyone that this suggestion has a new vote stat
+        // (Sending the raw preference allows the frontend to re-calculate totals locally if needed,
+        // or trigger a refetch of votes for that card)
+        this.syncGateway.sendVoteUpdate(suggestionId, {
+            userId,
+            preference: saved
+        });
+
+        return saved;
     }
 
     async setPriority(
