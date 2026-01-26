@@ -60,6 +60,7 @@ import { AsyncPipe, NgIf } from '@angular/common';
       margin-bottom: 2rem;
       padding: 1rem 2rem;
       position: relative;
+      z-index: 100;
     }
     
     .navbar-container {
