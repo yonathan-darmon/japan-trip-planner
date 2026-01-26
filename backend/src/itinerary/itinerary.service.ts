@@ -8,6 +8,7 @@ import { PreferencesService } from '../preferences/preferences.service';
 import { GenerateItineraryDto } from './dto/generate-itinerary.dto';
 import { ReorderActivitiesDto } from './dto/reorder-activities.dto';
 import { Suggestion, SuggestionCategory } from '../suggestions/entities/suggestion.entity';
+import { TripConfig } from '../trip-config/entities/trip-config.entity';
 
 interface DayPlan {
     dayNumber: number;
@@ -33,24 +34,34 @@ export class ItineraryService {
     /**
      * PHASE 1: Collect trip configuration and voted suggestions
      */
-    private async collectData() {
+    private async collectData(): Promise<{ config: TripConfig; votedSuggestions: Suggestion[] }> {
         const config = await this.tripConfigService.getConfig();
         const allSuggestions = await this.suggestionsService.findAll();
 
         console.log('=== PHASE 1: COLLECT DATA ===');
         console.log('Total suggestions in DB:', allSuggestions.length);
 
-        // Filter only voted suggestions (selected = true)
-        const votedSuggestions = allSuggestions.filter(s =>
-            s.preferences && s.preferences.some(p => p.selected)
+        // 1. Activities MUST be voted (and not deleted, but findAll handles that)
+        // Also exclude accommodations from this list to avoid duplicates if we merge later
+        const votedActivities = allSuggestions.filter(s =>
+            s.category !== SuggestionCategory.HEBERGEMENT &&
+            s.preferences &&
+            s.preferences.some(p => p.selected)
         );
 
-        console.log('Voted suggestions:', votedSuggestions.length);
-        votedSuggestions.forEach(s => {
-            console.log(`  - ${s.name} (${s.location}) - Lat: ${s.latitude}, Lng: ${s.longitude}`);
-        });
+        // 2. Accommodations: Take ALL of them (voted or not)
+        const allAccommodations = allSuggestions.filter(s =>
+            s.category === SuggestionCategory.HEBERGEMENT
+        );
 
-        return { config, votedSuggestions };
+        // 3. Merge
+        // Un hôtel a le droit d'être "voted" aussi, mais on le veut dans tous les cas.
+        // Puisque j'ai exclu HEBERGEMENT de votedActivities, pas de doublons possibles.
+        const result = [...votedActivities, ...allAccommodations];
+
+        console.log(`Pool: ${votedActivities.length} voted activities + ${allAccommodations.length} accommodations = ${result.length} total items.`);
+
+        return { config, votedSuggestions: result };
     }
 
     /**
