@@ -59,4 +59,9 @@ export class SuggestionsController {
     remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
         return this.suggestionsService.remove(id, user);
     }
+
+    @Patch(':id/retry-geocode')
+    retryGeocode(@Param('id', ParseIntPipe) id: number) {
+        return this.suggestionsService.retryGeocode(id);
+    }
 }

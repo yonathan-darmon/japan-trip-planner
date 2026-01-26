@@ -70,6 +70,17 @@ import { PreferenceSelectorComponent } from '../preference-selector/preference-s
           
           <p class="location">📍 {{ suggestion.location }}</p>
           
+          <!-- Warning for missing coordinates -->
+          <div class="warning-badge" *ngIf="!hasCoordinates(suggestion)">
+            ⚠️ Coordonnées manquantes
+            <button 
+              (click)="retryGeocode(suggestion.id)" 
+              class="btn btn-sm btn-ghost"
+              [disabled]="retryingGeocode === suggestion.id">
+              {{ retryingGeocode === suggestion.id ? '⏳ Retry...' : '🔄 Réessayer' }}
+            </button>
+          </div>
+          
           <div class="price-tag" *ngIf="suggestion.price">
             {{ suggestion.price }} €
           </div>
@@ -266,11 +277,29 @@ import { PreferenceSelectorComponent } from '../preference-selector/preference-s
       font-size: 0.8rem;
       color: var(--color-text-tertiary);
     }
+    .warning-badge {
+      background: rgba(255, 193, 7, 0.1);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      border-radius: var(--radius-md);
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #ffc107;
+    }
+    .warning-badge button {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+    }
   `]
 })
 export class SuggestionListComponent implements OnInit {
   // Use Signal for reactive state
   suggestions: WritableSignal<Suggestion[]> = signal([]);
+  retryingGeocode: number | null = null;
 
   // Filter Signals
   searchQuery = signal('');
@@ -400,5 +429,26 @@ export class SuggestionListComponent implements OnInit {
   // Use arrow function to capture 'this' context safely and properties
   trackById = (index: number, suggestion: Suggestion): number => {
     return suggestion.id;
+  }
+
+  hasCoordinates(suggestion: Suggestion): boolean {
+    return suggestion.latitude != null && suggestion.longitude != null;
+  }
+
+  retryGeocode(id: number) {
+    this.retryingGeocode = id;
+    this.suggestionsService.retryGeocode(id).subscribe({
+      next: (updated) => {
+        this.suggestions.update(list =>
+          list.map(s => s.id === id ? updated : s)
+        );
+        this.retryingGeocode = null;
+        alert('✅ Coordonnées mises à jour avec succès !');
+      },
+      error: (err) => {
+        this.retryingGeocode = null;
+        alert('❌ Impossible de géocoder cette adresse. Vérifiez qu\'elle est correcte.');
+      }
+    });
   }
 }

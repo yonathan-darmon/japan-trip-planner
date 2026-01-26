@@ -1,33 +1,160 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 
+export interface GeocodeResult {
+    latitude: number;
+    longitude: number;
+    displayName?: string;
+}
+
 @Injectable()
 export class GeocodingService {
+    private readonly photonUrl = 'https://photon.komoot.io/api/';
+    private readonly nominatimUrl = 'https://nominatim.openstreetmap.org/search';
+    private lastRequestTime = 0;
+
     constructor() { }
 
+    /**
+     * Ensure we respect rate limits
+     */
+    private async respectRateLimit() {
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+        const minDelay = 1100; // 1.1 seconds to be safe
+
+        if (timeSinceLastRequest < minDelay) {
+            const waitTime = minDelay - timeSinceLastRequest;
+            console.log(`⏳ Waiting ${waitTime}ms to respect rate limit...`);
+            await this.delay(waitTime);
+        }
+
+        this.lastRequestTime = Date.now();
+    }
+
+    /**
+     * Try Photon API first (more reliable), fallback to Nominatim
+     */
     async getCoordinates(address: string): Promise<{ lat: number; lng: number } | null> {
+        if (!address || address.trim().length === 0) {
+            return null;
+        }
+
+        await this.respectRateLimit();
+
+        // Try Photon first
+        const photonResult = await this.tryPhoton(address);
+        if (photonResult) return photonResult;
+
+        // Fallback to Nominatim
+        const nominatimResult = await this.tryNominatim(address);
+        return nominatimResult;
+    }
+
+    /**
+     * Try Photon geocoding API (Komoot)
+     */
+    private async tryPhoton(address: string): Promise<{ lat: number; lng: number } | null> {
         try {
-            const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+            console.log(`🔍 [Photon] Geocoding: "${address}"`);
+
+            const response = await axios.get(this.photonUrl, {
+                params: {
+                    q: address,
+                    limit: 1,
+                    lang: 'en',
+                },
+                timeout: 10000,
+            });
+
+            if (response.data?.features && response.data.features.length > 0) {
+                const feature = response.data.features[0];
+                const [lng, lat] = feature.geometry.coordinates;
+                console.log(`✅ [Photon] Found: ${lat}, ${lng}`);
+                console.log(`   Name: ${feature.properties.name || 'N/A'}`);
+                return { lat, lng };
+            }
+
+            console.warn(`⚠️ [Photon] No results for: "${address}"`);
+            return null;
+        } catch (error) {
+            console.error(`❌ [Photon] Error: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Try Nominatim geocoding API (OpenStreetMap)
+     */
+    private async tryNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
+        try {
+            console.log(`🔍 [Nominatim] Geocoding: "${address}"`);
+
+            const response = await axios.get(this.nominatimUrl, {
                 params: {
                     q: address,
                     format: 'json',
                     limit: 1,
+                    addressdetails: 1,
                 },
                 headers: {
                     'User-Agent': 'JapanTripPlanner/1.0',
+                    'Accept-Language': 'en',
                 },
+                timeout: 10000,
             });
 
             if (response.data && response.data.length > 0) {
+                const result = response.data[0];
+                console.log(`✅ [Nominatim] Found: ${result.lat}, ${result.lon}`);
+                console.log(`   Display: ${result.display_name}`);
                 return {
-                    lat: parseFloat(response.data[0].lat),
-                    lng: parseFloat(response.data[0].lon),
+                    lat: parseFloat(result.lat),
+                    lng: parseFloat(result.lon),
                 };
             }
+
+            console.warn(`⚠️ [Nominatim] No results for: "${address}"`);
             return null;
         } catch (error) {
-            console.error('Geocoding Error:', error.message);
-            return null; // Fail silently, just won't have coordinates
+            if (error.code === 'ECONNABORTED') {
+                console.error(`❌ [Nominatim] Timeout for: "${address}"`);
+            } else if (error.response) {
+                console.error(`❌ [Nominatim] API error (${error.response.status}): ${error.response.statusText}`);
+            } else {
+                console.error(`❌ [Nominatim] Error: ${error.message}`);
+            }
+            return null;
         }
+    }
+
+    /**
+     * Geocode with retry logic
+     */
+    async getCoordinatesWithRetry(
+        address: string,
+        maxRetries: number = 2,
+    ): Promise<{ lat: number; lng: number } | null> {
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            const result = await this.getCoordinates(address);
+
+            if (result) {
+                console.log(`✅ Geocoded "${address}" on attempt ${attempt + 1}`);
+                return result;
+            }
+
+            if (attempt < maxRetries) {
+                const delay = 2000 * Math.pow(2, attempt);
+                console.log(`⏳ Retrying geocoding in ${delay}ms... (attempt ${attempt + 2}/${maxRetries + 1})`);
+                await this.delay(delay);
+            }
+        }
+
+        console.warn(`❌ Failed to geocode "${address}" after ${maxRetries + 1} attempts`);
+        return null;
+    }
+
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }

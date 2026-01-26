@@ -37,9 +37,9 @@ export class SuggestionsService {
             suggestion.photoUrl = await this.s3Service.uploadFile(file);
         }
 
-        // Geocode location
+        // Geocode location with retry
         if (createSuggestionDto.location) {
-            const coords = await this.geocodingService.getCoordinates(
+            const coords = await this.geocodingService.getCoordinatesWithRetry(
                 createSuggestionDto.location,
             );
             if (coords) {
@@ -89,6 +89,11 @@ export class SuggestionsService {
             );
         }
 
+        // Check if location changed BEFORE updating fields
+        const locationChanged =
+            updateSuggestionDto.location &&
+            updateSuggestionDto.location !== suggestion.location;
+
         // Update basic fields
         Object.assign(suggestion, updateSuggestionDto);
 
@@ -98,12 +103,10 @@ export class SuggestionsService {
         }
 
         // Re-geocode if location changed
-        if (
-            updateSuggestionDto.location &&
-            updateSuggestionDto.location !== suggestion.location
-        ) {
-            const coords = await this.geocodingService.getCoordinates(
-                updateSuggestionDto.location,
+        if (locationChanged) {
+            console.log(`📍 Location changed, re-geocoding...`);
+            const coords = await this.geocodingService.getCoordinatesWithRetry(
+                updateSuggestionDto.location!,
             );
             if (coords) {
                 suggestion.latitude = coords.lat;
@@ -125,5 +128,31 @@ export class SuggestionsService {
         }
 
         await this.suggestionsRepository.softRemove(suggestion);
+    }
+
+    /**
+     * Retry geocoding for a suggestion
+     * Useful when initial geocoding failed
+     */
+    async retryGeocode(id: number): Promise<Suggestion> {
+        const suggestion = await this.findOne(id);
+
+        if (!suggestion.location) {
+            throw new NotFoundException('Cette suggestion n\'a pas d\'adresse');
+        }
+
+        const coords = await this.geocodingService.getCoordinatesWithRetry(
+            suggestion.location,
+        );
+
+        if (coords) {
+            suggestion.latitude = coords.lat;
+            suggestion.longitude = coords.lng;
+            return this.suggestionsRepository.save(suggestion);
+        }
+
+        throw new NotFoundException(
+            'Impossible de géocoder cette adresse. Vérifiez qu\'elle est correcte.',
+        );
     }
 }

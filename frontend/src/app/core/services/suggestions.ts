@@ -59,4 +59,8 @@ export class SuggestionsService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+  retryGeocode(id: number): Observable<Suggestion> {
+    return this.http.patch<Suggestion>(`${this.apiUrl}/${id}/retry-geocode`, {});
+  }
 }
