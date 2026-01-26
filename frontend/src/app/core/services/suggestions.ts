@@ -24,6 +24,7 @@ export interface Suggestion {
   category: SuggestionCategory;
   latitude: number;
   longitude: number;
+  durationHours: number;
   createdBy: User;
   createdById: number;
   createdAt: string;

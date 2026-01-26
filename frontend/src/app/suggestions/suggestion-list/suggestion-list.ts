@@ -53,7 +53,7 @@ import { PreferenceSelectorComponent } from '../preference-selector/preference-s
 
     <div class="suggestions-grid fade-in" style="animation-delay: 100ms;">
       <div *ngFor="let suggestion of filteredSuggestions(); trackBy: trackById" class="card glass suggestion-card">
-        <div class="card-image" [style.backgroundImage]="'url(' + (suggestion.photoUrl || 'assets/placeholder-japan.jpg') + ')'">
+        <div class="card-image" [style.backgroundImage]="suggestion.photoUrl ? 'url(' + suggestion.photoUrl + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
           <span class="badge badge-secondary category-badge">{{ suggestion.category }}</span>
         </div>
         
@@ -81,8 +81,14 @@ import { PreferenceSelectorComponent } from '../preference-selector/preference-s
             </button>
           </div>
           
-          <div class="price-tag" *ngIf="suggestion.price">
-            {{ suggestion.price }} €
+          <div class="info-badges">
+            <div class="duration-badge" *ngIf="suggestion.durationHours">
+              {{ formatDuration(suggestion.durationHours) }}
+            </div>
+            
+            <div class="price-tag" *ngIf="suggestion.price">
+              {{ suggestion.price }} €
+            </div>
           </div>
           
           <p class="description">{{ suggestion.description | slice:0:100 }}{{ suggestion.description.length > 100 ? '...' : '' }}</p>
@@ -294,6 +300,23 @@ import { PreferenceSelectorComponent } from '../preference-selector/preference-s
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
     }
+    .info-badges {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .duration-badge {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      border-radius: var(--radius-md);
+      padding: 0.25rem 0.75rem;
+      font-size: 0.85rem;
+      color: #4caf50;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
   `]
 })
 export class SuggestionListComponent implements OnInit {
@@ -450,5 +473,13 @@ export class SuggestionListComponent implements OnInit {
         alert('❌ Impossible de géocoder cette adresse. Vérifiez qu\'elle est correcte.');
       }
     });
+  }
+
+  formatDuration(hours: number): string {
+    if (hours >= 8) return '🕐 Journée';
+    if (hours >= 4) return '🕐 Demi-journée';
+    if (hours === 1) return '🕐 1h';
+    if (hours % 1 === 0) return `🕐 ${hours}h`;
+    return `🕐 ${hours}h`;
   }
 }

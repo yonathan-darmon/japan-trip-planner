@@ -54,6 +54,15 @@ export class Suggestion {
     @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
     longitude: number;
 
+    @Column({
+        type: 'decimal',
+        precision: 3,
+        scale: 1,
+        default: 2.0,
+        name: 'duration_hours'
+    })
+    durationHours: number;
+
     @ManyToOne(() => User)
     @JoinColumn({ name: 'created_by' })
     createdBy: User;

@@ -64,6 +64,58 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
           </div>
 
           <div class="form-group">
+            <label class="form-label">Durée estimée</label>
+            <div class="duration-selector">
+              <button 
+                type="button" 
+                class="duration-btn" 
+                [class.active]="suggestionForm.get('durationHours')?.value === 1"
+                (click)="setDuration(1)">
+                1h
+              </button>
+              <button 
+                type="button" 
+                class="duration-btn" 
+                [class.active]="suggestionForm.get('durationHours')?.value === 2"
+                (click)="setDuration(2)">
+                2h
+              </button>
+              <button 
+                type="button" 
+                class="duration-btn" 
+                [class.active]="suggestionForm.get('durationHours')?.value === 3"
+                (click)="setDuration(3)">
+                3h
+              </button>
+              <button 
+                type="button" 
+                class="duration-btn" 
+                [class.active]="suggestionForm.get('durationHours')?.value === 4"
+                (click)="setDuration(4)">
+                🌅 Demi-journée
+              </button>
+              <button 
+                type="button" 
+                class="duration-btn" 
+                [class.active]="suggestionForm.get('durationHours')?.value === 8"
+                (click)="setDuration(8)">
+                ☀️ Journée
+              </button>
+            </div>
+            <div class="duration-custom">
+              <label class="form-label-small">Ou personnalisé :</label>
+              <input 
+                type="number" 
+                class="form-input-small" 
+                formControlName="durationHours" 
+                min="0.5" 
+                max="8" 
+                step="0.5"
+                placeholder="Heures">
+            </div>
+          </div>
+
+          <div class="form-group">
             <label class="form-label" for="description">Description (Optionnel)</label>
             <textarea id="description" class="form-textarea" formControlName="description" placeholder="Pourquoi faut-il y aller ?"></textarea>
           </div>
@@ -146,6 +198,51 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
       padding-top: 1.5rem;
     }
     
+    .duration-selector {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .duration-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+    .duration-btn:hover {
+      background: var(--color-bg-elevated);
+      border-color: var(--color-primary);
+    }
+    .duration-btn.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .duration-custom {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .form-label-small {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+    .form-input-small {
+      width: 100px;
+      padding: 0.5rem;
+      background: var(--color-bg-tertiary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      font-size: 0.9rem;
+    }
+    
     @media (max-width: 600px) {
       .form-row {
         flex-direction: column;
@@ -174,7 +271,8 @@ export class SuggestionFormComponent implements OnInit {
       location: ['', Validators.required],
       category: [SuggestionCategory.ACTIVITE, Validators.required],
       price: [null],
-      description: ['']
+      description: [''],
+      durationHours: [2, [Validators.min(0.5), Validators.max(8)]]
     });
   }
 
@@ -248,5 +346,9 @@ export class SuggestionFormComponent implements OnInit {
     } else {
       this.suggestionForm.markAllAsTouched();
     }
+  }
+
+  setDuration(hours: number) {
+    this.suggestionForm.patchValue({ durationHours: hours });
   }
 }
