@@ -7,6 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ItineraryStateService } from '../core/services/itinerary-state.service';
 import { ItineraryService, ItineraryDay } from '../core/services/itinerary';
 import { SuggestionsService, Suggestion, SuggestionCategory } from '../core/services/suggestions';
+import { AuthService } from '../core/services/auth';
 
 // Import sub-components
 import { ItineraryMapComponent } from './components/itinerary-map/itinerary-map.component';
@@ -26,11 +27,22 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
   template: `
     <div class="viewer-layout" *ngIf="itinerary$ | async as itinerary">
       
-      <!-- LEFT PANEL: CONTENT -->
+      <!-- TOP PANEL: MAP -->
+      <div class="viewer-map">
+        <div class="map-sticky">
+          <app-itinerary-map
+            [itinerary]="itinerary"
+            [selectedDay]="selectedDay$ | async">
+          </app-itinerary-map>
+        </div>
+      </div>
+
+      <!-- BOTTOM PANEL: CONTENT -->
       <div class="viewer-content">
         <app-itinerary-header 
           [itinerary]="itinerary"
           [costBreakdown]="(costBreakdown$ | async) || {}"
+          [readOnly]="!canEdit(itinerary)"
           (delete)="deleteItinerary()">
         </app-itinerary-header>
 
@@ -40,22 +52,13 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
             [day]="day"
             [connectedTo]="allDayIds"
             [selectedActivities]="selectedActivities"
+            [readOnly]="!canEdit(itinerary)"
             (dayClick)="onDaySelected(day)"
             (editAccommodation)="startEditAccommodation($event)"
             (viewDetails)="viewActivityDetails($event)"
             (toggleSelection)="toggleSelection($event.suggestionId)"
             (drop)="onDrop($event, day)">
           </app-itinerary-day>
-        </div>
-      </div>
-
-      <!-- RIGHT PANEL: MAP -->
-      <div class="viewer-map">
-        <div class="map-sticky">
-          <app-itinerary-map
-            [itinerary]="itinerary"
-            [selectedDay]="selectedDay$ | async">
-          </app-itinerary-map>
         </div>
       </div>
 
@@ -119,18 +122,29 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
   `,
   styles: [`
     .viewer-layout {
-      display: grid;
-      grid-template-columns: 1fr 450px;
+      display: flex;
+      flex-direction: column;
       gap: 24px;
       max-width: 1400px;
       margin: 0 auto;
       padding: 24px;
-      height: calc(100vh - 64px);
     }
-    .viewer-content { overflow-y: auto; padding-right: 12px; padding-bottom: 100px; }
+    .viewer-content { 
+      padding-bottom: 100px;
+    }
     .days-container { display: flex; flex-direction: column; gap: 24px; }
-    .viewer-map { height: 100%; }
-    .map-sticky { position: sticky; top: 0; height: 100%; border-radius: 16px; overflow: hidden; }
+    
+    .viewer-map { 
+      width: 100%;
+      height: 450px;
+      flex-shrink: 0;
+    }
+    .map-sticky { 
+      height: 100%; 
+      border-radius: 16px; 
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+    }
 
     .loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -277,6 +291,7 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
   private stateService = inject(ItineraryStateService);
   private itineraryService = inject(ItineraryService);
   private suggestionsService = inject(SuggestionsService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
@@ -286,6 +301,12 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
   loading$ = this.stateService.loading$;
   selectedDay$ = this.stateService.selectedDay$;
   costBreakdown$ = this.stateService.costBreakdown$;
+
+  // Permissions
+  canEdit(itinerary: any): boolean {
+    const user = this.authService.currentUserValue;
+    return !!(user && (user.role === 'super_admin' || user.id === itinerary.createdById));
+  }
 
   // Local UI state
   selectedActivities = new Set<number>();

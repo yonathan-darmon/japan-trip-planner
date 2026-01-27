@@ -322,7 +322,8 @@ export class ItineraryService {
 
     async findOne(id: number, userId: number): Promise<Itinerary> {
         const itinerary = await this.itineraryRepository.findOne({
-            where: { id, createdById: userId },
+            where: { id },
+            relations: ['createdBy'],
         });
 
         if (!itinerary) {
@@ -334,6 +335,12 @@ export class ItineraryService {
 
     async remove(id: number, userId: number): Promise<void> {
         const itinerary = await this.findOne(id, userId);
+
+        // Only the creator can delete the itinerary
+        if (itinerary.createdById !== userId) {
+            throw new BadRequestException('You can only delete your own itineraries');
+        }
+
         await this.itineraryRepository.remove(itinerary);
     }
 
@@ -346,6 +353,11 @@ export class ItineraryService {
 
         if (!itinerary) {
             throw new NotFoundException('Itinerary not found');
+        }
+
+        // Check permissions
+        if (itinerary.createdById !== userId) {
+            throw new BadRequestException('You can only modify your own itineraries');
         }
 
         // Target day index
@@ -414,6 +426,11 @@ export class ItineraryService {
             throw new NotFoundException('Itinerary not found');
         }
 
+        // Check permissions
+        if (itinerary.createdById !== userId) {
+            throw new BadRequestException('You can only modify your own itineraries');
+        }
+
         // Update each day's activities based on the DTO
         for (const dayDto of dto.days) {
             const dayIndex = dayDto.dayNumber - 1;
@@ -472,6 +489,11 @@ export class ItineraryService {
         userId: number
     ): Promise<Itinerary> {
         const itinerary = await this.findOne(id, userId);
+
+        // Check permissions
+        if (itinerary.createdById !== userId) {
+            throw new BadRequestException('You can only modify your own itineraries');
+        }
 
         if (dayNumber < 1 || dayNumber > itinerary.days.length) {
             throw new BadRequestException('Day number out of range');

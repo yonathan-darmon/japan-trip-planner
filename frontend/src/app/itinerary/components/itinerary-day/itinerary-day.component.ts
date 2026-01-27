@@ -31,7 +31,7 @@ import { Suggestion } from '../../../core/services/suggestions';
           <strong *ngIf="day.accommodation">{{ day.accommodation.name }}</strong>
           <span class="placeholder" *ngIf="!day.accommodation">Aucun hébergement</span>
         </div>
-        <button class="btn-edit-hotel" (click)="editAccommodation.emit(day); $event.stopPropagation()">
+        <button class="btn-edit-hotel" *ngIf="!readOnly" (click)="editAccommodation.emit(day); $event.stopPropagation()">
           ✏️
         </button>
       </div>
@@ -39,6 +39,7 @@ import { Suggestion } from '../../../core/services/suggestions';
       <div class="activities-list"
            cdkDropList
            [cdkDropListData]="day.activities"
+           [cdkDropListDisabled]="readOnly"
            (cdkDropListDropped)="onDrop($event)">
         
         <div class="activity-item" 
@@ -55,7 +56,7 @@ import { Suggestion } from '../../../core/services/suggestions';
             <div class="activity-meta" *ngIf="activity.suggestion.price">
               <span class="price">{{ activity.suggestion.price }}€</span>
             </div>
-            <div class="selection-checkbox">
+            <div class="selection-checkbox" *ngIf="!readOnly">
                <input type="checkbox" 
                       [checked]="isActivitySelected(activity.suggestionId)"
                       (change)="toggleSelection.emit(activity); $event.stopPropagation()">
@@ -67,8 +68,11 @@ import { Suggestion } from '../../../core/services/suggestions';
           </div>
         </div>
         
-        <div class="empty-state" *ngIf="day.activities.length === 0">
+        <div class="empty-state" *ngIf="day.activities.length === 0 && !readOnly">
           Glissez des activités ici
+        </div>
+        <div class="empty-state" *ngIf="day.activities.length === 0 && readOnly">
+          Aucune activité prévue
         </div>
       </div>
     </div>
@@ -277,6 +281,7 @@ export class ItineraryDayComponent {
   @Input() day!: ItineraryDay;
   @Input() selectedActivities: Set<number> = new Set();
   @Input() connectedTo: string[] = [];
+  @Input() readOnly = false;
 
   @Output() dayClick = new EventEmitter<void>();
   @Output() drop = new EventEmitter<CdkDragDrop<any[]>>();

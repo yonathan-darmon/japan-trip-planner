@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Itinerary } from '../../../core/services/itinerary';
 
 @Component({
-    selector: 'app-itinerary-header',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-itinerary-header',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <header class="viewer-header" *ngIf="itinerary">
       <div class="header-main">
         <div class="header-title">
@@ -20,7 +20,7 @@ import { Itinerary } from '../../../core/services/itinerary';
             </span>
           </div>
         </div>
-        <div class="header-actions">
+        <div class="header-actions" *ngIf="!readOnly">
           <button class="btn-delete" (click)="delete.emit()">
             Supprimer
           </button>
@@ -36,7 +36,7 @@ import { Itinerary } from '../../../core/services/itinerary';
       </div>
     </header>
   `,
-    styles: [`
+  styles: [`
     .viewer-header {
       background: white;
       padding: 24px;
@@ -104,20 +104,21 @@ import { Itinerary } from '../../../core/services/itinerary';
   `]
 })
 export class ItineraryHeaderComponent {
-    @Input() itinerary: Itinerary | null = null;
-    @Input() costBreakdown: { [key: string]: number } | null = null;
-    @Output() delete = new EventEmitter<void>();
+  @Input() itinerary: Itinerary | null = null;
+  @Input() costBreakdown: { [key: string]: number } | null = null;
+  @Input() readOnly = false;
+  @Output() delete = new EventEmitter<void>();
 
-    formatDate(date: string | Date | null): string {
-        if (!date) return '';
-        return new Date(date).toLocaleDateString('fr-FR', {
-            day: 'numeric',
-            month: 'short'
-        });
-    }
+  formatDate(date: string | Date | null): string {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short'
+    });
+  }
 
-    getPercent(amount: number): number {
-        if (!this.itinerary || this.itinerary.totalCost === 0) return 0;
-        return (amount / this.itinerary.totalCost) * 100;
-    }
+  getPercent(amount: number): number {
+    if (!this.itinerary || this.itinerary.totalCost === 0) return 0;
+    return (amount / this.itinerary.totalCost) * 100;
+  }
 }
