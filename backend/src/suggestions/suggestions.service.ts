@@ -2,6 +2,8 @@ import {
     Injectable,
     NotFoundException,
     ForbiddenException,
+    Inject,
+    forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +14,7 @@ import { User, UserRole } from '../users/entities/user.entity';
 import { S3Service } from './s3.service';
 import { GeocodingService } from './geocoding.service';
 import { SyncGateway } from '../sync/sync.gateway';
+import { ItineraryService } from '../itinerary/itinerary.service';
 
 @Injectable()
 export class SuggestionsService {
@@ -21,7 +24,67 @@ export class SuggestionsService {
         private s3Service: S3Service,
         private geocodingService: GeocodingService,
         private syncGateway: SyncGateway,
+        @Inject(forwardRef(() => ItineraryService))
+        private itineraryService: ItineraryService,
     ) { }
+
+    // ... (existing code for create, findAll, findOne) ...
+
+    async update(
+        id: number,
+        updateSuggestionDto: UpdateSuggestionDto,
+        user: User,
+        file?: Express.Multer.File,
+    ): Promise<Suggestion> {
+        const suggestion = await this.findOne(id);
+
+        // Check permissions: only creator or super admin can update
+        if (
+            user.role !== UserRole.SUPER_ADMIN &&
+            suggestion.createdById !== user.id
+        ) {
+            throw new ForbiddenException(
+                "Vous n'avez pas le droit de modifier cette suggestion",
+            );
+        }
+
+        // Check if location changed BEFORE updating fields
+        const locationChanged =
+            updateSuggestionDto.location &&
+            updateSuggestionDto.location !== suggestion.location;
+
+        // Update basic fields
+        Object.assign(suggestion, updateSuggestionDto);
+
+        // Upload new image if present
+        if (file) {
+            suggestion.photoUrl = await this.s3Service.uploadFile(file);
+        }
+
+        // Re-geocode if location changed
+        if (locationChanged) {
+            console.log(`📍 Location changed, re-geocoding...`);
+            const coords = await this.geocodingService.getCoordinatesWithRetry(
+                updateSuggestionDto.location!,
+            );
+            if (coords) {
+                suggestion.latitude = coords.lat;
+                suggestion.longitude = coords.lng;
+            }
+        }
+
+        const updatedSuggestion = await this.suggestionsRepository.save(suggestion);
+        this.syncGateway.sendSuggestionUpdate('update', updatedSuggestion);
+
+        // Synchronize itineraries
+        try {
+            await this.itineraryService.updateSuggestionInItineraries(updatedSuggestion);
+        } catch (err) {
+            console.error('Error synchronizing itineraries:', err);
+        }
+
+        return updatedSuggestion;
+    }
 
     async create(
         createSuggestionDto: CreateSuggestionDto,
@@ -75,53 +138,7 @@ export class SuggestionsService {
         return suggestion;
     }
 
-    async update(
-        id: number,
-        updateSuggestionDto: UpdateSuggestionDto,
-        user: User,
-        file?: Express.Multer.File,
-    ): Promise<Suggestion> {
-        const suggestion = await this.findOne(id);
 
-        // Check permissions: only creator or super admin can update
-        if (
-            user.role !== UserRole.SUPER_ADMIN &&
-            suggestion.createdById !== user.id
-        ) {
-            throw new ForbiddenException(
-                "Vous n'avez pas le droit de modifier cette suggestion",
-            );
-        }
-
-        // Check if location changed BEFORE updating fields
-        const locationChanged =
-            updateSuggestionDto.location &&
-            updateSuggestionDto.location !== suggestion.location;
-
-        // Update basic fields
-        Object.assign(suggestion, updateSuggestionDto);
-
-        // Upload new image if present
-        if (file) {
-            suggestion.photoUrl = await this.s3Service.uploadFile(file);
-        }
-
-        // Re-geocode if location changed
-        if (locationChanged) {
-            console.log(`📍 Location changed, re-geocoding...`);
-            const coords = await this.geocodingService.getCoordinatesWithRetry(
-                updateSuggestionDto.location!,
-            );
-            if (coords) {
-                suggestion.latitude = coords.lat;
-                suggestion.longitude = coords.lng;
-            }
-        }
-
-        const updatedSuggestion = await this.suggestionsRepository.save(suggestion);
-        this.syncGateway.sendSuggestionUpdate('update', updatedSuggestion);
-        return updatedSuggestion;
-    }
 
     async remove(id: number, user: User): Promise<void> {
         const suggestion = await this.findOne(id);

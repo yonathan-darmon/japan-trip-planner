@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ItineraryService } from './itinerary.service';
 import { ItineraryController } from './itinerary.controller';
@@ -14,7 +14,7 @@ import { RoutingService } from './routing.service';
     imports: [
         TypeOrmModule.forFeature([Itinerary]),
         TripConfigModule,
-        SuggestionsModule,
+        forwardRef(() => SuggestionsModule),
         PreferencesModule,
         AuthModule,
     ],

@@ -39,6 +39,7 @@ export class ItineraryService {
         @InjectRepository(Itinerary)
         private itineraryRepository: Repository<Itinerary>,
         private tripConfigService: TripConfigService,
+        @Inject(forwardRef(() => SuggestionsService))
         private suggestionsService: SuggestionsService,
         private preferencesService: PreferencesService,
         private clusteringService: ClusteringService,
@@ -564,5 +565,37 @@ export class ItineraryService {
         itinerary.totalCost = this.calculateCost(itinerary.days);
 
         return this.itineraryRepository.save(itinerary);
+    }
+
+    async updateSuggestionInItineraries(suggestion: Suggestion): Promise<void> {
+        // Fetch all itineraries because they store snapshots in JSON
+        const itineraries = await this.itineraryRepository.find();
+
+
+        for (const itinerary of itineraries) {
+            let changed = false;
+            for (const day of itinerary.days) {
+                // Update Accommodation
+                if (day.accommodation && day.accommodation.id === suggestion.id) {
+                    day.accommodation = suggestion;
+                    changed = true;
+                }
+
+                // Update Activities
+                for (const activity of day.activities) {
+                    if (activity.suggestionId === suggestion.id) {
+                        activity.suggestion = suggestion;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (changed) {
+                // Recalculate cost if price changed
+                itinerary.totalCost = this.calculateCost(itinerary.days);
+                await this.itineraryRepository.save(itinerary);
+                this.logger.log(`Updated itinerary ${itinerary.id} with new details for suggestion ${suggestion.id}`);
+            }
+        }
     }
 }
