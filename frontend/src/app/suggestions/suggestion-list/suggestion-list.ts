@@ -97,9 +97,14 @@ import { WebSocketService } from '../../core/services/websocket.service';
           
           <div class="card-footer">
             <span class="author">Par {{ suggestion.createdBy.username }}</span>
-            <div class="actions" *ngIf="canEdit(suggestion)">
-              <a [routerLink]="['/suggestions/edit', suggestion.id]" class="btn-icon">✏️</a>
-              <button (click)="deleteSuggestion(suggestion.id)" class="btn-icon delete">🗑️</button>
+            <div class="footer-actions">
+              <a [routerLink]="['/suggestions', suggestion.id]" class="btn-detail">
+                ℹ️ Détails
+              </a>
+              <div class="actions" *ngIf="canEdit(suggestion)">
+                <a [routerLink]="['/suggestions/edit', suggestion.id]" class="btn-icon">✏️</a>
+                <button (click)="deleteSuggestion(suggestion.id)" class="btn-icon delete">🗑️</button>
+              </div>
             </div>
           </div>
 
@@ -229,6 +234,29 @@ import { WebSocketService } from '../../core/services/websocket.service';
       border-top: 1px solid var(--color-glass-border);
       font-size: 0.85rem;
       color: var(--color-text-tertiary);
+    }
+    .footer-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .btn-detail {
+      background: rgba(99, 179, 237, 0.15);
+      border: 1px solid rgba(99, 179, 237, 0.3);
+      color: #63b3ed;
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-weight: 500;
+    }
+    .btn-detail:hover {
+      background: rgba(99, 179, 237, 0.25);
+      transform: translateY(-1px);
     }
     .actions {
       display: flex;

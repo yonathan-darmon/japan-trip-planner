@@ -54,6 +54,22 @@
     font-size: 1.5rem;
 }
 
+.detail-photo {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.detail-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
 .detail-content {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
@@ -61,6 +77,16 @@
     margin-bottom: 2rem;
     line-height: 1.8;
     font-size: 1.1rem;
+}
+
+.description-text {
+    white-space: pre-wrap;
+    line-height: 1.8;
+}
+
+.no-description {
+    color: var(--color-text-secondary);
+    font-style: italic;
 }
 
 .detail-section {

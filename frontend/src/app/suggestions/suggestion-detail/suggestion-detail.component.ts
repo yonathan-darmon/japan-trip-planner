@@ -36,14 +36,22 @@ import * as L from 'leaflet';
         </div>
       </div>
 
+      <div class="detail-photo" *ngIf="suggestion.photoUrl">
+        <img [src]="suggestion.photoUrl" [alt]="suggestion.name" />
+      </div>
+
       <div class="price-box" *ngIf="suggestion.price">
         💰 {{ suggestion.price }}€
       </div>
 
       <div class="detail-content">
-        <div class="detail-section">
+        <div class="detail-section" *ngIf="suggestion.description">
           <h2>📝 Description</h2>
-          <p>{{ suggestion.description }}</p>
+          <p class="description-text">{{ suggestion.description }}</p>
+        </div>
+        <div class="detail-section" *ngIf="!suggestion.description">
+          <h2>📝 Description</h2>
+          <p class="no-description">Aucune description disponible.</p>
         </div>
 
         <div class="detail-section" *ngIf="suggestion.latitude && suggestion.longitude">
