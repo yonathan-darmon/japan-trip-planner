@@ -78,4 +78,8 @@ export class ItineraryService {
     updateAccommodation(id: number, dayNumber: number, suggestionId: number | null): Observable<Itinerary> {
         return this.http.patch<Itinerary>(`${this.apiUrl}/${id}/days/${dayNumber}/accommodation`, { suggestionId });
     }
+
+    addActivity(id: number, dayNumber: number, suggestionId: number): Observable<Itinerary> {
+        return this.http.post<Itinerary>(`${this.apiUrl}/${id}/days/${dayNumber}/activities`, { suggestionId });
+    }
 }

@@ -53,10 +53,13 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
             [connectedTo]="allDayIds"
             [selectedActivities]="selectedActivities"
             [readOnly]="!canEdit(itinerary)"
+            [allSuggestions]="allSuggestions"
+            [usedSuggestionIds]="usedSuggestionIds"
             (dayClick)="onDaySelected(day)"
             (editAccommodation)="startEditAccommodation($event)"
             (viewDetails)="viewActivityDetails($event)"
             (toggleSelection)="toggleSelection($event.suggestionId)"
+            (addActivity)="onAddActivity($event)"
             (drop)="onDrop($event, day)">
           </app-itinerary-day>
         </div>
@@ -312,10 +315,13 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
   selectedActivities = new Set<number>();
   allDayIds: string[] = [];
 
+  allSuggestions: Suggestion[] = [];
+  usedSuggestionIds = new Set<number>();
+
   // Modal State
   showAccommodationModal = false;
   editingDay: ItineraryDay | null = null;
-  accommodations: Suggestion[] = [];
+  accommodations: Suggestion[] = []; // Derived from allSuggestions
   filteredAccommodations: Suggestion[] = [];
   searchQuery = '';
 
@@ -330,24 +336,44 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Subscribe to itinerary to update IDs
+    // Subscribe to itinerary to update IDs and used suggestions
     this.itinerary$.subscribe(itinerary => {
       if (itinerary) {
         this.allDayIds = itinerary.days.map(d => `day-list-${d.dayNumber}`);
+        this.updateUsedSuggestions(itinerary);
       }
     });
 
-    // Load available accommodations once
+    // Load available suggestions once
     if (isPlatformBrowser(this.platformId)) {
-      this.loadAccommodations();
+      this.loadAllSuggestions();
     }
   }
 
-  loadAccommodations() {
+  loadAllSuggestions() {
     this.suggestionsService.getAll().subscribe(suggestions => {
+      this.allSuggestions = suggestions;
       this.accommodations = suggestions.filter(s => s.category === SuggestionCategory.HEBERGEMENT);
       this.filteredAccommodations = this.accommodations;
     });
+  }
+
+  updateUsedSuggestions(itinerary: any) {
+    const ids = new Set<number>();
+    itinerary.days.forEach((day: ItineraryDay) => {
+      day.activities.forEach((act: any) => ids.add(act.suggestionId));
+    });
+    this.usedSuggestionIds = ids;
+  }
+
+  onAddActivity(event: { day: ItineraryDay, suggestionId: number }) {
+    const itinerary = this.stateService.getItinerary();
+    if (!itinerary) return;
+
+    this.itineraryService.addActivity(itinerary.id, event.day.dayNumber, event.suggestionId)
+      .subscribe(updatedItinerary => {
+        this.stateService.setItinerary(updatedItinerary);
+      });
   }
 
   filterAccommodations(query: string) {

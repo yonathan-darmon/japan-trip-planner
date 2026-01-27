@@ -82,4 +82,19 @@ export class ItineraryController {
             req.user.id
         );
     }
+
+    @Post(':id/days/:dayNumber/activities')
+    async addActivity(
+        @Param('id', ParseIntPipe) id: number,
+        @Param('dayNumber', ParseIntPipe) dayNumber: number,
+        @Body() body: { suggestionId: number },
+        @Request() req
+    ) {
+        return this.itineraryService.addActivity(
+            id,
+            dayNumber,
+            body.suggestionId,
+            req.user.id
+        );
+    }
 }

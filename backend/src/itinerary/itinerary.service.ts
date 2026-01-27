@@ -516,4 +516,53 @@ export class ItineraryService {
 
         return this.itineraryRepository.save(itinerary);
     }
+    async addActivity(
+        id: number,
+        dayNumber: number,
+        suggestionId: number,
+        userId: number
+    ): Promise<Itinerary> {
+        const itinerary = await this.findOne(id, userId);
+
+        // Check permissions
+        if (itinerary.createdById !== userId) {
+            throw new BadRequestException('You can only modify your own itineraries');
+        }
+
+        if (dayNumber < 1 || dayNumber > itinerary.days.length) {
+            throw new BadRequestException('Day number out of range');
+        }
+
+        const dayIndex = dayNumber - 1;
+
+        // Check availability
+        const suggestion = await this.suggestionsService.findOne(suggestionId);
+        if (!suggestion) {
+            throw new NotFoundException('Suggestion not found');
+        }
+
+        // Check if already in itinerary (optional, but requested implicitly by user logic)
+        // User asked for UI to filter, but backend should ideally prevent duplicates too if strict unique.
+        // Let's check across ALL days for strict uniqueness or just append?
+        // Usually trip itineraries don't repeat the exact same activity.
+        const alreadyExists = itinerary.days.some(d =>
+            d.activities.some(a => a.suggestionId === suggestionId)
+        );
+
+        if (alreadyExists) {
+            throw new BadRequestException('This activity is already in the itinerary');
+        }
+
+        // Add to day
+        itinerary.days[dayIndex].activities.push({
+            suggestionId: suggestion.id,
+            orderInDay: itinerary.days[dayIndex].activities.length + 1,
+            suggestion: suggestion
+        });
+
+        // Recalculate cost
+        itinerary.totalCost = this.calculateCost(itinerary.days);
+
+        return this.itineraryRepository.save(itinerary);
+    }
 }

@@ -2,7 +2,9 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ItineraryDay } from '../../../core/services/itinerary';
-import { Suggestion } from '../../../core/services/suggestions';
+import { Suggestion, SuggestionCategory } from '../../../core/services/suggestions';
+
+
 
 @Component({
   selector: 'app-itinerary-day',
@@ -68,8 +70,24 @@ import { Suggestion } from '../../../core/services/suggestions';
           </div>
         </div>
         
-        <div class="empty-state" *ngIf="day.activities.length === 0 && !readOnly">
-          Glissez des activités ici
+        <div class="add-activity-container" *ngIf="!readOnly">
+            <button class="btn-add-activity" *ngIf="!isAdding" (click)="startAdding(); $event.stopPropagation()">
+                + Ajouter une activité
+            </button>
+            
+            <div class="add-activity-form" *ngIf="isAdding" (click)="$event.stopPropagation()">
+                <select (change)="onActivitySelected($event)" class="activity-select">
+                    <option value="">Sélectionner une activité...</option>
+                    <option *ngFor="let s of availableSuggestions" [value]="s.id">
+                        {{ s.name }} ({{ s.category }})
+                    </option>
+                </select>
+                <button class="btn-cancel-add" (click)="cancelAdd()">✕</button>
+            </div>
+        </div>
+
+        <div class="empty-state" *ngIf="day.activities.length === 0 && !isAdding && !readOnly">
+          Glissez des activités ici ou ajoutez-en une
         </div>
         <div class="empty-state" *ngIf="day.activities.length === 0 && readOnly">
           Aucune activité prévue
@@ -275,6 +293,41 @@ import { Suggestion } from '../../../core/services/suggestions';
     .activities-list.cdk-drop-list-dragging .activity-item:not(.cdk-drag-placeholder) {
         transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
     }
+    
+    .add-activity-container {
+        margin-top: 8px;
+    }
+    .btn-add-activity {
+        width: 100%;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed var(--border-color);
+        border-radius: 8px;
+        color: var(--accent-color);
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .btn-add-activity:hover {
+        background: rgba(99, 179, 237, 0.1);
+        border-color: var(--accent-color);
+    }
+    
+    .add-activity-form {
+        display: flex; gap: 8px;
+    }
+    .activity-select {
+        flex: 1;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: #1a202c;
+        color: white;
+        font-size: 0.9rem;
+    }
+    .btn-cancel-add {
+        background: none; border: none; color: #fc8181; cursor: pointer; font-size: 1.2rem;
+    }
   `]
 })
 export class ItineraryDayComponent {
@@ -282,12 +335,18 @@ export class ItineraryDayComponent {
   @Input() selectedActivities: Set<number> = new Set();
   @Input() connectedTo: string[] = [];
   @Input() readOnly = false;
+  @Input() allSuggestions: Suggestion[] = [];
+  @Input() usedSuggestionIds: Set<number> = new Set();
 
   @Output() dayClick = new EventEmitter<void>();
   @Output() drop = new EventEmitter<CdkDragDrop<any[]>>();
   @Output() toggleSelection = new EventEmitter<any>(); // emit activity
   @Output() viewDetails = new EventEmitter<Suggestion>();
   @Output() editAccommodation = new EventEmitter<ItineraryDay>();
+  @Output() addActivity = new EventEmitter<{ day: ItineraryDay, suggestionId: number }>();
+
+  isAdding = false;
+  availableSuggestions: Suggestion[] = [];
 
   isActivitySelected(suggestionId: number): boolean {
     return this.selectedActivities.has(suggestionId);
@@ -323,4 +382,24 @@ export class ItineraryDayComponent {
   }
 
   Math = Math; // Make Math accessible in template
+
+  startAdding() {
+    this.isAdding = true;
+    this.availableSuggestions = this.allSuggestions.filter(s =>
+      !this.usedSuggestionIds.has(s.id) &&
+      s.category !== SuggestionCategory.HEBERGEMENT
+    );
+  }
+
+  onActivitySelected(event: any) {
+    const id = Number(event.target.value);
+    if (id) {
+      this.addActivity.emit({ day: this.day, suggestionId: id });
+      this.isAdding = false;
+    }
+  }
+
+  cancelAdd() {
+    this.isAdding = false;
+  }
 }
