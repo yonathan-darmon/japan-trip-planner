@@ -95,6 +95,10 @@ export class SuggestionDetailComponent implements OnInit, AfterViewInit, OnDestr
         next: (suggestion: Suggestion) => {
           this.suggestion = suggestion;
           this.loading = false;
+          // Initialize map after data is loaded
+          if (isPlatformBrowser(this.platformId)) {
+            setTimeout(() => this.initMap(), 100);
+          }
         },
         error: (err) => {
           console.error('Error loading suggestion:', err);
@@ -104,9 +108,7 @@ export class SuggestionDetailComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   ngAfterViewInit(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => this.initMap(), 100);
-    }
+    // Map initialization is now handled after data is loaded in ngOnInit
   }
 
   ngOnDestroy(): void {
