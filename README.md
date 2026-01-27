@@ -1,116 +1,120 @@
 # 🗾 Japan Trip Planner
 
-Application collaborative de planification de voyage au Japon avec gestion intelligente d'itinéraires.
+Application collaborative et intelligente pour planifier votre voyage de rêve au Japon. 
+
+Ce projet permet à un groupe d'amis de proposer des activités, de voter pour leurs préférées, et de générer automatiquement un itinéraire optimisé géographiquement.
+
+![Japan Trip Planner Banner](frontend/src/assets/banner-placeholder.png) 
+*(Ajoutez une capture d'écran ici)*
+
+## ✨ Fonctionnalités Principales
+
+### 🗳️ Collaboration & Vote
+- **Propositions d'activités** : Ajoutez des restaurants, temples, musées, ou lieux nature avec photos et descriptions.
+- **Système de vote** : Chaque utilisateur vote pour ce qu'il veut faire ("Indispensable", "Si possible", "Bonus").
+- **Catégories** : Organisation claire par type d'activité.
+
+### 🤖 Génération d'Itinéraire Intelligente
+- **Algorithme d'optimisation** : Regroupe les activités par proximité géographique pour minimiser les temps de trajet.
+- **Adaptation automatique** : Crée un planning jour par jour équilibré.
+- **Hébergement** : Suggère l'hôtel le plus proche de la zone d'activité du jour.
+
+### 🗺️ Visualisation & Carte Interactive
+- **Carte Leaflet intégrée** : Visualisez votre itinéraire jour par jour.
+- **Marqueurs dynamiques** : Codes couleurs pour les activités et l'hébergement.
+- **Géocodage automatique** : Conversion automatique des adresses en coordonnées GPS (via Photon/Nominatim).
+
+### 📅 Gestion Flexible de l'Itinéraire
+- **Drag & Drop** : Déplacez facilement une activité d'un jour à l'autre.
+- **Édition Rapide** : Changez l'hébergement ou l'ordre des visites en un clic.
+- **Sécurité** : 
+  - Chaque utilisateur gère ses propres itinéraires.
+  - Mode **lecture seule** pour consulter les plannings des amis sans risque de modification.
 
 ## 🚀 Stack Technologique
 
-- **Frontend**: Angular (dernière version)
-- **Backend**: NestJS avec TypeScript
-- **Base de données**: PostgreSQL
-- **Stockage images**: Scaleway Object Storage (S3-compatible)
-- **Géocodage**: Nominatim API (OpenStreetMap) - 100% gratuit
-- **Optimisation**: Google OR-Tools (open source)
+### Frontend
+- **Angular 17+** (Standalone Components, Signals)
+- **Leaflet** & `leaflet-color-markers` pour la cartographie
+- **Angular CDK** pour le Drag & Drop
+- **CSS Moderne** (Glassmorphism, Variables CSS, Responsive)
 
-## ✨ Fonctionnalités
+### Backend
+- **NestJS** (Framework Node.js progressif)
+- **TypeORM** pour l'interaction avec la base de données
+- **PostgreSQL** comme base de données principale
+- **Passport/JWT** pour l'authentification sécurisée
 
-### Authentification
-- Connexion avec username/password
-- Rôles: Super Admin et Utilisateur Standard
-- Gestion des utilisateurs (Super Admin uniquement)
+### Services Externes
+- **Scaleway Object Storage** (compatible S3) pour le stockage des photos
+- **Nominatim / Photon** pour le géocodage open-source gratuit
 
-### Suggestions d'Activités
-- Création de suggestions avec photo, nom, lieu, description, prix, catégorie
-- Modification par le créateur
-- Suppression par Super Admin uniquement
-- Filtres par catégorie et prix
-
-### Préférences Utilisateurs
-- Sélection des activités souhaitées
-- Niveaux de priorité: Indispensable, Si Possible, Bonus
-- Mode solo ou groupe pour chaque activité
-
-### Génération d'Itinéraire Intelligent
-- Optimisation géographique avec Google OR-Tools (TSP)
-- Prise en compte des priorités et préférences
-- Calcul automatique des coûts
-- Modification manuelle (drag & drop)
-- Sauvegarde de plusieurs plans
-
-### Configuration du Voyage
-- Durée modifiable (3 semaines par défaut)
-- Dates de début/fin
-- Dates fixes pour certaines activités
-
-## 📁 Structure du Projet
-
-```
-japan-trip-planner/
-├── frontend/          # Application Angular
-├── backend/           # API NestJS
-├── docker-compose.yml # Configuration Docker
-└── README.md
-```
-
-## 🛠️ Installation et Lancement
+## 🛠️ Installation et Démarrage
 
 ### Prérequis
-- Node.js 18+
-- Docker et Docker Compose
-- npm ou yarn
+- Node.js (v18+)
+- PostgreSQL (v14+)
+- Git
 
-### Développement Local
+### 1. Configuration du Backend
 
-1. **Cloner le projet**
-```bash
-git clone <repository-url>
-cd japan-trip-planner
-```
-
-2. **Configurer les variables d'environnement**
-```bash
-cp .env.example .env
-# Éditer .env avec vos configurations
-```
-
-3. **Lancer la base de données**
-```bash
-docker-compose up -d postgres
-```
-
-4. **Lancer le backend**
 ```bash
 cd backend
+
+# Installation des dépendances
 npm install
+
+# Configuration de la base de données
+# Copiez le fichier d'exemple et remplissez-le
+cp .env.example .env
+
+# Lancer le serveur en mode développement
 npm run start:dev
 ```
 
-5. **Lancer le frontend**
+Assurez-vous que votre base de données PostgreSQL est lancée et accessible via les identifiants fournis dans le `.env`.
+
+### 2. Configuration du Frontend
+
 ```bash
 cd frontend
+
+# Installation des dépendances
 npm install
+
+# Lancer l'application
 npm start
 ```
 
-6. **Accéder à l'application**
-- Frontend: http://localhost:4200
-- Backend API: http://localhost:3000
-- API Documentation: http://localhost:3000/api
+L'application sera accessible sur `http://localhost:4200`.
 
-## 🎨 Design
+## ⚙️ Configuration (.env)
 
-- Dark mode moderne
-- Design responsive (mobile + web)
-- Glassmorphism et animations
-- Interface en français
+Exemple de variables nécessaires pour le backend :
 
-## 📦 Déploiement
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=votre_mot_de_passe
+DB_DATABASE=japan_trip_db
 
-### Hébergement Recommandé (Gratuit)
-- **Frontend**: Vercel ou Netlify
-- **Backend**: Railway.app ou Render.com
-- **Base de données**: Railway PostgreSQL ou Supabase
-- **Images**: Scaleway Object Storage (75GB gratuit)
+# Auth
+JWT_SECRET=super_secret_key_change_me
 
-## 📝 License
+# Storage (S3 / Scaleway)
+S3_ENDPOINT=https://s3.fr-par.scw.cloud
+S3_REGION=fr-par
+S3_BUCKET=votre_bucket
+S3_ACCESS_KEY=votre_access_key
+S3_SECRET_KEY=votre_secret_key
+```
 
-MIT
+## 🤝 Contribuer
+
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une Issue ou une Pull Request.
+
+## 📝 Licence
+
+Ce projet est sous licence MIT.
