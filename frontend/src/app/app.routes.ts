@@ -35,11 +35,20 @@ export const routes: Routes = [
                 path: 'suggestions/edit/:id',
                 loadComponent: () => import('./suggestions/suggestion-form/suggestion-form').then(m => m.SuggestionFormComponent)
             },
+            {
+                path: 'suggestions/:id',
+                loadComponent: () => import('./suggestions/suggestion-detail/suggestion-detail.component').then(m => m.SuggestionDetailComponent)
+            },
             // Trip Config (Super Admin only)
             {
                 path: 'trip-config',
                 loadComponent: () => import('./trip-config/trip-config.component').then(m => m.TripConfigComponent),
                 canActivate: [superAdminGuard]
+            },
+            // Itinerary List
+            {
+                path: 'itineraries',
+                loadComponent: () => import('./itinerary/itinerary-list.component').then(m => m.ItineraryListComponent)
             },
             // Itinerary Viewer
             {

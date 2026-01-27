@@ -1,1012 +1,507 @@
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID, DestroyRef, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { Component, OnInit, AfterViewInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import { ItineraryService, Itinerary, ItineraryDay } from '../core/services/itinerary';
-import { Suggestion, SuggestionCategory, SuggestionsService } from '../core/services/suggestions';
-import * as L from 'leaflet';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+import { ItineraryStateService } from '../core/services/itinerary-state.service';
+import { ItineraryService, ItineraryDay } from '../core/services/itinerary';
+import { SuggestionsService, Suggestion, SuggestionCategory } from '../core/services/suggestions';
+
+// Import sub-components
+import { ItineraryMapComponent } from './components/itinerary-map/itinerary-map.component';
+import { ItineraryHeaderComponent } from './components/itinerary-header/itinerary-header.component';
+import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.component';
 
 @Component({
   selector: 'app-itinerary-viewer',
   standalone: true,
-  imports: [CommonModule, RouterLink, DragDropModule],
+  imports: [
+    CommonModule,
+    DragDropModule,
+    ItineraryMapComponent,
+    ItineraryHeaderComponent,
+    ItineraryDayComponent
+  ],
   template: `
-    <div class="itinerary-container" *ngIf="itinerary">
-      <div class="itinerary-header fade-in">
-        <h1>{{ itinerary.name }}</h1>
-        <div class="header-stats">
-          <span class="stat">📅 {{ itinerary.totalDays }} jours</span>
-          <span class="stat">💰 {{ itinerary.totalCost }}€</span>
-          <span class="stat">📍 {{ getTotalActivities() }} activités</span>
-        </div>
+    <div class="viewer-layout" *ngIf="itinerary$ | async as itinerary">
+      
+      <!-- LEFT PANEL: CONTENT -->
+      <div class="viewer-content">
+        <app-itinerary-header 
+          [itinerary]="itinerary"
+          [costBreakdown]="(costBreakdown$ | async) || {}"
+          (delete)="deleteItinerary()">
+        </app-itinerary-header>
 
-        <!-- NEW: Cost Breakdown -->
-        <div class="cost-breakdown" *ngIf="costBreakdownKeys.length > 0">
-          <div class="breakdown-item" *ngFor="let category of costBreakdownKeys">
-            <div class="breakdown-label">
-              <span>{{ category }}</span>
-              <span>{{ costBreakdown[category] | number:'1.2-2' }}€</span>
-            </div>
-            <div class="progress-bg">
-              <div class="progress-fill" 
-                   [style.width.%]="getPercent(costBreakdown[category])"
-                   [style.background-color]="getCategoryColor(category)">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="map-section fade-in">
-        <h2>📍 Carte de l'itinéraire</h2>
-        <div id="map" class="map-container"></div>
-      </div>
-
-      <div class="timeline" cdkDropListGroup>
-        <div class="day-card fade-in" *ngFor="let day of itinerary.days" 
-             [style.animation-delay]="(day.dayNumber * 50) + 'ms'">
-          <div class="day-header">
-            <div class="day-header-top">
-              <h2>Jour {{ day.dayNumber }}</h2>
-              <span class="day-date" *ngIf="day.date">{{ formatDate(day.date) }}</span>
-            </div>
-            
-            <div class="day-load-section">
-              <div class="load-info">
-                <span class="load-label">Charge journalière</span>
-                <span class="load-val" [class.warning]="calculateDayLoad(day) > 8">
-                  {{ calculateDayLoad(day) | number:'1.0-1' }}h / 8h
-                </span>
-              </div>
-              <div class="load-track">
-                <div class="load-progress" 
-                     [style.width.%]="getLoadPercent(day)"
-                     [class.overloaded]="calculateDayLoad(day) > 8">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="activities-list" 
-               cdkDropList 
-               [cdkDropListData]="day.activities"
-               (cdkDropListDropped)="drop($event, day)">
-            
-            <div class="activity-item" 
-                 *ngFor="let activity of day.activities" 
-                 cdkDrag
-                 [cdkDragData]="activity"
-                 (cdkDragStarted)="dragStarted($event)"
-                 (cdkDragEnded)="dragEnded($event)">
-              
-              <!-- Make the order circle the handle -->
-              <div class="activity-order" cdkDragHandle>
-                {{ activity.orderInDay }}
-              </div>
-              
-              <div class="activity-content">
-                <div class="activity-header">
-                  <h3>{{ activity.suggestion.name }}</h3>
-                  <span class="activity-price" *ngIf="activity.suggestion.price">
-                    {{ activity.suggestion.price }}€
-                  </span>
-                </div>
-                <p class="activity-location">📍 {{ activity.suggestion.location }}</p>
-                <p class="activity-description">{{ activity.suggestion.description }}</p>
-                <span class="activity-category">{{ activity.suggestion.category }}</span>
-              </div>
-
-              <!-- Custom Placeholder (The "Ghost") -->
-              <div *cdkDragPlaceholder class="custom-placeholder"></div>
-
-              <!-- Drag Preview -->
-              <div *cdkDragPreview class="activity-item preview">
-                <h3>{{ activity.suggestion.name }}</h3>
-              </div>
-            </div>
-
-            <!-- Empty state INSIDE the drop list -->
-            <div class="no-activities" *ngIf="day.activities.length === 0">
-              <p>Glissez une activité ici</p>
-            </div>
-          </div>
-
-          <!-- ACCOMMODATION (NIGHT) -->
-          <div class="accommodation-section" *ngIf="day.accommodation || editingDayNumber === day.dayNumber">
-            
-            <!-- VIEW MODE -->
-            <div class="acc-card glass" *ngIf="day.accommodation && editingDayNumber !== day.dayNumber">
-              <div class="acc-icon-box">
-                <span class="moon-icon">🌙</span>
-              </div>
-              <div class="acc-details">
-                <div class="acc-header">
-                  <h4>Nuit à : {{ day.accommodation.name }}</h4>
-                  <span class="acc-price" *ngIf="day.accommodation.price">{{ day.accommodation.price }}€</span>
-                </div>
-                <p class="acc-location">📍 {{ day.accommodation.location }}</p>
-                <div class="acc-badges">
-                   <span class="badge badge-outline">Hébergement</span>
-                </div>
-              </div>
-              <div class="acc-actions">
-                 <button class="btn-icon-sm" (click)="startEditAccommodation(day.dayNumber)" title="Changer l'hôtel">🔄</button>
-              </div>
-            </div>
-
-            <!-- EDIT MODE -->
-            <div class="acc-edit-mode glass fade-in" *ngIf="editingDayNumber === day.dayNumber">
-                <div class="edit-header">
-                    <h4>🏨 Choisir un hébergement pour cette nuit</h4>
-                    <button class="btn-cancel-link" (click)="editingDayNumber = null">Annuler</button>
-                </div>
-                
-                <div class="acc-grid">
-                    <div class="acc-option-card" 
-                         *ngFor="let acc of availableAccommodations" 
-                         (click)="selectAccommodation(day, acc.id)"
-                         [class.selected]="day.accommodation?.id === acc.id">
-                        <div class="acc-opt-header">
-                            <span class="acc-opt-name">{{ acc.name }}</span>
-                            <span class="acc-opt-price" *ngIf="acc.price">{{ acc.price }}€</span>
-                        </div>
-                        <span class="acc-opt-loc">📍 {{ acc.location }}</span>
-                    </div>
-                    
-                    <!-- Remove Option -->
-                    <div class="acc-option-card remove" (click)="selectAccommodation(day, null)">
-                        <span>❌ Pas d'hôtel ce jour-là</span>
-                    </div>
-                </div>
-            </div>
-
-          </div>
-
-          <!-- EMPTY STATE (Add Hotel) -->
-          <div class="accommodation-section empty-state" *ngIf="!day.accommodation && editingDayNumber !== day.dayNumber">
-            <button class="btn-add-acc" (click)="startEditAccommodation(day.dayNumber)">
-               ➕ Ajouter un hébergement pour la nuit
-            </button>
-          </div>
+        <div class="days-container" cdkDropListGroup>
+          <app-itinerary-day
+            *ngFor="let day of itinerary.days"
+            [day]="day"
+            [connectedTo]="allDayIds"
+            [selectedActivities]="selectedActivities"
+            (dayClick)="onDaySelected(day)"
+            (editAccommodation)="startEditAccommodation($event)"
+            (viewDetails)="viewActivityDetails($event)"
+            (toggleSelection)="toggleSelection($event.suggestionId)"
+            (drop)="onDrop($event, day)">
+          </app-itinerary-day>
         </div>
       </div>
 
-      <div class="actions-footer">
-        <button class="btn btn-outline" routerLink="/dashboard">
-          ← Retour au dashboard
-        </button>
-        <button class="btn btn-secondary" (click)="deleteItinerary()">
-          🗑️ Supprimer
-        </button>
+      <!-- RIGHT PANEL: MAP -->
+      <div class="viewer-map">
+        <div class="map-sticky">
+          <app-itinerary-map
+            [itinerary]="itinerary"
+            [selectedDay]="selectedDay$ | async">
+          </app-itinerary-map>
+        </div>
       </div>
+
     </div>
 
-    <div class="loading" *ngIf="!itinerary">
-      <p>Chargement de l'itinéraire...</p>
+    <!-- ACCOMMODATION MODAL -->
+    <div class="modal-overlay" *ngIf="showAccommodationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Choisir un hébergement (Jour {{ editingDay?.dayNumber }})</h3>
+                <button class="btn-close" (click)="closeAccommodationModal()">×</button>
+            </div>
+            
+            <div class="modal-search">
+                <input type="text" placeholder="Rechercher un hôtel..." 
+                       (input)="filterAccommodations($any($event.target).value)" 
+                       [value]="searchQuery">
+            </div>
+
+            <div class="modal-list">
+                <div class="modal-item placeholder-item" (click)="selectAccommodationFromModal(null)">
+                    <span>🚫 Aucun hébergement / Supprimer</span>
+                </div>
+                <div class="modal-item" *ngFor="let acc of filteredAccommodations" (click)="selectAccommodationFromModal(acc)">
+                    <div class="item-info">
+                        <strong>{{ acc.name }}</strong>
+                        <span class="item-loc">{{ acc.location }}</span>
+                    </div>
+                    <span class="item-price" *ngIf="acc.price">{{ acc.price }}€</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" *ngIf="loading$ | async">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- SELECTION BAR -->
+    <div class="selection-footer" *ngIf="selectedActivities.size > 0">
+        <div class="selection-container">
+            <div class="selection-status">
+                <span class="count">{{ selectedActivities.size }}</span>
+                <span>activités sélectionnées</span>
+            </div>
+            
+            <div class="selection-actions">
+                <span class="label">Déplacer vers :</span>
+                <div class="day-selector">
+                    <button *ngFor="let day of (itinerary$ | async)?.days" 
+                            (click)="moveSelectedToDay(day.dayNumber)"
+                            class="btn-day-move">
+                        J{{ day.dayNumber }}
+                    </button>
+                </div>
+                <div class="divider"></div>
+                <button class="btn-cancel" (click)="deselectAll()">Annuler</button>
+            </div>
+        </div>
     </div>
   `,
   styles: [`
-    /* Drag & Drop Styles */
-    .activity-item {
-      position: relative;
-      /* Remove cursor: move from overall item since we have a specific handle */
-    }
-    
-    .activity-order {
-      cursor: grab;
-      transition: transform 0.1s;
-    }
-
-    .activity-order:active {
-      cursor: grabbing;
-      transform: scale(0.95);
-    }
-
-
-    .itinerary-container {
-      max-width: 1200px;
+    .viewer-layout {
+      display: grid;
+      grid-template-columns: 1fr 450px;
+      gap: 24px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 24px;
+      height: calc(100vh - 64px);
     }
+    .viewer-content { overflow-y: auto; padding-right: 12px; padding-bottom: 100px; }
+    .days-container { display: flex; flex-direction: column; gap: 24px; }
+    .viewer-map { height: 100%; }
+    .map-sticky { position: sticky; top: 0; height: 100%; border-radius: 16px; overflow: hidden; }
 
-    .itinerary-header {
-      text-align: center;
-      margin-bottom: 3rem;
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      display: flex; justify-content: center; align-items: center;
     }
-
-    .itinerary-header h1 {
-      background: var(--gradient-hero);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 1rem;
-    }
-
-    .header-stats {
-      display: flex;
-      gap: 2rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .stat {
-      font-size: 1.1rem;
-      color: var(--color-text-secondary);
-    }
-
-    .timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      margin-bottom: 3rem;
-    }
-
-    .day-card {
-      background: var(--color-surface);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      border: 1px solid var(--color-border);
-    }
-
-    .day-header {
-      display: block;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 2px solid var(--color-border);
-    }
-
-    .day-header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .day-load-section {
-      background: rgba(0,0,0,0.05);
-      padding: 0.75rem;
-      border-radius: var(--radius-md);
-    }
-
-    .load-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      margin-bottom: 0.5rem;
-      color: var(--color-text-secondary);
-    }
-    
-    .load-val.warning {
-      color: #FFA07A;
-      font-weight: bold;
-    }
-
-    .load-track {
-      height: 8px;
-      background: rgba(0,0,0,0.1);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .load-progress {
-      height: 100%;
-      background: var(--color-success);
-      border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-
-    .load-progress.overloaded {
-      background: #FF6B6B;
-    }
-
-    .day-header h2 {
-      margin: 0;
-      color: var(--color-primary);
-    }
-
-    .day-date {
-      color: var(--color-text-secondary);
-      font-size: 0.9rem;
-    }
-
-    .activities-list {
-      display: flex;
-      flex-direction: column;
-      /* gap: 1.5rem;  <-- REMOVED for better CDK compatibility */
-      min-height: 60px; /* Ensure drop zone exists */
-      position: relative; /* Assist with positioning */
-    }
-
-    .activity-item {
-      display: flex;
-      gap: 1rem;
-      padding: 1rem;
-      background: var(--color-background);
-      border-radius: var(--radius-md);
-      transition: background-color 0.2s; /* Changed from transform */
-      position: relative;
-      margin-bottom: 1.5rem; /* Added margin instead of gap */
-    }
-
-    .activity-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .activity-item:hover {
-      background-color: var(--color-surface); /* Alternative visual feedback */
-    }
-
-    .activity-order {
-      flex-shrink: 0;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--color-primary);
-      color: white;
+    .spinner {
+      width: 50px; height: 50px;
+      border: 5px solid #2d3748;
+      border-top: 5px solid #63b3ed;
       border-radius: 50%;
-      font-weight: bold;
-      position: relative; /* Context for drag handle if moved there */
+      animation: spin 1s linear infinite;
     }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+    /* Selection Footer */
+    .selection-footer {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 4000;
+        background: #2d3748;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        border: 1px solid #4a5568;
+        animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp { from { transform: translate(-50%, 100px); } to { transform: translate(-50%, 0); } }
 
-    .activity-content {
-      flex: 1;
-    }
-
-    .activity-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      margin-bottom: 0.5rem;
-    }
-
-    .activity-header h3 {
-      margin: 0;
-      font-size: 1.2rem;
-    }
-
-    .activity-price {
-      background: var(--color-success);
-      color: white;
-      padding: 0.25rem 0.75rem;
-      border-radius: var(--radius-sm);
-      font-weight: bold;
-      font-size: 0.9rem;
-    }
-
-    .activity-location {
-      color: var(--color-text-secondary);
-      margin: 0.5rem 0;
-      font-size: 0.9rem;
-    }
-
-    .activity-description {
-      margin: 0.5rem 0;
-      line-height: 1.5;
-    }
-
-    .activity-category {
-      display: inline-block;
-      background: var(--color-surface);
-      padding: 0.25rem 0.75rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.85rem;
-      color: var(--color-text-secondary);
-      border: 1px solid var(--color-border);
-    }
-
-    .no-activities {
-      text-align: center;
-      padding: 2rem;
-      color: var(--color-text-secondary);
-      font-style: italic;
-    }
-
-    .actions-footer {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      padding: 2rem 0;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 4rem;
-      color: var(--color-text-secondary);
-    }
-
-    .map-section {
-      margin: 3rem 0;
-    }
-
-    .map-section h2 {
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .map-container {
-      height: 500px;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      border: 2px solid var(--color-border);
-      box-shadow: var(--shadow-lg);
-      background: #f0f0f0;
-      position: relative;
-      z-index: 1;
-    }
-
-    .map-container :global(.leaflet-container) {
-      background: #f0f0f0;
-    }
-
-    @media (max-width: 768px) {
-      .itinerary-container {
-        padding: 1rem;
-      }
-      .header-stats {
-        gap: 1rem;
-      }
-      .activity-item {
-        flex-direction: column;
-      }
-      .activity-order {
-        align-self: flex-start;
-      }
-    }
-
-    /* Accommodation Styles */
-    .accommodation-section {
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 2px dashed var(--color-border);
-    }
-    .acc-card {
-      display: flex;
-      gap: 1rem;
-      padding: 1rem;
-      border-radius: var(--radius-md);
-      background: rgba(44, 62, 80, 0.05);
-      align-items: center;
-      border: 1px solid rgba(44, 62, 80, 0.1);
-    }
-    .acc-icon-box {
-      width: 40px;
-      height: 40px;
-      background: #2c3e50;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      flex-shrink: 0;
-    }
-    .acc-details {
-      flex: 1;
-    }
-    .acc-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.25rem;
-    }
-    .acc-header h4 {
-      margin: 0;
-      color: var(--color-text-primary);
-      font-size: 1rem;
-    }
-    .acc-price {
-      font-weight: bold;
-      color: var(--color-text-secondary);
-    }
-    .acc-location {
-      font-size: 0.85rem;
-      color: var(--color-text-tertiary);
-      margin: 0 0 0.5rem 0;
-    }
-    .btn-icon-sm {
-      text-decoration: none;
-      font-size: 1rem;
-      opacity: 0.5;
-      transition: opacity 0.2s;
-      cursor: pointer;
-    }
-    .btn-icon-sm:hover {
-      opacity: 1;
-    }
-    .acc-badges {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    /* Edit Mode Styles */
-    .acc-edit-mode {
-        padding: 1rem;
-        background: white;
-        border: 2px solid var(--color-primary);
-        border-radius: var(--radius-md);
-    }
-    .edit-header {
+    .selection-container {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 1rem;
+        gap: 24px;
+        white-space: nowrap;
     }
-    .edit-header h4 { margin: 0; color: var(--color-primary); }
+    .selection-status { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .selection-status .count {
+        background: #63b3ed;
+        color: #1a202c;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .selection-actions { display: flex; align-items: center; gap: 16px; }
+    .selection-actions .label { color: #a0aec0; font-size: 0.9rem; }
     
-    .btn-cancel-link {
-        background: none; border: none; color: #666; cursor: pointer; text-decoration: underline;
-    }
-
-    .acc-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 0.75rem;
-    }
-
-    .acc-option-card {
-        padding: 0.75rem;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
+    .day-selector { display: flex; gap: 6px; }
+    .btn-day-move {
+        background: #1a202c;
+        color: white;
+        border: 1px solid #4a5568;
+        padding: 4px 10px;
+        border-radius: 6px;
         cursor: pointer;
+        font-size: 0.85rem;
         transition: all 0.2s;
-        background: #f9f9f9;
     }
-    .acc-option-card:hover {
-        border-color: var(--color-primary);
-        background: white;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .acc-option-card.selected {
-        border-color: var(--color-success);
-        background: #e8f8f5;
-        box-shadow: 0 0 0 2px var(--color-success) inset;
-    }
-    .acc-opt-header {
-        display: flex; justify-content: space-between; font-weight: bold; font-size: 0.9rem; margin-bottom: 0.25rem;
-    }
-    .acc-opt-loc {
-        font-size: 0.8rem; color: #666; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .acc-option-card.remove {
-        border-style: dashed;
-        color: #e74c3c;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: bold;
-    }
-    .acc-option-card.remove:hover {
-        background: #fceae9;
-        border-color: #e74c3c;
-    }
+    .btn-day-move:hover { background: #4a5568; border-color: #63b3ed; }
 
-    /* Empty State */
-    .accommodation-section.empty-state {
-        text-align: center;
-        border-top: none;
-        padding-top: 0;
+    .divider { width: 1px; height: 24px; background: #4a5568; margin: 0 4px; }
+    
+    .btn-cancel {
+        background: none;
+        border: none;
+        color: #fc8181;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
     }
-    .btn-add-acc {
-        background: none; border: 2px dashed #ccc; color: #888; padding: 0.75rem 1.5rem;
-        border-radius: 2rem; cursor: pointer; transition: all 0.2s;
+    .btn-cancel:hover { text-decoration: underline; }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 3000;
+        display: flex; justify-content: center; align-items: center;
     }
-    .btn-add-acc:hover {
-        border-color: var(--color-primary); color: var(--color-primary);
+    .modal-content {
+        background: #2d3748;
+        color: white;
+        width: 500px;
+        max-width: 90%;
+        max-height: 80vh;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #4a5568;
+    }
+    .modal-header {
+        padding: 16px;
+        border-bottom: 1px solid #4a5568;
+        display: flex; justify-content: space-between; align-items: center;
+        background: #1a202c;
+    }
+    .modal-header h3 { margin: 0; font-size: 1.1rem; }
+    .btn-close {
+        background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0;
+    }
+    .modal-search { padding: 12px; border-bottom: 1px solid #4a5568; background: #2d3748; }
+    .modal-search input {
+        width: 100%; padding: 10px; border: 1px solid #4a5568; border-radius: 8px; font-size: 1rem;
+        background: #1a202c; color: white;
+    }
+    .modal-list {
+        overflow-y: auto;
+        padding: 8px;
+        display: flex; flex-direction: column; gap: 4px;
+        background: #2d3748;
+    }
+    .modal-item {
+        padding: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex; justify-content: space-between; align-items: center;
+        transition: background 0.2s;
+    }
+    .modal-item:hover { background: #4a5568; }
+    .placeholder-item { color: #fc8181; font-weight: 500; font-style: italic; }
+    .item-info { display: flex; flex-direction: column; }
+    .item-loc { font-size: 0.8rem; color: #a0aec0; }
+    .item-price { font-weight: bold; color: #68d391; font-size: 0.9rem; }
+
+    @media (max-width: 1024px) {
+      .viewer-layout { grid-template-columns: 1fr; height: auto; }
+      .viewer-map { height: 400px; order: -1; }
+      .map-sticky { position: relative; }
     }
   `]
 })
-export class ItineraryViewerComponent implements OnInit, AfterViewInit, OnDestroy {
-  itinerary: Itinerary | null = null;
-  itineraryId: number = 0;
-  private map: L.Map | null = null;
-  private markersLayer: L.LayerGroup | null = null;
+export class ItineraryViewerComponent implements OnInit, OnDestroy {
+  // Services
+  private stateService = inject(ItineraryStateService);
+  private itineraryService = inject(ItineraryService);
+  private suggestionsService = inject(SuggestionsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
-  costBreakdown: { [key: string]: number } = {};
-  costBreakdownKeys: string[] = [];
+  // State
+  itinerary$ = this.stateService.itinerary$;
+  loading$ = this.stateService.loading$;
+  selectedDay$ = this.stateService.selectedDay$;
+  costBreakdown$ = this.stateService.costBreakdown$;
 
-  availableAccommodations: Suggestion[] = [];
-  editingDayNumber: number | null = null;
+  // Local UI state
+  selectedActivities = new Set<number>();
+  allDayIds: string[] = [];
 
-  constructor(
-    private route: ActivatedRoute,
-    private itineraryService: ItineraryService,
-    private suggestionsService: SuggestionsService,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) { }
+  // Modal State
+  showAccommodationModal = false;
+  editingDay: ItineraryDay | null = null;
+  accommodations: Suggestion[] = [];
+  filteredAccommodations: Suggestion[] = [];
+  searchQuery = '';
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
 
   ngOnInit() {
-    this.itineraryId = Number(this.route.snapshot.paramMap.get('id'));
-    this.loadItinerary();
-    this.loadAccommodations();
-  }
-
-  loadAccommodations() {
-    this.suggestionsService.getAll().subscribe(list => {
-      // Filter only accommodations that are voted/selected? Or all created?
-      // Ideally voted ones. But getAll() returns all. Let's filter by category.
-      this.availableAccommodations = list.filter(s => s.category === SuggestionCategory.HEBERGEMENT);
-    });
-  }
-
-  startEditAccommodation(dayNumber: number) {
-    this.editingDayNumber = dayNumber;
-  }
-
-  selectAccommodation(day: ItineraryDay, suggestionId: number | null) {
-    this.itineraryService.updateAccommodation(this.itineraryId, day.dayNumber, suggestionId).subscribe({
-      next: (updatedItinerary) => {
-        // Update local state smoothly
-        // Only update this day's accommodation to avoid full re-render flickering
-        const updatedDay = updatedItinerary.days.find(d => d.dayNumber === day.dayNumber);
-        if (updatedDay) {
-          day.accommodation = updatedDay.accommodation;
-          // day.activities might have changed too (if cost/ordering logic changed), but usually not accommodation
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        if (params['id']) {
+          this.loadItinerary(Number(params['id']));
         }
-        // Update stats
-        this.itinerary = updatedItinerary;
-        this.calculateBreakdown(); // update cost breakdown
-        this.updateMapLayers(); // update map markers
-        this.editingDayNumber = null;
-      },
-      error: (err) => console.error(err)
+      });
+
+    // Subscribe to itinerary to update IDs
+    this.itinerary$.subscribe(itinerary => {
+      if (itinerary) {
+        this.allDayIds = itinerary.days.map(d => `day-list-${d.dayNumber}`);
+      }
     });
-  }
 
-  ngAfterViewInit() {
-    // Map will be initialized after itinerary is loaded
-  }
-
-  ngOnDestroy() {
-    if (this.map) {
-      console.log('🧹 Destroying map instance');
-      this.map.remove();
-      this.map = null;
+    // Load available accommodations once
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadAccommodations();
     }
   }
 
-  dragStarted(event: any) {
-    console.log('🤏 Drag started', event);
-  }
-
-  dragEnded(event: any) {
-    console.log('✋ Drag ended', event);
-  }
-
-  drop(event: CdkDragDrop<any[]>, day: ItineraryDay) {
-    console.log('⬇️ Drop event detected', {
-      prevIndex: event.previousIndex,
-      currIndex: event.currentIndex,
-      item: event.item.data,
-      container: event.container.id,
-      previousContainer: event.previousContainer.id
+  loadAccommodations() {
+    this.suggestionsService.getAll().subscribe(suggestions => {
+      this.accommodations = suggestions.filter(s => s.category === SuggestionCategory.HEBERGEMENT);
+      this.filteredAccommodations = this.accommodations;
     });
+  }
 
-    if (event.previousContainer === event.container) {
-      // Reordering within the same day
-      if (event.previousIndex === event.currentIndex) {
-        console.log('🚫 No change in position');
-        return;
+  filterAccommodations(query: string) {
+    this.searchQuery = query;
+    if (!query) {
+      this.filteredAccommodations = this.accommodations;
+    } else {
+      const lower = query.toLowerCase();
+      this.filteredAccommodations = this.accommodations.filter(s =>
+        s.name.toLowerCase().includes(lower) ||
+        (s.location && s.location.toLowerCase().includes(lower))
+      );
+    }
+  }
+
+  ngOnDestroy() {
+    this.stateService.selectDay(null);
+  }
+
+  loadItinerary(id: number) {
+    this.itineraryService.getOne(id).subscribe({
+      next: (data) => this.stateService.setItinerary(data),
+      error: (err) => {
+        console.error('Error loading itinerary', err);
+        alert('Itinéraire introuvable');
+        this.router.navigate(['/']);
+      }
+    });
+  }
+
+  onDaySelected(day: ItineraryDay) {
+    this.stateService.selectDay(day);
+  }
+
+  toggleSelection(suggestionId: number) {
+    if (this.selectedActivities.has(suggestionId)) {
+      this.selectedActivities.delete(suggestionId);
+    } else {
+      this.selectedActivities.add(suggestionId);
+    }
+  }
+
+  deselectAll() {
+    this.selectedActivities.clear();
+  }
+
+  moveSelectedToDay(targetDayNumber: number) {
+    const itinerary = this.stateService.getItinerary();
+    if (!itinerary) return;
+
+    // 1. Identify items to move
+    const movingIds = Array.from(this.selectedActivities);
+
+    // 2. Build the new structure
+    const daysPayload = itinerary.days.map((d: ItineraryDay) => {
+      // Remove items from wherever they are
+      let activities = d.activities.filter((a: any) => !this.selectedActivities.has(a.suggestionId));
+
+      // If this is the target day, add them at the end
+      if (d.dayNumber === targetDayNumber) {
+        movingIds.forEach((id: number) => {
+          // Find original activity to preserve suggestion
+          const originalAct = itinerary.days.flatMap((day: ItineraryDay) => day.activities).find((a: any) => a.suggestionId === id);
+          if (originalAct) {
+            activities.push({ ...originalAct });
+          }
+        });
       }
 
+      return {
+        dayNumber: d.dayNumber,
+        activities: activities.map((act: any, idx: number) => ({
+          suggestionId: act.suggestionId,
+          orderInDay: idx + 1
+        }))
+      };
+    });
+
+    this.stateService.reorderAll(itinerary.id, daysPayload);
+    this.deselectAll();
+  }
+
+  viewActivityDetails(suggestion: Suggestion) {
+    const itinerary = this.stateService.getItinerary();
+    this.router.navigate(['/suggestions', suggestion.id], {
+      queryParams: { itineraryId: itinerary?.id }
+    });
+  }
+
+  deleteItinerary() {
+    const itinerary = this.stateService.getItinerary();
+    if (!itinerary) return;
+
+    if (confirm('Voulez-vous vraiment supprimer cet itinéraire ?')) {
+      this.itineraryService.delete(itinerary.id).subscribe(() => {
+        this.router.navigate(['/dashboard']);
+      });
+    }
+  }
+
+  startEditAccommodation(day: ItineraryDay) {
+    this.editingDay = day;
+    this.searchQuery = '';
+    this.filteredAccommodations = this.accommodations;
+    this.showAccommodationModal = true;
+  }
+
+  closeAccommodationModal() {
+    this.showAccommodationModal = false;
+    this.editingDay = null;
+  }
+
+  selectAccommodationFromModal(suggestion: Suggestion | null) {
+    if (!this.editingDay) return;
+
+    const itinerary = this.stateService.getItinerary();
+    if (itinerary) {
+      this.stateService.updateAccommodation(itinerary.id, this.editingDay.dayNumber, suggestion ? suggestion.id : null);
+    }
+    this.closeAccommodationModal();
+  }
+
+  onDrop(event: CdkDragDrop<any[]>, targetDay: ItineraryDay) {
+    if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+      this.updateOrder(targetDay);
     } else {
-      // Moving from one day to another
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
-        event.currentIndex
+        event.currentIndex,
+      );
+      this.saveFullReorder();
+    }
+
+    // Force immediate local update for subscribers (like the map) 
+    // by pushing a new reference of the itinerary
+    const itinerary = this.stateService.getItinerary();
+    if (itinerary) {
+      this.stateService.setItinerary({ ...itinerary, days: [...itinerary.days] });
+    }
+  }
+
+  private updateOrder(day: ItineraryDay) {
+    day.activities.forEach((act, index) => {
+      act.orderInDay = index + 1;
+    });
+
+    const itinerary = this.stateService.getItinerary();
+    if (itinerary) {
+      this.stateService.reorderActivities(
+        itinerary.id,
+        day.dayNumber,
+        day.activities.map(a => a.suggestionId)
       );
     }
-
-    // Update order numbers for modified days
-    // For now, let's update visually and local logic.
-    // We update orders for current day (target)
-    day.activities.forEach((act, idx) => act.orderInDay = idx + 1);
-
-    // If different container, we also need to update the SOURCE day orders?
-    // event.previousContainer.data IS the array of the source day.
-    if (event.previousContainer !== event.container) {
-      event.previousContainer.data.forEach((act: any, idx: number) => act.orderInDay = idx + 1);
-    }
-
-    this.updateMapLayers();
-
-    // TODO: Saving cross-day move requires a smarter backend endpoint!
-    // The current 'reorder' endpoint only takes { dayNumber, newOrder }.
-    // If we moved item to this day, 'newOrder' will contain a suggestionId that wasn't there before.
-    // Does the backend handle "stealing" an activity from another day?
-    // If not, we might need to implement that. 
-    // Checking backend implementation...
-    // Let's assume for now we just try to save the TARGET day's new order. 
-    // If the backend logic is "set activities for day X defined by this list", it implies moving them to day X.
-    // Let's invoke reorder for BOTH days if needed.
-
-    // Ideally, we start with reordering the target day.
-    const newOrder = day.activities.map(a => a.suggestionId);
-    console.log('💾 Saving target day ' + day.dayNumber, newOrder);
-
-    this.itineraryService.reorder(this.itineraryId, {
-      dayNumber: day.dayNumber,
-      newOrder: newOrder
-    }).subscribe({
-      next: () => {
-        console.log('✅ Target day updated');
-        // If cross-day, we theoretically should update source day too?
-        // But if the backend implementation of "reorder day X" automatically grabs the activities and sets their day_id = X, 
-        // then they are automatically removed from day Y.
-        // However, day Y might have a hole in ordering.
-        // Let's trigger reorder for previous container's day too if we can identify it.
-        // Since we don't have the "Day Object" for previous container easily here without finding it,
-        // we'll rely on visual refresh or just assume backend handles ownership transfer.
-      },
-      error: (err) => {
-        console.error('❌ Failed to save order:', err);
-        alert('Erreur lors de la sauvegarde de l\'ordre');
-      }
-    });
   }
 
+  private saveFullReorder() {
+    const itinerary = this.stateService.getItinerary();
+    if (!itinerary) return;
 
+    const daysPayload = itinerary.days.map(d => ({
+      dayNumber: d.dayNumber,
+      activities: d.activities.map((act, idx) => {
+        act.orderInDay = idx + 1;
+        return {
+          suggestionId: act.suggestionId,
+          orderInDay: idx + 1
+        };
+      })
+    }));
 
-  // ...
-
-  loadItinerary() {
-    this.itineraryService.getOne(this.itineraryId).subscribe({
-      next: (itinerary) => {
-        this.itinerary = itinerary;
-        this.calculateBreakdown(); // Calculate on load
-
-        // Wait for DOM to be ready before initializing map
-        setTimeout(() => {
-          this.initMap();
-          // Force map to recalculate size after render
-          setTimeout(() => {
-            if (this.map) {
-              this.map.invalidateSize();
-            }
-          }, 200);
-        }, 100);
-      },
-      error: (err) => {
-        console.error('Error loading itinerary:', err);
-        alert('Erreur lors du chargement de l\'itinéraire');
-      }
-    });
-  }
-
-  calculateBreakdown() {
-    if (!this.itinerary) return;
-
-    this.costBreakdown = {};
-
-    this.itinerary.days.forEach(day => {
-      day.activities.forEach(act => {
-        const cat = act.suggestion.category;
-        const price = Number(act.suggestion.price) || 0;
-
-        if (!this.costBreakdown[cat]) {
-          this.costBreakdown[cat] = 0;
-        }
-        this.costBreakdown[cat] += price;
-      });
-    });
-
-    // Sort categories by cost descending
-    this.costBreakdownKeys = Object.keys(this.costBreakdown).sort((a, b) => {
-      return this.costBreakdown[b] - this.costBreakdown[a];
-    });
-  }
-
-  getPercent(amount: number): number {
-    const total = Number(this.itinerary?.totalCost) || 0;
-    if (total === 0) return 0;
-    return (amount / total) * 100;
-  }
-
-  getCategoryColor(category: string): string {
-    switch (category) {
-      case SuggestionCategory.HEBERGEMENT: return '#FF6B6B'; // Red
-      case SuggestionCategory.ACTIVITE: return '#4ECDC4';   // Teal
-      case SuggestionCategory.RESTAURANT: return '#FFA07A'; // Orange
-      case SuggestionCategory.NATURE: return '#98D8C8';    // Greenish
-      case SuggestionCategory.SHOPPING: return '#F7DC6F';   // Yellow
-      case SuggestionCategory.MUSEE: return '#BB8FCE';      // Purple
-      case SuggestionCategory.TEMPLE: return '#85C1E2';     // Blue
-      default: return '#cccccc';
-    }
-  }
-
-  getTotalActivities(): number {
-    if (!this.itinerary) return 0;
-    return this.itinerary.days.reduce((total, day) => total + day.activities.length, 0);
-  }
-
-  formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    });
-  }
-
-  calculateDayLoad(day: ItineraryDay): number {
-    return day.activities.reduce((total, act) => {
-      // Cast to prevent type issues if interface is lagging
-      const duration = Number((act.suggestion as any).durationHours) || 2.0;
-      return total + duration;
-    }, 0);
-  }
-
-  getLoadPercent(day: ItineraryDay): number {
-    const load = this.calculateDayLoad(day);
-    // Cap at 100% for bar width
-    return Math.min(100, (load / 8) * 100);
-  }
-
-  deleteItinerary() {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet itinéraire ?')) {
-      return;
-    }
-
-    this.itineraryService.delete(this.itineraryId).subscribe({
-      next: () => {
-        alert('Itinéraire supprimé');
-        window.location.href = '/dashboard';
-      },
-      error: (err) => {
-        console.error('Error deleting itinerary:', err);
-        alert('Erreur lors de la suppression');
-      }
-    });
-  }
-
-  initMap() {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    if (!this.itinerary) return;
-
-    // Create map instance if it doesn't exist
-    if (!this.map) {
-      this.map = L.map('map', {
-        preferCanvas: true,
-        zoomControl: true
-      }).setView([36.2048, 138.2529], 6);
-
-      // Add Tiles
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(this.map);
-
-      // Initialize layer group for markers/polylines
-      this.markersLayer = L.layerGroup().addTo(this.map);
-    } else {
-      this.map.invalidateSize();
-    }
-
-    this.updateMapLayers(true);
-  }
-
-  updateMapLayers(shouldFitBounds: boolean = false) {
-    if (!this.map || !this.markersLayer || !this.itinerary) return;
-
-    // Clear existing layers
-    this.markersLayer.clearLayers();
-
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
-    const allPoints: L.LatLngExpression[] = [];
-    let markerCount = 0;
-
-    // Define the default icon explicitly
-    const defaultIcon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
-
-    const hotelIcon = L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
-
-    console.log('🎯 === UPDATING MARKERS ===');
-
-    // Add markers for each activity
-    this.itinerary.days.forEach((day, dayIndex) => {
-      // 1. Activities
-      day.activities.forEach((activity, actIndex) => {
-        const lat = parseFloat(activity.suggestion.latitude as any);
-        const lng = parseFloat(activity.suggestion.longitude as any);
-
-        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-          // Add slight jitter to avoid perfect overlap if multiple activities are at same location
-          const jitterLat = lat + (Math.random() - 0.5) * 0.0004;
-          const jitterLng = lng + (Math.random() - 0.5) * 0.0004;
-          const point: L.LatLngExpression = [jitterLat, jitterLng];
-          allPoints.push(point);
-
-          const marker = L.marker(point, { icon: defaultIcon });
-          markerCount++;
-
-          marker.bindPopup(`
-            <div style="min-width: 200px; font-family: sans-serif;">
-              <h3 style="margin: 0 0 5px 0; color: ${colors[dayIndex % colors.length]};">
-                📅 Jour ${day.dayNumber}
-              </h3>
-              <div style="font-weight: bold; margin-bottom: 5px;">${activity.suggestion.name}</div>
-              <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">
-                📍 ${activity.suggestion.location}
-              </div>
-              <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color: #3498db; text-decoration: none; font-size: 0.8em;">
-                🔗 Ouvrir dans Maps
-              </a>
-            </div>
-          `);
-
-          this.markersLayer?.addLayer(marker);
-        }
-      });
-
-      // 2. Accommodation
-      if (day.accommodation) {
-        const lat = parseFloat(day.accommodation.latitude as any);
-        const lng = parseFloat(day.accommodation.longitude as any);
-
-        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-          // We don't add accommodation to "allPoints" for the route line to avoid zig-zags at night,
-          // unless we want to show travel to hotel. Let's exclude it from the main polyline for clarity
-          // OR include it as the last point. Let's include it.
-          // Add jitter to accommodations too
-          const jitterLat = lat + (Math.random() - 0.5) * 0.0004;
-          const jitterLng = lng + (Math.random() - 0.5) * 0.0004;
-          const point: L.LatLngExpression = [jitterLat, jitterLng];
-          allPoints.push(point);
-
-          const marker = L.marker(point, { icon: hotelIcon, opacity: 0.9, zIndexOffset: -500 });
-
-          marker.bindPopup(`
-            <div style="min-width: 200px; font-family: sans-serif;">
-              <h3 style="margin: 0 0 5px 0; color: #8e44ad;">
-                🏨 Nuit Jour ${day.dayNumber}
-              </h3>
-              <div style="font-weight: bold; margin-bottom: 5px;">${day.accommodation.name}</div>
-              <div style="font-size: 0.9em; color: #666;">
-                📍 ${day.accommodation.location}
-              </div>
-            </div>
-          `);
-
-          this.markersLayer?.addLayer(marker);
-        }
-      }
-    });
-
-    // Draw route line
-    if (allPoints.length > 1) {
-      const polyline = L.polyline(allPoints, {
-        color: '#FF6B6B',
-        weight: 3,
-        opacity: 0.7,
-        dashArray: '10, 10', // Dashed line for better look
-        lineCap: 'round'
-      });
-      this.markersLayer.addLayer(polyline);
-    }
-
-    // Fit map only if requested (e.g. on first load)
-    if (shouldFitBounds && allPoints.length > 0) {
-      const bounds = L.latLngBounds(allPoints);
-      this.map.fitBounds(bounds, { padding: [50, 50] });
-    }
+    this.stateService.reorderAll(itinerary.id, daysPayload);
   }
 }
+

@@ -12,6 +12,8 @@ export enum SuggestionCategory {
   SHOPPING = 'Shopping',
   ACTIVITE = 'Activité',
   HEBERGEMENT = 'Hébergement',
+  TRANSPORT = 'Transport',
+  AUTRE = 'Autre',
 }
 
 export interface Suggestion {

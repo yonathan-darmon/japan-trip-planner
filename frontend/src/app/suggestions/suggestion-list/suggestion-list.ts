@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, WritableSignal, computed } from '@angular/core';
+import { Component, OnInit, signal, WritableSignal, computed, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { SuggestionsService, Suggestion, SuggestionCategory } from '../../core/services/suggestions';
 import { AuthService } from '../../core/services/auth';
@@ -369,13 +370,17 @@ export class SuggestionListComponent implements OnInit {
     }
   });
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private suggestionsService: SuggestionsService,
     private preferencesService: PreferencesService,
     private authService: AuthService,
     private wsService: WebSocketService
   ) {
-    this.authService.currentUser$.subscribe(user => this.currentUser = user);
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => this.currentUser = user);
 
     // Initialize Real-time synchronization
     this.setupRealtimeSync();
@@ -386,61 +391,67 @@ export class SuggestionListComponent implements OnInit {
   }
 
   loadSuggestions() {
-    this.suggestionsService.getAll().subscribe({
-      next: (data) => this.suggestions.set(data),
-      error: (err) => console.error(err)
-    });
+    this.suggestionsService.getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => this.suggestions.set(data),
+        error: (err) => console.error(err)
+      });
   }
 
   setupRealtimeSync() {
     // 1. Handle Suggestion Changes (Create, Update, Delete)
-    this.wsService.onSuggestionChange().subscribe(({ action, data }) => {
-      console.log(`🔄 Real-time Update [${action}]:`, data);
+    this.wsService.onSuggestionChange()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ action, data }) => {
+        console.log(`🔄 Real-time Update [${action}]:`, data);
 
-      this.suggestions.update(current => {
-        if (action === 'create') {
-          // Check if already exists to avoid dupes 
-          if (current.some(s => s.id === data.id)) return current;
-          return [{ ...data, preferences: [] }, ...current];
-        }
-
-        if (action === 'update') {
-          return current.map(s => {
-            if (s.id !== data.id) return s;
-            return { ...s, ...data, preferences: s.preferences };
-          });
-        }
-
-        if (action === 'delete') {
-          return current.filter(s => s.id !== data.id);
-        }
-
-        return current;
-      });
-    });
-
-    // 2. Handle Vote Changes
-    this.wsService.onVoteChange().subscribe(({ suggestionId, data }) => {
-      console.log(`🗳️ Real-time Vote [Suggestion ${suggestionId}]:`, data);
-
-      this.suggestions.update(current => {
-        return current.map(s => {
-          if (s.id !== suggestionId) return s;
-
-          // Update preferences
-          const prefs = s.preferences ? [...s.preferences] : [];
-          const existingIndex = prefs.findIndex(p => p.userId === data.userId);
-
-          if (existingIndex > -1) {
-            prefs[existingIndex] = { ...prefs[existingIndex], ...data.preference };
-          } else {
-            prefs.push(data.preference);
+        this.suggestions.update(current => {
+          if (action === 'create') {
+            // Check if already exists to avoid dupes 
+            if (current.some(s => s.id === data.id)) return current;
+            return [{ ...data, preferences: [] }, ...current];
           }
 
-          return { ...s, preferences: prefs };
+          if (action === 'update') {
+            return current.map(s => {
+              if (s.id !== data.id) return s;
+              return { ...s, ...data, preferences: s.preferences };
+            });
+          }
+
+          if (action === 'delete') {
+            return current.filter(s => s.id !== data.id);
+          }
+
+          return current;
         });
       });
-    });
+
+    // 2. Handle Vote Changes
+    this.wsService.onVoteChange()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ suggestionId, data }) => {
+        console.log(`🗳️ Real-time Vote [Suggestion ${suggestionId}]:`, data);
+
+        this.suggestions.update(current => {
+          return current.map(s => {
+            if (s.id !== suggestionId) return s;
+
+            // Update preferences
+            const prefs = s.preferences ? [...s.preferences] : [];
+            const existingIndex = prefs.findIndex(p => p.userId === data.userId);
+
+            if (existingIndex > -1) {
+              prefs[existingIndex] = { ...prefs[existingIndex], ...data.preference };
+            } else {
+              prefs.push(data.preference);
+            }
+
+            return { ...s, preferences: prefs };
+          });
+        });
+      });
   }
 
   // --- Actions ---

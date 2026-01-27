@@ -35,7 +35,7 @@ export class Itinerary {
     @JoinColumn({ name: 'created_by' })
     createdBy: User;
 
-    @Column({ name: 'created_by' })
+    @Column({ name: 'created_by', insert: false, update: false })
     createdById: number;
 
     @CreateDateColumn({ name: 'generated_at' })

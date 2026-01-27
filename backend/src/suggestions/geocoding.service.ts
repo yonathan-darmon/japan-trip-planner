@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 
 export interface GeocodeResult {
@@ -12,6 +12,7 @@ export class GeocodingService {
     private readonly photonUrl = 'https://photon.komoot.io/api/';
     private readonly nominatimUrl = 'https://nominatim.openstreetmap.org/search';
     private lastRequestTime = 0;
+    private readonly logger = new Logger(GeocodingService.name);
 
     constructor() { }
 
@@ -25,7 +26,7 @@ export class GeocodingService {
 
         if (timeSinceLastRequest < minDelay) {
             const waitTime = minDelay - timeSinceLastRequest;
-            console.log(`⏳ Waiting ${waitTime}ms to respect rate limit...`);
+            this.logger.debug(`⏳ Waiting ${waitTime}ms to respect rate limit...`);
             await this.delay(waitTime);
         }
 
@@ -56,7 +57,7 @@ export class GeocodingService {
      */
     private async tryPhoton(address: string): Promise<{ lat: number; lng: number } | null> {
         try {
-            console.log(`🔍 [Photon] Geocoding: "${address}"`);
+            this.logger.debug(`🔍 [Photon] Geocoding: "${address}"`);
 
             const response = await axios.get(this.photonUrl, {
                 params: {
@@ -70,15 +71,14 @@ export class GeocodingService {
             if (response.data?.features && response.data.features.length > 0) {
                 const feature = response.data.features[0];
                 const [lng, lat] = feature.geometry.coordinates;
-                console.log(`✅ [Photon] Found: ${lat}, ${lng}`);
-                console.log(`   Name: ${feature.properties.name || 'N/A'}`);
+                this.logger.log(`✅ [Photon] Found: ${lat}, ${lng} (${feature.properties.name || 'N/A'})`);
                 return { lat, lng };
             }
 
-            console.warn(`⚠️ [Photon] No results for: "${address}"`);
+            this.logger.warn(`⚠️ [Photon] No results for: "${address}"`);
             return null;
         } catch (error) {
-            console.error(`❌ [Photon] Error: ${error.message}`);
+            this.logger.error(`❌ [Photon] Error: ${error.message}`);
             return null;
         }
     }
@@ -88,7 +88,7 @@ export class GeocodingService {
      */
     private async tryNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
         try {
-            console.log(`🔍 [Nominatim] Geocoding: "${address}"`);
+            this.logger.debug(`🔍 [Nominatim] Geocoding: "${address}"`);
 
             const response = await axios.get(this.nominatimUrl, {
                 params: {
@@ -106,23 +106,24 @@ export class GeocodingService {
 
             if (response.data && response.data.length > 0) {
                 const result = response.data[0];
-                console.log(`✅ [Nominatim] Found: ${result.lat}, ${result.lon}`);
-                console.log(`   Display: ${result.display_name}`);
+                const lat = parseFloat(result.lat);
+                const lon = parseFloat(result.lon);
+                this.logger.log(`✅ [Nominatim] Found: ${lat}, ${lon} (${result.display_name})`);
                 return {
-                    lat: parseFloat(result.lat),
-                    lng: parseFloat(result.lon),
+                    lat: lat,
+                    lng: lon,
                 };
             }
 
-            console.warn(`⚠️ [Nominatim] No results for: "${address}"`);
+            this.logger.warn(`⚠️ [Nominatim] No results for: "${address}"`);
             return null;
         } catch (error) {
             if (error.code === 'ECONNABORTED') {
-                console.error(`❌ [Nominatim] Timeout for: "${address}"`);
+                this.logger.error(`❌ [Nominatim] Timeout for: "${address}"`);
             } else if (error.response) {
-                console.error(`❌ [Nominatim] API error (${error.response.status}): ${error.response.statusText}`);
+                this.logger.error(`❌ [Nominatim] API error (${error.response.status}): ${error.response.statusText}`);
             } else {
-                console.error(`❌ [Nominatim] Error: ${error.message}`);
+                this.logger.error(`❌ [Nominatim] Error: ${error.message}`);
             }
             return null;
         }
@@ -139,18 +140,20 @@ export class GeocodingService {
             const result = await this.getCoordinates(address);
 
             if (result) {
-                console.log(`✅ Geocoded "${address}" on attempt ${attempt + 1}`);
+                if (attempt > 0) {
+                    this.logger.log(`✅ Geocoded "${address}" on attempt ${attempt + 1}`);
+                }
                 return result;
             }
 
             if (attempt < maxRetries) {
                 const delay = 2000 * Math.pow(2, attempt);
-                console.log(`⏳ Retrying geocoding in ${delay}ms... (attempt ${attempt + 2}/${maxRetries + 1})`);
+                this.logger.debug(`⏳ Retrying geocoding in ${delay}ms... (attempt ${attempt + 2}/${maxRetries + 1})`);
                 await this.delay(delay);
             }
         }
 
-        console.warn(`❌ Failed to geocode "${address}" after ${maxRetries + 1} attempts`);
+        this.logger.warn(`❌ Failed to geocode "${address}" after ${maxRetries + 1} attempts`);
         return null;
     }
 

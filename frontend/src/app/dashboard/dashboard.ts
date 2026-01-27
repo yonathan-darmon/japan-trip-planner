@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { AuthService } from '../core/services/auth';
 import { TripConfigService, TripConfig } from '../core/services/trip-config';
 import { SuggestionsService } from '../core/services/suggestions';
@@ -6,6 +6,7 @@ import { UsersService } from '../core/services/users';
 import { ItineraryService, Itinerary } from '../core/services/itinerary';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -235,6 +236,8 @@ export class DashboardComponent implements OnInit {
     this.currentUser$ = this.authService.currentUser$;
   }
 
+  private destroyRef = inject(DestroyRef);
+
   ngOnInit() {
     this.loadData();
   }
@@ -242,23 +245,29 @@ export class DashboardComponent implements OnInit {
   loadData() {
     console.log('Loading dashboard data...');
 
-    this.tripConfigService.getConfig().subscribe({
-      next: (config) => this.config = config,
-      error: (err) => console.error('Error loading config:', err)
-    });
+    this.tripConfigService.getConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (config) => this.config = config,
+        error: (err) => console.error('Error loading config:', err)
+      });
 
-    this.suggestionsService.getAll().subscribe({
-      next: (suggestions) => this.suggestionCount = suggestions.length,
-      error: (err) => console.error('Error loading suggestions:', err)
-    });
+    this.suggestionsService.getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (suggestions) => this.suggestionCount = suggestions.length,
+        error: (err) => console.error('Error loading suggestions:', err)
+      });
 
-    this.itineraryService.getAll().subscribe({
-      next: (itineraries) => {
-        console.log('Loaded itineraries:', itineraries);
-        this.itineraries = itineraries;
-      },
-      error: (err) => console.error('Error loading itineraries:', err)
-    });
+    this.itineraryService.getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (itineraries) => {
+          console.log('Loaded itineraries:', itineraries);
+          this.itineraries = itineraries;
+        },
+        error: (err) => console.error('Error loading itineraries:', err)
+      });
 
     this.participantCount = 1;
   }
@@ -269,30 +278,34 @@ export class DashboardComponent implements OnInit {
     this.itineraryService.generate({
       name: `Voyage au Japon - ${new Date().toLocaleDateString('fr-FR')}`,
       maxActivitiesPerDay: 4
-    }).subscribe({
-      next: (itinerary) => {
-        console.log('Itinerary generated:', itinerary);
-        this.generatingItinerary = false;
-        this.router.navigate(['/itinerary', itinerary.id]);
-      },
-      error: (err) => {
-        console.error('Error generating itinerary:', err);
-        this.generatingItinerary = false;
-        alert('Erreur lors de la génération. Assurez-vous d\'avoir voté pour des suggestions.');
-      }
-    });
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (itinerary) => {
+          console.log('Itinerary generated:', itinerary);
+          this.generatingItinerary = false;
+          this.router.navigate(['/itinerary', itinerary.id]);
+        },
+        error: (err) => {
+          console.error('Error generating itinerary:', err);
+          this.generatingItinerary = false;
+          alert('Erreur lors de la génération. Assurez-vous d\'avoir voté pour des suggestions.');
+        }
+      });
   }
 
   deleteItinerary(id: number, event: Event) {
     event.stopPropagation(); // Prevent clicking card if we wrap it in link
     if (!confirm('Voulez-vous vraiment supprimer cet itinéraire ?')) return;
 
-    this.itineraryService.delete(id).subscribe({
-      next: () => {
-        this.itineraries = this.itineraries.filter(i => i.id !== id);
-      },
-      error: (err) => alert('Erreur lors de la suppression')
-    });
+    this.itineraryService.delete(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.itineraries = this.itineraries.filter(i => i.id !== id);
+        },
+        error: (err) => alert('Erreur lors de la suppression')
+      });
   }
 }
 

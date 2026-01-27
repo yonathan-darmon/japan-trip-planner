@@ -1,14 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Itinerary } from './entities/itinerary.entity';
 import { TripConfigService } from '../trip-config/trip-config.service';
 import { SuggestionsService } from '../suggestions/suggestions.service';
 import { PreferencesService } from '../preferences/preferences.service';
+import { UsersService } from '../users/users.service'; // Added based on typical usage, though not in original imports list shown? 
+// Wait, original imports (Step 4105) didn't show UsersService. Let's check constructor signature in Step 4084 proposal.
+// It had UsersService. But maybe original didn't?
+// Step 4105 imports: TripConfigService, SuggestionsService, PreferencesService.
+// Let's stick to what was there + new services.
+// Actually, Step 4084 proposed adding UsersService and PreferencesModule. 
+// I will just add ClusteringService and RoutingService.
+
 import { GenerateItineraryDto } from './dto/generate-itinerary.dto';
 import { ReorderActivitiesDto } from './dto/reorder-activities.dto';
 import { Suggestion, SuggestionCategory } from '../suggestions/entities/suggestion.entity';
 import { TripConfig } from '../trip-config/entities/trip-config.entity';
+import { ClusteringService } from './clustering.service';
+import { RoutingService } from './routing.service';
 
 interface DayPlan {
     dayNumber: number;
@@ -23,12 +33,16 @@ interface DayPlan {
 
 @Injectable()
 export class ItineraryService {
+    private readonly logger = new Logger(ItineraryService.name);
+
     constructor(
         @InjectRepository(Itinerary)
         private itineraryRepository: Repository<Itinerary>,
         private tripConfigService: TripConfigService,
         private suggestionsService: SuggestionsService,
         private preferencesService: PreferencesService,
+        private clusteringService: ClusteringService,
+        private routingService: RoutingService,
     ) { }
 
     /**
@@ -38,8 +52,8 @@ export class ItineraryService {
         const config = await this.tripConfigService.getConfig();
         const allSuggestions = await this.suggestionsService.findAll();
 
-        console.log('=== PHASE 1: COLLECT DATA ===');
-        console.log('Total suggestions in DB:', allSuggestions.length);
+        this.logger.log('=== PHASE 1: COLLECT DATA ===');
+        this.logger.debug(`Total suggestions in DB: ${allSuggestions.length}`);
 
         // 1. Activities MUST be voted (and not deleted, but findAll handles that)
         // Also exclude accommodations from this list to avoid duplicates if we merge later
@@ -59,7 +73,7 @@ export class ItineraryService {
         // Puisque j'ai exclu HEBERGEMENT de votedActivities, pas de doublons possibles.
         const result = [...votedActivities, ...allAccommodations];
 
-        console.log(`Pool: ${votedActivities.length} voted activities + ${allAccommodations.length} accommodations = ${result.length} total items.`);
+        this.logger.debug(`Pool: ${votedActivities.length} voted activities + ${allAccommodations.length} accommodations = ${result.length} total items.`);
 
         return { config, votedSuggestions: result };
     }
@@ -125,50 +139,41 @@ export class ItineraryService {
             return days;
         }
 
-        // 2. Intelligent Clustering
-        // We cluster activities to group them by region/neighborhood.
-        // Heuristic: We try to create as many clusters as there are days, but bounded by activity count.
-        // This encourages "Day 1 = Zone A, Day 2 = Zone B".
+        // 2. Intelligent Clustering via Service
         const k = Math.min(totalDays, otherActivities.length);
-        const clusters = this.clusterByLocation(otherActivities, k);
+        const clusters = this.clusteringService.clusterByLocation(otherActivities, k);
 
-        console.log(`Clustering: Created ${clusters.length} clusters for ${totalDays} days.`);
+        this.logger.log(`Clustering: Created ${clusters.length} clusters for ${totalDays} days.`);
 
         // 3. Assign activities and match accommodation per cluster
         let currentDayIndex = 0;
         let currentDayHours = 0;
         const dailyTargetHours = 8.0;
 
-        // TODO: Ideally, we should sort clusters by TSP (Traveling Salesman) to minimize inter-cluster travel.
-        // For now, we rely on the order returned from K-means (random-ish but stable-ish).
-
         for (const cluster of clusters) {
-            // Sort internal activities by Nearest Neighbor
-            const sortedActivities = this.nearestNeighbor(cluster);
+            // Sort internal activities by Routing Service
+            const sortedActivities = this.routingService.nearestNeighbor(cluster);
 
-            // Find best accommodation for this cluster (Centroid-based)
-            const bestHotel = this.findBestAccommodationForCluster(cluster, accommodations);
+            // Find best accommodation for this cluster
+            const bestHotel = this.routingService.findBestAccommodationForCluster(cluster, accommodations);
 
             if (bestHotel) {
-                console.log(`Cluster assigned to hotel: ${bestHotel.name} (Cluster size: ${cluster.length})`);
+                this.logger.debug(`Cluster assigned to hotel: ${bestHotel.name} (Cluster size: ${cluster.length})`);
             }
 
             // Fill days with this cluster's activities
-            // We track the start day to back-fill accommodation if needed
             const startDayIndex = currentDayIndex;
 
             // Force day change if we are starting a new cluster and the current day is not empty
-            // This prevents mixing Osaka and Tokyo in the same day unless it's a travel day logic (which we simplify here)
             if (days[currentDayIndex].activities.length > 0 && currentDayIndex < totalDays - 1) {
                 currentDayIndex++;
                 currentDayHours = 0;
             }
 
             for (const activity of sortedActivities) {
-                const duration = Number(activity.durationHours) || 2.0; // Default 2h if missing
+                const duration = Number(activity.durationHours) || 2.0;
 
                 // If current day is full, move to next
-                // But avoid overflowing totalDays
                 if (currentDayHours + duration > dailyTargetHours && currentDayIndex < totalDays - 1) {
                     currentDayIndex++;
                     currentDayHours = 0;
@@ -180,7 +185,6 @@ export class ItineraryService {
                     suggestion: activity,
                 });
 
-                // Assign hotel to this day immediately
                 if (bestHotel && !days[currentDayIndex].accommodation) {
                     days[currentDayIndex].accommodation = bestHotel;
                 }
@@ -188,11 +192,7 @@ export class ItineraryService {
                 currentDayHours += duration;
             }
 
-            // Back-fill / Forward-fill accommodation for the range of days touched by this cluster
-            // This ensures that if a cluster spans 2 days, both get the hotel.
-            // Also if a day was partially started by previous cluster, we might check if we should override?
-            // Strategy: "First come first served" or "Majority wins"? 
-            // Current strategy: If day has no accommodation, take this one.
+            // Back-fill / Forward-fill accommodation
             for (let d = startDayIndex; d <= currentDayIndex; d++) {
                 if (bestHotel && !days[d].accommodation) {
                     days[d].accommodation = bestHotel;
@@ -200,9 +200,7 @@ export class ItineraryService {
             }
         }
 
-        // 4. Fallback: Fill holes in accommodation (Safety Net)
-        // If some days have no accommodation (e.g. empty days at end, or start), propagate neighbors.
-
+        // 4. Fallback: Fill holes in accommodation
         // Forward fill
         for (let i = 1; i < totalDays; i++) {
             if (!days[i].accommodation && days[i - 1].accommodation) {
@@ -210,7 +208,7 @@ export class ItineraryService {
             }
         }
 
-        // Backward fill (for Day 1 if empty)
+        // Backward fill
         for (let i = totalDays - 2; i >= 0; i--) {
             if (!days[i].accommodation && days[i + 1].accommodation) {
                 days[i].accommodation = days[i + 1].accommodation;
@@ -218,146 +216,6 @@ export class ItineraryService {
         }
 
         return days;
-    }
-
-    /**
-     * Finds the accommodation closest to the centroid of a cluster of activities.
-     */
-    private findBestAccommodationForCluster(cluster: Suggestion[], accommodations: Suggestion[]): Suggestion | null {
-        if (accommodations.length === 0) return null;
-        if (cluster.length === 0) return accommodations[0]; // Should not happen, but safe fallback
-
-        // Calculate centroid of the cluster
-        let sumLat = 0, sumLng = 0;
-        cluster.forEach(a => {
-            sumLat += Number(a.latitude);
-            sumLng += Number(a.longitude);
-        });
-        const centerLat = sumLat / cluster.length;
-        const centerLng = sumLng / cluster.length;
-
-        // Find nearest hotel to centroid
-        let bestHotel: Suggestion | null = null;
-        let minDist = Infinity;
-
-        for (const hotel of accommodations) {
-            const dist = this.distance(centerLat, centerLng, Number(hotel.latitude), Number(hotel.longitude));
-            if (dist < minDist) {
-                minDist = dist;
-                bestHotel = hotel;
-            }
-        }
-
-        return bestHotel;
-    }
-
-    /**
-     * Distance-based clustering (Simple Threshold)
-     * Better than K-means for travel because it naturally separates cities (Tokyo vs Osaka)
-     * regardless of the number of activities.
-     */
-    private clusterByLocation(activities: Suggestion[], k: number): Suggestion[][] {
-        if (activities.length === 0) return [];
-
-        const clusters: Suggestion[][] = [];
-        const thresholdKm = 100; // Max distance to be considered "same area"
-
-        for (const activity of activities) {
-            let added = false;
-
-            // Try to fit into an existing cluster
-            for (const cluster of clusters) {
-                // Check distance to the first item (or centroid) of the cluster
-                // Using first item is simpler and efficient enough for this scale
-                const reference = cluster[0];
-                const dist = this.distance(
-                    Number(activity.latitude),
-                    Number(activity.longitude),
-                    Number(reference.latitude),
-                    Number(reference.longitude)
-                );
-
-                if (dist < thresholdKm) {
-                    cluster.push(activity);
-                    added = true;
-                    break;
-                }
-            }
-
-            // If not added to any cluster, create a new one
-            if (!added) {
-                clusters.push([activity]);
-            }
-        }
-
-        console.log(`=== DISTANCE CLUSTERING: Created ${clusters.length} clusters (Threshold: ${thresholdKm}km) ===`);
-        clusters.forEach((cluster, idx) => {
-            console.log(`  Cluster ${idx + 1}: ${cluster.length} items - ${cluster.map(a => a.name).join(', ')}`);
-        });
-
-        // Optional: If we have way too many clusters compared to days, maybe merge nearest?
-        // But for now, let's respect geography. 
-        // If user visits 5 cities in 3 days, they will just move a lot.
-
-        return clusters;
-    }
-
-    /**
-     * Nearest neighbor algorithm for intra-day optimization
-     */
-    private nearestNeighbor(activities: Suggestion[]): Suggestion[] {
-        if (activities.length <= 1) return activities;
-
-        const result: Suggestion[] = [];
-        const remaining = [...activities];
-
-        // Start with first activity
-        result.push(remaining.shift()!);
-
-        while (remaining.length > 0) {
-            const current = result[result.length - 1];
-            let minDist = Infinity;
-            let nearestIndex = 0;
-
-            // Find nearest remaining activity
-            for (let i = 0; i < remaining.length; i++) {
-                const dist = this.distance(
-                    current.latitude,
-                    current.longitude,
-                    remaining[i].latitude,
-                    remaining[i].longitude
-                );
-                if (dist < minDist) {
-                    minDist = dist;
-                    nearestIndex = i;
-                }
-            }
-
-            result.push(remaining.splice(nearestIndex, 1)[0]);
-        }
-
-        return result;
-    }
-
-    /**
-     * Calculate distance between two coordinates (Haversine formula)
-     */
-    private distance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-        const R = 6371; // Earth radius in km
-        const dLat = this.toRad(lat2 - lat1);
-        const dLon = this.toRad(lon2 - lon1);
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(this.toRad(lat1)) *
-            Math.cos(this.toRad(lat2)) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    }
-
-    private toRad(deg: number): number {
-        return deg * (Math.PI / 180);
     }
 
     /**
@@ -383,25 +241,25 @@ export class ItineraryService {
      * Main generation method
      */
     async generate(dto: GenerateItineraryDto, userId: number): Promise<Itinerary> {
-        console.log('=== STARTING ITINERARY GENERATION ===');
+        this.logger.log(`=== STARTING ITINERARY GENERATION for User ${userId} ===`);
 
         // Phase 1: Collect data
         const { config, votedSuggestions } = await this.collectData();
 
         if (votedSuggestions.length === 0) {
-            throw new Error('No suggestions have been voted for. Please vote for some suggestions first.');
+            throw new BadRequestException('No suggestions have been voted for. Please vote for some suggestions first.');
         }
 
-        console.log('=== PHASE 2: SELECT ACTIVITIES ===');
+        this.logger.log('=== PHASE 2: SELECT ACTIVITIES ===');
         // Phase 2: Select activities
         const selectedActivities = this.selectActivities(
             votedSuggestions,
             config.durationDays,
             dto.maxActivitiesPerDay || 4
         );
-        console.log(`Selected ${selectedActivities.length} activities for ${config.durationDays} days`);
+        this.logger.debug(`Selected ${selectedActivities.length} activities for ${config.durationDays} days`);
 
-        console.log('=== PHASE 3: OPTIMIZE ROUTING ===');
+        this.logger.log('=== PHASE 3: OPTIMIZE ROUTING ===');
         // Phase 3: Optimize routing
         const days = this.optimizeRouting(
             selectedActivities,
@@ -409,14 +267,14 @@ export class ItineraryService {
             dto.maxActivitiesPerDay || 4
         );
 
-        console.log('=== FINAL ITINERARY ===');
+        this.logger.log('=== FINAL ITINERARY ===');
         days.slice(0, 3).forEach(day => {
-            console.log(`Day ${day.dayNumber}: ${day.activities.length} activities`);
+            this.logger.debug(`Day ${day.dayNumber}: ${day.activities.length} activities`);
             day.activities.forEach(a => {
-                console.log(`  - ${a.suggestion.name} at (${a.suggestion.latitude}, ${a.suggestion.longitude})`);
+                this.logger.verbose(`  - ${a.suggestion.name} at (${a.suggestion.latitude}, ${a.suggestion.longitude})`);
             });
             if (day.accommodation) {
-                console.log(`  - 🌙 Nuit à : ${day.accommodation.name}`);
+                this.logger.debug(`  - 🌙 Nuit à : ${day.accommodation.name}`);
             }
         });
 
@@ -433,8 +291,8 @@ export class ItineraryService {
         // Phase 4: Calculate cost
         const totalCost = this.calculateCost(days);
 
-        console.log(`Total cost: ${totalCost}€`);
-        console.log('=== GENERATION COMPLETE ===');
+        this.logger.log(`Total cost: ${totalCost}€`);
+        this.logger.log('=== GENERATION COMPLETE ===');
 
         // Create itinerary
         const itinerary = this.itineraryRepository.create({
@@ -455,13 +313,20 @@ export class ItineraryService {
         });
     }
 
+    async findAllPublic(): Promise<Itinerary[]> {
+        return this.itineraryRepository.find({
+            relations: ['createdBy'],
+            order: { generatedAt: 'DESC' },
+        });
+    }
+
     async findOne(id: number, userId: number): Promise<Itinerary> {
         const itinerary = await this.itineraryRepository.findOne({
             where: { id, createdById: userId },
         });
 
         if (!itinerary) {
-            throw new Error('Itinerary not found');
+            throw new NotFoundException('Itinerary not found');
         }
 
         return itinerary;
@@ -480,7 +345,7 @@ export class ItineraryService {
         const itinerary = await this.findOne(id, userId);
 
         if (!itinerary) {
-            throw new Error('Itinerary not found');
+            throw new NotFoundException('Itinerary not found');
         }
 
         // Target day index
@@ -488,7 +353,7 @@ export class ItineraryService {
         const targetDay = itinerary.days[targetDayIndex];
 
         if (!targetDay) {
-            throw new Error('Target day not found');
+            throw new NotFoundException('Target day not found');
         }
 
         // We need to collect all activities effectively moved/kept in the target day
@@ -512,9 +377,7 @@ export class ItineraryService {
             }
 
             if (!foundActivity) {
-                // If not found in current itinerary activities, fetch from DB?
-                // For now, ignore if not found (robustness)
-                console.warn(`Activity with suggestion ID ${suggestionId} not found in current itinerary.`);
+                this.logger.warn(`Activity with suggestion ID ${suggestionId} not found in current itinerary.`);
                 continue;
             }
 
@@ -528,7 +391,6 @@ export class ItineraryService {
         }));
 
         // 3. Re-index all days (cleanup orders)
-        // Since we spliced arrays, orderInDay might be wrong in source days
         itinerary.days.forEach(day => {
             day.activities.forEach((act, index) => {
                 act.orderInDay = index + 1;
@@ -537,6 +399,72 @@ export class ItineraryService {
 
         return this.itineraryRepository.save(itinerary);
     }
+
+    /**
+     * Reorder activities across ALL days at once
+     */
+    async reorderAllDays(
+        id: number,
+        dto: { days: { dayNumber: number; activities: { suggestionId: number; orderInDay: number }[] }[] },
+        userId: number
+    ): Promise<Itinerary> {
+        const itinerary = await this.findOne(id, userId);
+
+        if (!itinerary) {
+            throw new NotFoundException('Itinerary not found');
+        }
+
+        // Update each day's activities based on the DTO
+        for (const dayDto of dto.days) {
+            const dayIndex = dayDto.dayNumber - 1;
+            if (dayIndex < 0 || dayIndex >= itinerary.days.length) {
+                this.logger.warn(`Day ${dayDto.dayNumber} out of range, skipping`);
+                continue;
+            }
+
+            // Clear current activities
+            itinerary.days[dayIndex].activities = [];
+
+            // Rebuild activities from DTO
+            for (const actDto of dayDto.activities) {
+                let foundActivity: any = null;
+
+                // Search in all original days to find the activity object
+                for (const day of itinerary.days) {
+                    const found = day.activities.find(a => a.suggestionId === actDto.suggestionId);
+                    if (found) {
+                        foundActivity = found;
+                        break;
+                    }
+                }
+
+                // If not found in current structure, fetch from suggestions
+                if (!foundActivity) {
+                    const suggestion = await this.suggestionsService.findOne(actDto.suggestionId);
+                    if (suggestion) {
+                        foundActivity = {
+                            suggestionId: suggestion.id,
+                            orderInDay: actDto.orderInDay,
+                            suggestion: suggestion
+                        };
+                    }
+                }
+
+                if (foundActivity) {
+                    itinerary.days[dayIndex].activities.push({
+                        ...foundActivity,
+                        orderInDay: actDto.orderInDay
+                    });
+                }
+            }
+        }
+
+        // Recalculate cost
+        itinerary.totalCost = this.calculateCost(itinerary.days);
+
+        return this.itineraryRepository.save(itinerary);
+    }
+
     async updateAccommodation(
         id: number,
         dayNumber: number,
@@ -546,23 +474,18 @@ export class ItineraryService {
         const itinerary = await this.findOne(id, userId);
 
         if (dayNumber < 1 || dayNumber > itinerary.days.length) {
-            throw new Error('Day number out of range');
+            throw new BadRequestException('Day number out of range');
         }
 
         const dayIndex = dayNumber - 1;
 
         if (!suggestionId) {
-            // Remove accommodation
             itinerary.days[dayIndex].accommodation = null;
         } else {
-            // Find suggestion and set it
             const suggestion = await this.suggestionsService.findOne(suggestionId);
             if (!suggestion) {
-                throw new Error('Accommodation suggestion not found');
+                throw new NotFoundException('Accommodation suggestion not found');
             }
-            // For flexibility, we allow changing category if user really wants to sleep in a museum... 
-            // but let's warn or check. Let's strictly enforce if current logic expects it.
-            // Actually, keep it flexible for now, but logical.
             itinerary.days[dayIndex].accommodation = suggestion;
         }
 

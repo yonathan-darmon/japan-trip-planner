@@ -7,6 +7,8 @@ import { TripConfigModule } from '../trip-config/trip-config.module';
 import { SuggestionsModule } from '../suggestions/suggestions.module';
 import { PreferencesModule } from '../preferences/preferences.module';
 import { AuthModule } from '../auth/auth.module';
+import { ClusteringService } from './clustering.service';
+import { RoutingService } from './routing.service';
 
 @Module({
     imports: [
@@ -17,7 +19,7 @@ import { AuthModule } from '../auth/auth.module';
         AuthModule,
     ],
     controllers: [ItineraryController],
-    providers: [ItineraryService],
+    providers: [ItineraryService, ClusteringService, RoutingService],
     exports: [ItineraryService],
 })
 export class ItineraryModule { }

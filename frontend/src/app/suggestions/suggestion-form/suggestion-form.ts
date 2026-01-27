@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
 
 @Component({
@@ -276,27 +277,33 @@ export class SuggestionFormComponent implements OnInit {
     });
   }
 
+  private destroyRef = inject(DestroyRef);
+
   ngOnInit() {
-    this.route.params.subscribe(params => {
-      if (params['id']) {
-        this.isEditing = true;
-        this.suggestionId = +params['id'];
-        this.loadSuggestion(this.suggestionId);
-      }
-    });
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        if (params['id']) {
+          this.isEditing = true;
+          this.suggestionId = +params['id'];
+          this.loadSuggestion(this.suggestionId);
+        }
+      });
   }
 
   loadSuggestion(id: number) {
-    this.suggestionsService.getOne(id).subscribe(data => {
-      this.suggestionForm.patchValue({
-        name: data.name,
-        location: data.location,
-        category: data.category,
-        price: data.price,
-        description: data.description
+    this.suggestionsService.getOne(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
+        this.suggestionForm.patchValue({
+          name: data.name,
+          location: data.location,
+          category: data.category,
+          price: data.price,
+          description: data.description
+        });
+        this.imagePreview = data.photoUrl;
       });
-      this.imagePreview = data.photoUrl;
-    });
   }
 
   onFileSelected(event: any) {

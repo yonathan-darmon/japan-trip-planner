@@ -27,11 +27,19 @@ export class ItineraryController {
 
     @Get()
     async findAll(@Request() req) {
+        console.log('🔍 [GET /itinerary] Called by user:', req.user.id);
         return this.itineraryService.findAll(req.user.id);
+    }
+
+    @Get('all')
+    async findAllPublic() {
+        console.log('🔍 [GET /itinerary/all] Called - fetching all public itineraries');
+        return this.itineraryService.findAllPublic();
     }
 
     @Get(':id')
     async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
+        console.log('🔍 [GET /itinerary/:id] Called with id:', id, 'by user:', req.user.id);
         return this.itineraryService.findOne(id, req.user.id);
     }
 
@@ -39,6 +47,16 @@ export class ItineraryController {
     async remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
         await this.itineraryService.remove(id, req.user.id);
         return { message: 'Itinerary deleted successfully' };
+    }
+
+
+    @Patch(':id/reorder-all')
+    async reorderAll(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: { days: { dayNumber: number; activities: { suggestionId: number; orderInDay: number }[] }[] },
+        @Request() req
+    ) {
+        return this.itineraryService.reorderAllDays(id, dto, req.user.id);
     }
 
     @Patch(':id/reorder')
@@ -49,6 +67,7 @@ export class ItineraryController {
     ) {
         return this.itineraryService.reorder(id, dto, req.user.id);
     }
+
     @Patch(':id/days/:dayNumber/accommodation')
     async updateAccommodation(
         @Param('id', ParseIntPipe) id: number,

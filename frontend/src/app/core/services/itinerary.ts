@@ -25,6 +25,12 @@ export interface Itinerary {
     createdById: number;
     generatedAt: string;
     days: ItineraryDay[];
+    createdBy?: {
+        id: number;
+        username: string;
+        email: string;
+        role: string;
+    };
 }
 
 export interface GenerateItineraryRequest {
@@ -50,7 +56,7 @@ export class ItineraryService {
     }
 
     getAll(): Observable<Itinerary[]> {
-        return this.http.get<Itinerary[]>(this.apiUrl);
+        return this.http.get<Itinerary[]>(`${this.apiUrl}/all`);
     }
 
     getOne(id: number): Observable<Itinerary> {
@@ -63,6 +69,10 @@ export class ItineraryService {
 
     reorder(id: number, data: ReorderRequest): Observable<Itinerary> {
         return this.http.patch<Itinerary>(`${this.apiUrl}/${id}/reorder`, data);
+    }
+
+    reorderAll(id: number, data: { days: { dayNumber: number; activities: { suggestionId: number; orderInDay: number }[] }[] }): Observable<Itinerary> {
+        return this.http.patch<Itinerary>(`${this.apiUrl}/${id}/reorder-all`, data);
     }
 
     updateAccommodation(id: number, dayNumber: number, suggestionId: number | null): Observable<Itinerary> {
