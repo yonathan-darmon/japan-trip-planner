@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ItineraryDay } from '../../../core/services/itinerary';
 import { Suggestion, SuggestionCategory } from '../../../core/services/suggestions';
+import { GeoUtils } from '../../../core/utils/geo.utils';
 
 
 
@@ -15,9 +16,9 @@ import { Suggestion, SuggestionCategory } from '../../../core/services/suggestio
          [class.selected]="isSelected"
          (click)="selectDay()">
       
-      <div class="day-header">
+      <div class="day-header" [style.borderCheck]="'none'" [style.borderBottomColor]="dayColor">
         <div class="day-info">
-          <h3>Jour {{ day.dayNumber }}</h3>
+          <h3 [style.color]="dayColor">Jour {{ day.dayNumber }}</h3>
           <span class="date" *ngIf="day.date">{{ formatDate(day.date) }}</span>
         </div>
         <div class="day-load" [class.overload]="loadPercent > 100">
@@ -132,7 +133,7 @@ import { Suggestion, SuggestionCategory } from '../../../core/services/suggestio
         align-items: flex-start;
         margin-bottom: 16px;
         padding-bottom: 8px;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 4px solid var(--border-color); /* Thicker border to show color */
     }
     .day-info h3 { margin: 0; font-size: 1.25rem; color: var(--text-primary); font-weight: 700; }
     .day-info .date { font-size: 0.85rem; color: var(--text-secondary); }
@@ -332,6 +333,23 @@ import { Suggestion, SuggestionCategory } from '../../../core/services/suggestio
 })
 export class ItineraryDayComponent {
   @Input() day!: ItineraryDay;
+  @Input() index: number = 0; // Added index input
+
+  // Colors matching Map Component
+  readonly DAY_COLORS = [
+    '#ef4444', // Red
+    '#3b82f6', // Blue
+    '#10b981', // Emerald
+    '#f59e0b', // Amber
+    '#8b5cf6', // Violet
+    '#ec4899', // Pink
+    '#6366f1', // Indigo
+    '#84cc16', // Lime
+  ];
+
+  get dayColor(): string {
+    return this.DAY_COLORS[this.index % this.DAY_COLORS.length];
+  }
   @Input() selectedActivities: Set<number> = new Set();
   @Input() connectedTo: string[] = [];
   @Input() readOnly = false;
@@ -358,12 +376,37 @@ export class ItineraryDayComponent {
     return false;
   }
 
+
   get loadPercent(): number {
     let hours = 0;
-    this.day.activities.forEach(act => {
+
+    // Sort activities by order (should be sorted by drag drop, but to be sure)
+    const activities = [...this.day.activities].sort((a, b) => a.orderInDay - b.orderInDay);
+
+    activities.forEach((act, index) => {
+      // 1. Duration of activity itself
       hours += Number(act.suggestion.durationHours || 2);
+
+      // 2. Travel time to next activity
+      if (index < activities.length - 1) {
+        const nextAct = activities[index + 1];
+        const dist = GeoUtils.distance(
+          Number(act.suggestion.latitude),
+          Number(act.suggestion.longitude),
+          Number(nextAct.suggestion.latitude),
+          Number(nextAct.suggestion.longitude)
+        );
+        // Walking speed 4km/h
+        hours += dist / 4.0;
+      }
     });
-    return (hours / 8) * 100; // Assuming 8h is 100%
+
+    // If there is a hotel, maybe consider initial travel time? 
+    // Backend logic was: only if consecutive activities. 
+    // Let's stick to simple "between activities" logic for visual feedback first
+    // to match what the backend does in optimization loop loosely.
+
+    return (hours / 8) * 100; // Assuming 8h is 100% capacity
   }
 
   selectDay() {

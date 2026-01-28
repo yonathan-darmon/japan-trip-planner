@@ -48,8 +48,9 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
 
         <div class="days-container" cdkDropListGroup>
           <app-itinerary-day
-            *ngFor="let day of itinerary.days"
+            *ngFor="let day of itinerary.days; let i = index"
             [day]="day"
+            [index]="i"
             [connectedTo]="allDayIds"
             [selectedActivities]="selectedActivities"
             [readOnly]="!canEdit(itinerary)"

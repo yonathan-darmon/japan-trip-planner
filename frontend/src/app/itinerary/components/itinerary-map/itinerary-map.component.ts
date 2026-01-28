@@ -144,6 +144,17 @@ export class ItineraryMapComponent implements AfterViewInit, OnChanges, OnDestro
         });
 
         // 2. Draw Polyline (Path)
+        const DAY_COLORS = [
+            '#ef4444', // Red (Japan flag red)
+            '#3b82f6', // Blue
+            '#10b981', // Emerald
+            '#f59e0b', // Amber
+            '#8b5cf6', // Violet
+            '#ec4899', // Pink
+            '#6366f1', // Indigo
+            '#84cc16', // Lime
+        ];
+
         if (this.selectedDay) {
             // SINGLE DAY VIEW: High contrast path for selected day
             const dayCoords: L.LatLngExpression[] = this.selectedDay.activities
@@ -155,8 +166,11 @@ export class ItineraryMapComponent implements AfterViewInit, OnChanges, OnDestro
                 .filter(c => c !== null) as L.LatLngExpression[];
 
             if (dayCoords.length > 1 && this.markersLayer) {
+                // Use the color corresponding to the day number (modulo length)
+                const colorIndex = (this.selectedDay.dayNumber - 1) % DAY_COLORS.length;
+
                 L.polyline(dayCoords, {
-                    color: '#63b3ed',
+                    color: DAY_COLORS[colorIndex],
                     weight: 5,
                     opacity: 0.9,
                     lineJoin: 'round',
@@ -164,28 +178,33 @@ export class ItineraryMapComponent implements AfterViewInit, OnChanges, OnDestro
                 }).addTo(this.markersLayer);
             }
         } else {
-            // GLOBAL VIEW: One continuous path across all days
-            const allCoords: L.LatLngExpression[] = [];
-            this.itinerary.days.forEach(day => {
+            // GLOBAL VIEW: Separate paths for each day
+            this.itinerary.days.forEach((day, index) => {
                 const sortedActs = [...day.activities].sort((a, b) => a.orderInDay - b.orderInDay);
+                const dayCoords: L.LatLngExpression[] = [];
+
                 sortedActs.forEach(act => {
                     const lat = Number(act.suggestion.latitude);
                     const lng = Number(act.suggestion.longitude);
                     if (!isNaN(lat) && !isNaN(lng)) {
-                        allCoords.push([lat, lng]);
+                        dayCoords.push([lat, lng]);
                     }
                 });
-            });
 
-            if (allCoords.length > 1 && this.markersLayer) {
-                L.polyline(allCoords, {
-                    color: '#718096',
-                    weight: 3,
-                    opacity: 0.5,
-                    lineJoin: 'round',
-                    lineCap: 'round'
-                }).addTo(this.markersLayer);
-            }
+                if (dayCoords.length > 1 && this.markersLayer) {
+                    const colorIndex = index % DAY_COLORS.length;
+
+                    L.polyline(dayCoords, {
+                        color: DAY_COLORS[colorIndex],
+                        weight: 4,
+                        opacity: 0.8,
+                        lineJoin: 'round',
+                        lineCap: 'round',
+                        dashArray: '10, 5' // Optional: make them slightly dashed to distinguish overlaps better? Or solid. Let's stick to solid but distinct colors.
+                        // actually removed dashArray for solid lines as requested "lines"
+                    }).addTo(this.markersLayer);
+                }
+            });
         }
 
         // 3. Adjust View

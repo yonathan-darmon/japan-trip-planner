@@ -19,6 +19,7 @@ import { Suggestion, SuggestionCategory } from '../suggestions/entities/suggesti
 import { TripConfig } from '../trip-config/entities/trip-config.entity';
 import { ClusteringService } from './clustering.service';
 import { RoutingService } from './routing.service';
+import { GeoUtils } from './utils/geo.utils';
 
 interface DayPlan {
     dayNumber: number;
@@ -173,11 +174,49 @@ export class ItineraryService {
 
             for (const activity of sortedActivities) {
                 const duration = Number(activity.durationHours) || 2.0;
+                let travelTime = 0;
+
+                // Calculate travel time from previous activity in the same day
+                if (days[currentDayIndex].activities.length > 0) {
+                    const lastActivity = days[currentDayIndex].activities[days[currentDayIndex].activities.length - 1];
+                    const dist = GeoUtils.distance(
+                        Number(lastActivity.suggestion.latitude),
+                        Number(lastActivity.suggestion.longitude),
+                        Number(activity.latitude),
+                        Number(activity.longitude)
+                    );
+                    // Assume walking speed 4 km/h
+                    travelTime = dist / 4.0;
+                } else if (bestHotel && days[currentDayIndex].activities.length === 0) {
+                    // Optional: Calculate time from hotel to first activity?
+                    // Let's keep it simple for now, usually starting fresh.
+                    // But if we have a hotel, we *could* count it. 
+                    // Let's count it to be more realistic functionality "travel time must be added".
+                    const dist = GeoUtils.distance(
+                        Number(bestHotel.latitude),
+                        Number(bestHotel.longitude),
+                        Number(activity.latitude),
+                        Number(activity.longitude)
+                    );
+                    travelTime = dist / 4.0;
+                }
 
                 // If current day is full, move to next
-                if (currentDayHours + duration > dailyTargetHours && currentDayIndex < totalDays - 1) {
+                if (currentDayHours + duration + travelTime > dailyTargetHours && currentDayIndex < totalDays - 1) {
                     currentDayIndex++;
                     currentDayHours = 0;
+                    travelTime = 0; // Reset travel time as we might start from hotel again (or not counted if moved)
+
+                    // Recalculate from hotel for new day if applicable
+                    if (bestHotel) {
+                        const dist = GeoUtils.distance(
+                            Number(bestHotel.latitude),
+                            Number(bestHotel.longitude),
+                            Number(activity.latitude),
+                            Number(activity.longitude)
+                        );
+                        travelTime = dist / 4.0;
+                    }
                 }
 
                 days[currentDayIndex].activities.push({
@@ -190,7 +229,7 @@ export class ItineraryService {
                     days[currentDayIndex].accommodation = bestHotel;
                 }
 
-                currentDayHours += duration;
+                currentDayHours += duration + travelTime;
             }
 
             // Back-fill / Forward-fill accommodation

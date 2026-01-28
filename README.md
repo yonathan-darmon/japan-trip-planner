@@ -22,7 +22,12 @@ Ce projet permet à un groupe d'amis de proposer des activités, de voter pour l
 ### 🗺️ Visualisation & Carte Interactive
 - **Carte Leaflet intégrée** : Visualisez votre itinéraire jour par jour.
 - **Marqueurs dynamiques** : Codes couleurs pour les activités et l'hébergement.
+- **Visualisation Optimisée** : Tracés de couleurs distinctes par journée et zoom automatique.
 - **Géocodage automatique** : Conversion automatique des adresses en coordonnées GPS (via Photon/Nominatim).
+
+### ⏱️ Planification Réaliste
+- **Temps de trajet** : Prise en compte automatique du temps de marche (~4km/h) entre chaque activité pour estimer la fin de journée.
+- **Calcul de charge en temps réel** : La jauge de remplissage de la journée s'adapte instantanément lorsque vous déplacez des activités.
 
 ### 📅 Gestion Flexible de l'Itinéraire
 - **Drag & Drop** : Déplacez facilement une activité d'un jour à l'autre.
