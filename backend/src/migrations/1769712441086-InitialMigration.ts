@@ -29,8 +29,8 @@ export class InitialMigration1769712441086 implements MigrationInterface {
             // Add Member
             await queryRunner.query(`INSERT INTO "group_members" ("user_id", "group_id", "role") VALUES ($1, $2, 'admin')`, [user.id, groupId]);
 
-            // Migrate Itineraries (assuming 'user_id' column exists in itineraries on prod)
-            await queryRunner.query(`UPDATE "itineraries" SET "group_id" = $1 WHERE "user_id" = $2`, [groupId, user.id]);
+            // Migrate Itineraries (assuming 'userId' column exists in itineraries on prod - TypeORM default is camelCase)
+            await queryRunner.query(`UPDATE "itineraries" SET "group_id" = $1 WHERE "userId" = $2`, [groupId, user.id]);
         }
 
         // 5. Add Constraints & Indices
