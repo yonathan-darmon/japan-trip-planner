@@ -16,21 +16,19 @@ export const routes: Routes = [
         ]
     },
     {
-        path: 'groups',
-        canActivate: [authGuard],
-        component: GroupSelectionComponent
-    },
-    {
-        path: 'groups/manage',
-        loadComponent: () => import('./groups/group-manage/group-manage.component').then(m => m.GroupManageComponent),
-        canActivate: [authGuard]
-    },
-    {
         path: '',
         component: MainLayoutComponent,
         canActivate: [authGuard],
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+            {
+                path: 'groups',
+                component: GroupSelectionComponent
+            },
+            {
+                path: 'groups/manage',
+                loadComponent: () => import('./groups/group-manage/group-manage.component').then(m => m.GroupManageComponent)
+            },
             // Dashboard
             {
                 path: 'dashboard',

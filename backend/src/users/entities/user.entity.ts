@@ -39,6 +39,9 @@ export class User {
     @Column({ name: 'last_viewed_changelog_at', nullable: true })
     lastViewedChangelogAt: Date;
 
+    @Column({ name: 'token_version', default: 1 })
+    tokenVersion: number;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 }

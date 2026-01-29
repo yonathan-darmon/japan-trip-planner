@@ -20,7 +20,7 @@ import { GroupMember } from '../groups/entities/group-member.entity';
             useFactory: async (configService: ConfigService) => ({
                 secret: configService.get('JWT_SECRET'),
                 signOptions: {
-                    expiresIn: configService.get('JWT_EXPIRATION') || '7d',
+                    expiresIn: configService.get('JWT_EXPIRATION') || '24h',
                 },
             }),
             inject: [ConfigService],
