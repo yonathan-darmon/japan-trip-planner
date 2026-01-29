@@ -36,6 +36,10 @@
                             </span>
                         </td>
                         <td>
+                            <button class="btn btn-sm btn-ghost" (click)="forceLogout(user.id)"
+                                title="Forcer la déconnexion" [disabled]="user.id === 1">
+                                🔌
+                            </button>
                             <button class="btn btn-sm btn-ghost" (click)="deleteUser(user.id)"
                                 [disabled]="user.role === 'super_admin' && user.id === 1">
                                 🗑️

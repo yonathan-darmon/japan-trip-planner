@@ -57,4 +57,13 @@ export class AdminService {
         member.role = role;
         return this.groupMembersRepository.save(member);
     }
+
+    async forceLogout(userId: number) {
+        const user = await this.usersRepository.findOneBy({ id: userId });
+        if (!user) {
+            throw new Error('User not found');
+        }
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
+        return this.usersRepository.save(user);
+    }
 }

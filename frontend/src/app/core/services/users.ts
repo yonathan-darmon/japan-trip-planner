@@ -35,4 +35,8 @@ export class UsersService {
     create(user: any): Observable<User> {
         return this.http.post<User>(this.apiUrl, user);
     }
+
+    forceLogout(userId: number): Observable<void> {
+        return this.http.post<void>(`${environment.apiUrl}/admin/users/${userId}/force-logout`, {});
+    }
 }

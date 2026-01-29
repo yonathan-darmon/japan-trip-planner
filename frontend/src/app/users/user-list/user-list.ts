@@ -51,6 +51,20 @@ export class UserListComponent implements OnInit {
     });
   }
 
+  forceLogout(userId: number) {
+    if (!confirm('Voulez-vous forcer la déconnexion de cet utilisateur ?')) return;
+
+    this.usersService.forceLogout(userId).subscribe({
+      next: () => {
+        alert('L\'utilisateur a été déconnecté (son jeton sera invalidé à sa prochaine action).');
+      },
+      error: (err) => {
+        console.error('Error forcing logout', err);
+        alert('Erreur lors de la déconnexion forcée');
+      }
+    });
+  }
+
   getRoleBadgeClass(role: UserRole | string): string {
     return role === UserRole.SUPER_ADMIN || role === 'super_admin' ? 'badge-primary' : 'badge-secondary';
   }

@@ -29,4 +29,9 @@ export class AdminController {
     ) {
         return this.adminService.addUserToGroup(userId, body.groupId, body.role);
     }
+
+    @Post('users/:userId/force-logout')
+    async forceLogout(@Param('userId', ParseIntPipe) userId: number) {
+        return this.adminService.forceLogout(userId);
+    }
 }

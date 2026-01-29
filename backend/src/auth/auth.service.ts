@@ -52,6 +52,7 @@ export class AuthService {
             username: user.username,
             sub: user.id,
             role: user.role,
+            version: user.tokenVersion || 1,
         };
 
         return {
