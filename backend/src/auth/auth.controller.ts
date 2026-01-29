@@ -11,4 +11,9 @@ export class AuthController {
     async login(@Body() loginDto: LoginDto) {
         return this.authService.login(loginDto);
     }
+
+    @Post('register')
+    async register(@Body() registerDto: any) { // Type should be RegisterDto, but avoiding import issues for now if possible
+        return this.authService.register(registerDto);
+    }
 }

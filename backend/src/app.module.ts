@@ -10,6 +10,10 @@ import { PreferencesModule } from './preferences/preferences.module';
 import { TripConfigModule } from './trip-config/trip-config.module';
 import { ItineraryModule } from './itinerary/itinerary.module';
 import { SyncModule } from './sync/sync.module';
+import { CountriesModule } from './countries/countries.module';
+import { GroupsModule } from './groups/groups.module';
+import { ChangelogModule } from './changelog/changelog.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -30,7 +34,9 @@ import { SyncModule } from './sync/sync.module';
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // Set to false in production
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: true, // Run migrations automatically on startup
+        synchronize: process.env.NODE_ENV !== 'production', // Disable in production
         logging: true,
         ssl: process.env.DATABASE_HOST !== 'localhost' ? { rejectUnauthorized: false } : false,
       }),
@@ -45,6 +51,10 @@ import { SyncModule } from './sync/sync.module';
     TripConfigModule,
     ItineraryModule,
     SyncModule,
+    CountriesModule,
+    GroupsModule,
+    ChangelogModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

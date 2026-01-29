@@ -12,6 +12,7 @@ export interface User {
   id: number;
   username: string;
   role: UserRole | string;
+  lastViewedChangelogAt?: string;
 }
 
 export interface AuthResponse {
@@ -47,6 +48,17 @@ export class AuthService {
 
   login(credentials: { username: string; password: string }): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+      tap(response => {
+        localStorage.setItem('access_token', response.access_token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        this.currentUserSubject.next(response.user);
+        this.isAuthenticatedSubject.next(true);
+      })
+    );
+  }
+
+  register(data: any): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, data).pipe(
       tap(response => {
         localStorage.setItem('access_token', response.access_token);
         localStorage.setItem('user', JSON.stringify(response.user));

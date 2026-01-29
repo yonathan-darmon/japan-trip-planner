@@ -7,6 +7,7 @@ import {
     JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Group } from '../../groups/entities/group.entity';
 
 @Entity('itineraries')
 export class Itinerary {
@@ -40,4 +41,11 @@ export class Itinerary {
 
     @CreateDateColumn({ name: 'generated_at' })
     generatedAt: Date;
+
+    @ManyToOne(() => Group, { nullable: true })
+    @JoinColumn({ name: 'group_id' })
+    group: Group;
+
+    @Column({ name: 'group_id', nullable: true })
+    groupId: number;
 }

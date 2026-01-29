@@ -10,6 +10,7 @@ import {
     UseInterceptors,
     UploadedFile,
     ParseIntPipe,
+    Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -35,8 +36,8 @@ export class SuggestionsController {
     }
 
     @Get()
-    findAll() {
-        return this.suggestionsService.findAll();
+    findAll(@Query('countryId') countryId?: string) {
+        return this.suggestionsService.findAll(countryId ? +countryId : undefined);
     }
 
     @Get(':id')

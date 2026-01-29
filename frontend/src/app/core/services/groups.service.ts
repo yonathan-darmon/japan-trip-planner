@@ -1,0 +1,44 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+export interface Group {
+    id: number;
+    name: string;
+    role: string;
+    country?: { name: string; code: string };
+    members?: GroupMember[];
+}
+
+export interface GroupMember {
+    id: number;
+    role: string;
+    user: { id: number; username: string; email: string };
+    joinedAt: string;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class GroupsService {
+    private apiUrl = `${environment.apiUrl}/groups`;
+
+    constructor(private http: HttpClient) { }
+
+    getMyGroups(): Observable<Group[]> {
+        return this.http.get<Group[]>(`${this.apiUrl}/my`);
+    }
+
+    getGroup(id: number): Observable<Group> {
+        return this.http.get<Group>(`${this.apiUrl}/${id}`);
+    }
+
+    inviteMember(groupId: number, email: string): Observable<any> {
+        return this.http.post(`${this.apiUrl}/${groupId}/members`, { email });
+    }
+
+    removeMember(groupId: number, userId: number): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/${groupId}/members/${userId}`);
+    }
+}

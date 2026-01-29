@@ -10,6 +10,7 @@ export interface TripConfig {
     endDate: string | null;
     updatedById: number | null;
     updatedAt: string;
+    group?: any;
 }
 
 @Injectable({

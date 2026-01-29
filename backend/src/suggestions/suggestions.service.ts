@@ -118,8 +118,13 @@ export class SuggestionsService {
         return savedSuggestion;
     }
 
-    async findAll(): Promise<Suggestion[]> {
+    async findAll(countryId?: number): Promise<Suggestion[]> {
+        const where: any = {};
+        if (countryId) {
+            where.countryId = countryId;
+        }
         return this.suggestionsRepository.find({
+            where,
             order: { createdAt: 'DESC' },
             relations: ['createdBy', 'preferences', 'preferences.user'],
         });

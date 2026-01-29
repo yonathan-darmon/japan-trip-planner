@@ -24,6 +24,14 @@ export class UsersService {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
+    deleteSelf(): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/me/delete`);
+    }
+
+    markChangelogRead(): Observable<void> {
+        return this.http.post<void>(`${this.apiUrl}/me/changelog-read`, {});
+    }
+
     create(user: any): Observable<User> {
         return this.http.post<User>(this.apiUrl, user);
     }

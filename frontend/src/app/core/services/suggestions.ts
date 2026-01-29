@@ -43,8 +43,12 @@ export class SuggestionsService {
 
   constructor(private http: HttpClient) { }
 
-  getAll(): Observable<Suggestion[]> {
-    return this.http.get<Suggestion[]>(this.apiUrl);
+  getAll(countryId?: number): Observable<Suggestion[]> {
+    let url = this.apiUrl;
+    if (countryId) {
+      url += `?countryId=${countryId}`;
+    }
+    return this.http.get<Suggestion[]>(url);
   }
 
   getOne(id: number): Observable<Suggestion> {

@@ -2,10 +2,10 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
-    selector: 'app-help',
-    standalone: true,
-    imports: [RouterLink],
-    template: `
+  selector: 'app-help',
+  standalone: true,
+  imports: [RouterLink],
+  template: `
     <div class="help-container">
       <div class="hero-section">
         <h1>Comment ça marche ?</h1>
@@ -59,6 +59,17 @@ import { RouterLink } from '@angular/router';
             Utilisez le <span class="highlight">Drag & Drop</span> pour déplacer des activités ou changer d'hôtel.
           </p>
         </div>
+
+        <!-- Step 5 -->
+        <div class="step-card">
+          <div class="step-number">5</div>
+          <div class="icon-wrapper">👥</div>
+          <h3>Collaborer</h3>
+          <p>
+            Invitez vos amis dans votre <span class="highlight">Groupe</span>. 
+            Chaque groupe a son propre voyage et ses propres votes. Partagez l'expérience !
+          </p>
+        </div>
       </div>
 
       <div class="cta-section">
@@ -68,6 +79,6 @@ import { RouterLink } from '@angular/router';
       </div>
     </div>
   `,
-    styleUrls: ['./help.component.css']
+  styleUrls: ['./help.component.css']
 })
 export class HelpComponent { }

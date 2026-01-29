@@ -5,8 +5,10 @@ import {
     UpdateDateColumn,
     ManyToOne,
     JoinColumn,
+    OneToOne,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Group } from '../../groups/entities/group.entity';
 
 @Entity('trip_config')
 export class TripConfig {
@@ -35,4 +37,7 @@ export class TripConfig {
 
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
+
+    @OneToOne(() => Group, (group) => group.tripConfig)
+    group: Group;
 }

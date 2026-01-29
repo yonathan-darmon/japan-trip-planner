@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, NgIf],
+  imports: [ReactiveFormsModule, NgIf, RouterModule],
   template: `
     <div class="login-container">
       <div class="card glass login-card">
@@ -53,6 +53,10 @@ import { NgIf } from '@angular/common';
             <span *ngIf="!isLoading">Se connecter</span>
             <span *ngIf="isLoading">Connexion...</span>
           </button>
+          
+          <div class="login-footer">
+            <p>Pas encore de compte ? <a routerLink="/auth/signup" class="text-indigo-600 hover:text-indigo-500 font-medium">Créer un compte</a></p>
+          </div>
         </form>
       </div>
     </div>
@@ -132,7 +136,7 @@ export class LoginComponent {
 
       this.authService.login(this.loginForm.value).subscribe({
         next: () => {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/groups']);
         },
         error: (err) => {
           this.isLoading = false;

@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { UserPreference } from '../../preferences/entities/user-preference.entity';
+import { Country } from '../../countries/entities/country.entity';
 
 export enum SuggestionCategory {
     RESTAURANT = 'Restaurant',
@@ -62,6 +63,13 @@ export class Suggestion {
         name: 'duration_hours'
     })
     durationHours: number;
+
+    @ManyToOne(() => Country, { nullable: true })
+    @JoinColumn({ name: 'country_id' })
+    country: Country;
+
+    @Column({ name: 'country_id', nullable: true })
+    countryId: number;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'created_by' })

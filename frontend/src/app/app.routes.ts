@@ -1,15 +1,29 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './auth/login/login';
+import { SignupComponent } from './auth/signup/signup.component';
 import { MainLayoutComponent } from './layout/main-layout/main-layout';
 import { authGuard } from './core/guards/auth-guard';
 import { superAdminGuard } from './core/guards/super-admin.guard';
+
+import { GroupSelectionComponent } from './auth/group-selection/group-selection.component';
 
 export const routes: Routes = [
     {
         path: 'auth',
         children: [
-            { path: 'login', component: LoginComponent }
+            { path: 'login', component: LoginComponent },
+            { path: 'signup', component: SignupComponent }
         ]
+    },
+    {
+        path: 'groups',
+        canActivate: [authGuard],
+        component: GroupSelectionComponent
+    },
+    {
+        path: 'groups/manage',
+        loadComponent: () => import('./groups/group-manage/group-manage.component').then(m => m.GroupManageComponent),
+        canActivate: [authGuard]
     },
     {
         path: '',
@@ -61,6 +75,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./help/help.component').then(m => m.HelpComponent)
             },
             // Administration - Users
+            {
+                path: 'settings',
+                loadComponent: () => import('./users/user-settings/user-settings.component').then(m => m.UserSettingsComponent)
+            },
             {
                 path: 'users',
                 loadComponent: () => import('./users/user-list/user-list').then(m => m.UserListComponent),

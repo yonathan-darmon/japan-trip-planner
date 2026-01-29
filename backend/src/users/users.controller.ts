@@ -7,6 +7,7 @@ import {
     Delete,
     UseGuards,
     ParseIntPipe,
+    Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
@@ -49,5 +50,16 @@ export class UsersController {
     @Roles(UserRole.SUPER_ADMIN)
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.usersService.remove(id);
+    }
+
+    @Delete('me/delete') // Explicit path to avoid conflict with :id if not careful, though 'me' is not int.
+    removeSelf(@Request() req: any) {
+        // req.user is populated by JwtStrategy
+        return this.usersService.remove(req.user.id);
+    }
+
+    @Post('me/changelog-read')
+    updateChangelogRead(@Request() req: any) {
+        return this.usersService.updateLastViewedChangelog(req.user.id);
     }
 }

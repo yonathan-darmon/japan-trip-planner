@@ -3,7 +3,9 @@ import {
     PrimaryGeneratedColumn,
     Column,
     CreateDateColumn,
+    OneToMany,
 } from 'typeorm';
+import { GroupMember } from '../../groups/entities/group-member.entity';
 
 export enum UserRole {
     SUPER_ADMIN = 'super_admin',
@@ -18,6 +20,9 @@ export class User {
     @Column({ unique: true, length: 50 })
     username: string;
 
+    @Column({ unique: true, nullable: true })
+    email: string;
+
     @Column({ name: 'password_hash' })
     passwordHash: string;
 
@@ -27,6 +32,12 @@ export class User {
         default: UserRole.STANDARD,
     })
     role: UserRole;
+
+    @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
+    groups: GroupMember[];
+
+    @Column({ name: 'last_viewed_changelog_at', nullable: true })
+    lastViewedChangelogAt: Date;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;

@@ -44,4 +44,11 @@ export class UsersService {
     async remove(id: number): Promise<void> {
         await this.usersRepository.delete(id);
     }
+
+    async updateLastViewedChangelog(userId: number): Promise<User> {
+        const user = await this.findOne(userId);
+        if (!user) throw new Error('User not found');
+        user.lastViewedChangelogAt = new Date();
+        return this.usersRepository.save(user);
+    }
 }
