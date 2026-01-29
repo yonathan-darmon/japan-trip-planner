@@ -6,6 +6,11 @@ import { Changelog } from './entities/changelog.entity';
 export class ChangelogController {
     constructor(private readonly changelogService: ChangelogService) { }
 
+    @Get()
+    async findAll(): Promise<Changelog[]> {
+        return this.changelogService.findAll();
+    }
+
     @Get('latest')
     async getLatest(): Promise<Changelog[]> {
         return this.changelogService.findAll();

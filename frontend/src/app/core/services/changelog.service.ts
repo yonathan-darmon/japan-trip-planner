@@ -19,6 +19,6 @@ export class ChangelogService {
     constructor(private http: HttpClient) { }
 
     getLatest(): Observable<Changelog[]> {
-        return this.http.get<Changelog[]>(this.apiUrl);
+        return this.http.get<Changelog[]>(`${this.apiUrl}/latest`);
     }
 }
