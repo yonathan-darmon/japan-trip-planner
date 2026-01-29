@@ -136,10 +136,8 @@ import { ChangelogService, Changelog } from '../core/services/changelog.service'
   styles: [`
     .dashboard-header {
       text-align: center;
-// ... (rest of styles kept implicitly, focusing on component logic below)
-// I will only replace the Component class and key template parts to avoid massive replace
-// But replace_file_content needs contiguous block. 
-// I will try to replace the end of template and the class implementation.
+      margin-bottom: 2rem;
+    }
    `]
 })
 export class DashboardComponent implements OnInit {

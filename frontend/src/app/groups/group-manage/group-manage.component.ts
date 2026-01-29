@@ -5,10 +5,10 @@ import { GroupsService, Group } from '../../core/services/groups.service';
 import { ActivatedRoute } from '@angular/router';
 
 @Component({
-  selector: 'app-group-manage',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-group-manage',
+    standalone: true,
+    imports: [CommonModule, FormsModule],
+    template: `
     <div class="dashboard-header fade-in">
       <h1>👥 Mon Groupe de Voyage</h1>
       <p>Gérez les membres et invitez vos compagnons.</p>
@@ -31,7 +31,7 @@ import { ActivatedRoute } from '@angular/router';
                         <p class="mt-1 text-sm text-gray-500">Voyage au Japon</p>
                     </div>
                     <span class="px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-800">
-                        {{ group.members.length }} membres
+                        {{ group?.members?.length }} membres
                     </span>
                 </div>
             </div>
@@ -111,7 +111,7 @@ import { ActivatedRoute } from '@angular/router';
         </div>
     </div>
     `,
-  styles: [`
+    styles: [`
         .glass {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -170,76 +170,76 @@ import { ActivatedRoute } from '@angular/router';
     `]
 })
 export class GroupManageComponent implements OnInit {
-  group: Group | null = null;
-  loading = false;
-  inviteEmail = '';
-  message = '';
-  isError = false;
-  currentGroupId: number | null = null;
+    group: Group | null = null;
+    loading = false;
+    inviteEmail = '';
+    message = '';
+    isError = false;
+    currentGroupId: number | null = null;
 
-  constructor(
-    private groupsService: GroupsService,
-    private route: ActivatedRoute
-  ) { }
+    constructor(
+        private groupsService: GroupsService,
+        private route: ActivatedRoute
+    ) { }
 
-  ngOnInit() {
-    const storedId = localStorage.getItem('currentGroupId');
-    if (storedId) {
-      this.currentGroupId = +storedId;
-      this.loadGroup();
+    ngOnInit() {
+        const storedId = localStorage.getItem('currentGroupId');
+        if (storedId) {
+            this.currentGroupId = +storedId;
+            this.loadGroup();
+        }
     }
-  }
 
-  loadGroup() {
-    if (!this.currentGroupId) return;
-    this.loading = true;
-    this.groupsService.getGroup(this.currentGroupId).subscribe({
-      next: (group) => {
-        this.group = group;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Failed to load group', err);
-        this.loading = false;
-      }
-    });
-  }
+    loadGroup() {
+        if (!this.currentGroupId) return;
+        this.loading = true;
+        this.groupsService.getGroup(this.currentGroupId).subscribe({
+            next: (group) => {
+                this.group = group;
+                this.loading = false;
+            },
+            error: (err) => {
+                console.error('Failed to load group', err);
+                this.loading = false;
+            }
+        });
+    }
 
-  inviteMember() {
-    if (!this.currentGroupId || !this.inviteEmail) return;
-    this.loading = true;
-    this.message = '';
-    this.isError = false;
+    inviteMember() {
+        if (!this.currentGroupId || !this.inviteEmail) return;
+        this.loading = true;
+        this.message = '';
+        this.isError = false;
 
-    this.groupsService.inviteMember(this.currentGroupId, this.inviteEmail).subscribe({
-      next: () => {
-        this.message = 'Invitation envoyée avec succès ! 🎉';
-        this.inviteEmail = '';
-        this.loading = false;
-        this.loadGroup(); // Refresh list to verify or just show success
-      },
-      error: (err) => {
-        this.message = err.error?.message || 'Échec de l\'invitation. Vérifiez l\'email.';
-        this.isError = true;
-        this.loading = false;
-      }
-    });
-  }
+        this.groupsService.inviteMember(this.currentGroupId, this.inviteEmail).subscribe({
+            next: () => {
+                this.message = 'Invitation envoyée avec succès ! 🎉';
+                this.inviteEmail = '';
+                this.loading = false;
+                this.loadGroup(); // Refresh list to verify or just show success
+            },
+            error: (err) => {
+                this.message = err.error?.message || 'Échec de l\'invitation. Vérifiez l\'email.';
+                this.isError = true;
+                this.loading = false;
+            }
+        });
+    }
 
-  removeMember(userId: number) {
-    if (!this.currentGroupId || !confirm('Êtes-vous sûr de vouloir retirer ce membre du groupe ?')) return;
+    removeMember(userId: number) {
+        if (!this.currentGroupId || !confirm('Êtes-vous sûr de vouloir retirer ce membre du groupe ?')) return;
 
-    this.groupsService.removeMember(this.currentGroupId, userId).subscribe({
-      next: () => {
-        this.loadGroup();
-      },
-      error: (err) => alert('Impossible de retirer le membre.')
-    });
-  }
+        this.groupsService.removeMember(this.currentGroupId, userId).subscribe({
+            next: () => {
+                this.loadGroup();
+            },
+            error: (err) => alert('Impossible de retirer le membre.')
+        });
+    }
 
-  canRemoveInfo(member: any): boolean {
-    // Logic: Can remove if I am admin, and target is NOT me.
-    // For now, consistent with previous logic, backend handles security.
-    return true;
-  }
+    canRemoveInfo(member: any): boolean {
+        // Logic: Can remove if I am admin, and target is NOT me.
+        // For now, consistent with previous logic, backend handles security.
+        return true;
+    }
 }
