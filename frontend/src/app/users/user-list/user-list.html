@@ -36,6 +36,10 @@
                             </span>
                         </td>
                         <td>
+                            <button class="btn btn-sm btn-ghost" (click)="openGroupManagement(user)"
+                                title="Gérer les groupes">
+                                🏘️
+                            </button>
                             <button class="btn btn-sm btn-ghost" (click)="forceLogout(user.id)"
                                 title="Forcer la déconnexion" [disabled]="user.id === 1">
                                 🔌
@@ -51,6 +55,43 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- MODAL GESTION GROUPES -->
+    <div class="modal-backdrop fade-in" *ngIf="showGroupModal">
+        <div class="modal card glass p-0 overflow-hidden">
+            <div class="modal-header p-4 flex justify-between items-center border-b border-white/10">
+                <h3 class="m-0 text-white">Groupes de {{ selectedUser?.username }}</h3>
+                <button class="btn-close" (click)="closeGroupModal()">✕</button>
+            </div>
+
+            <div class="modal-body p-6">
+                <div *ngIf="loadingGroups" class="text-center py-4">Chargement...</div>
+
+                <div *ngIf="!loadingGroups && userGroups.length === 0" class="text-center py-4 text-text-tertiary">
+                    Cet utilisateur n'appartient à aucun groupe.
+                </div>
+
+                <ul class="space-y-3" *ngIf="userGroups.length > 0">
+                    <li *ngFor="let ug of userGroups"
+                        class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                        <div>
+                            <div class="font-bold text-white">{{ ug.group.name }}</div>
+                            <div class="text-xs text-text-tertiary">Rôle: {{ ug.role }} | Pays: {{
+                                ug.group.country?.name }}</div>
+                        </div>
+                        <button class="btn btn-sm border-red-500/30 text-red-400 hover:bg-red-500/20"
+                            (click)="removeFromGroup(ug.group.id)">
+                            Retirer
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="modal-footer p-4 bg-white/5 text-right flex justify-end">
+                <button class="btn btn-secondary btn-sm" (click)="closeGroupModal()">Fermer</button>
+            </div>
         </div>
     </div>
 </div>

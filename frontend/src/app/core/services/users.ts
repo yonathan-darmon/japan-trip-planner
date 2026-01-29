@@ -36,6 +36,18 @@ export class UsersService {
         return this.http.post<User>(this.apiUrl, user);
     }
 
+    updateProfile(data: { username?: string; email?: string }): Observable<User> {
+        return this.http.patch<User>(`${this.apiUrl}/me`, data);
+    }
+
+    getUserGroups(userId: number): Observable<any[]> {
+        return this.http.get<any[]>(`${environment.apiUrl}/admin/users/${userId}/groups`);
+    }
+
+    removeUserFromGroup(userId: number, groupId: number): Observable<void> {
+        return this.http.delete<void>(`${environment.apiUrl}/admin/users/${userId}/groups/${groupId}`);
+    }
+
     forceLogout(userId: number): Observable<void> {
         return this.http.post<void>(`${environment.apiUrl}/admin/users/${userId}/force-logout`, {});
     }

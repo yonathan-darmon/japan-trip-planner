@@ -58,6 +58,17 @@ export class AdminService {
         return this.groupMembersRepository.save(member);
     }
 
+    async getUserGroups(userId: number) {
+        return this.groupMembersRepository.find({
+            where: { userId },
+            relations: ['group', 'group.country'],
+        });
+    }
+
+    async removeMember(userId: number, groupId: number) {
+        return this.groupMembersRepository.delete({ userId, groupId });
+    }
+
     async forceLogout(userId: number) {
         const user = await this.usersRepository.findOneBy({ id: userId });
         if (!user) {

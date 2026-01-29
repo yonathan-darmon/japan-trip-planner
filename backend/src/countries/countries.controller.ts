@@ -1,7 +1,12 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { CountriesService } from './countries.service';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('countries')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class CountriesController {
     constructor(private readonly countriesService: CountriesService) { }
 
@@ -16,11 +21,13 @@ export class CountriesController {
     }
 
     @Post()
+    @Roles(UserRole.SUPER_ADMIN)
     async create(@Body() createCountryDto: { name: string; code: string }) {
         return this.countriesService.create(createCountryDto);
     }
 
     @Post(':id/assign-suggestions')
+    @Roles(UserRole.SUPER_ADMIN)
     async assignSuggestions(
         @Param('id') id: string,
         @Body() body: { suggestionIds: number[] },

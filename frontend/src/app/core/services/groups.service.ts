@@ -30,6 +30,10 @@ export class GroupsService {
         return this.http.get<Group[]>(`${this.apiUrl}/my`);
     }
 
+    getAllGroups(): Observable<Group[]> {
+        return this.http.get<Group[]>(this.apiUrl);
+    }
+
     getGroup(id: number): Observable<Group> {
         return this.http.get<Group>(`${this.apiUrl}/${id}`);
     }

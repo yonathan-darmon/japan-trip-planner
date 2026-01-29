@@ -45,6 +45,16 @@ export class UsersService {
         await this.usersRepository.delete(id);
     }
 
+    async update(id: number, updateDto: { username?: string; email?: string }): Promise<User> {
+        const user = await this.findOne(id);
+        if (!user) throw new Error('User not found');
+
+        if (updateDto.username) user.username = updateDto.username;
+        if (updateDto.email) user.email = updateDto.email;
+
+        return this.usersRepository.save(user);
+    }
+
     async updateLastViewedChangelog(userId: number): Promise<User> {
         const user = await this.findOne(userId);
         if (!user) throw new Error('User not found');

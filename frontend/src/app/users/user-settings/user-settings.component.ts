@@ -6,116 +6,162 @@ import { UsersService } from '../../core/services/users';
 import { Router } from '@angular/router';
 
 @Component({
-    selector: 'app-user-settings',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
-    template: `
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div class="px-4 py-6 sm:px-0">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">User Settings</h1>
+  selector: 'app-user-settings',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <div class="settings-container fade-in">
+      <div class="settings-header">
+        <h1>👤 Paramètres du Profil</h1>
+        <p>Gérez vos informations personnelles et la sécurité de votre compte.</p>
+      </div>
 
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
-          <div class="px-4 py-5 sm:px-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Profile Information</h3>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500">Update your account details.</p>
-          </div>
-          <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
-            <form [formGroup]="profileForm" (ngSubmit)="onUpdateProfile()">
-               <div class="grid grid-cols-6 gap-6">
-                 <div class="col-span-6 sm:col-span-4">
-                   <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                   <input type="text" formControlName="username" id="username" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                 </div>
-
-                 <div class="col-span-6 sm:col-span-4">
-                   <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
-                   <input type="text" formControlName="email" id="email" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                 </div>
+      <div class="max-w-2xl mx-auto px-4">
+        <!-- PROFILE CARD -->
+        <div class="card glass mb-8">
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+              <span class="text-primary">📝</span> Informations Générales
+            </h3>
+            
+            <form [formGroup]="profileForm" (ngSubmit)="onUpdateProfile()" class="space-y-6">
+               <div class="form-group">
+                 <label for="username" class="form-label">Nom d'utilisateur</label>
+                 <input type="text" formControlName="username" id="username" class="form-input" placeholder="ex: Nom de voyageur">
                </div>
-               <div class="mt-6">
-                 <button type="submit" [disabled]="profileForm.invalid || loading" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                   Save Changes
+
+               <div class="form-group">
+                 <label for="email" class="form-label">Adresse Email</label>
+                 <input type="email" formControlName="email" id="email" class="form-input" placeholder="ex: jean@example.com">
+               </div>
+
+               <div class="flex items-center gap-4 pt-2">
+                 <button type="submit" [disabled]="profileForm.invalid || loading" class="btn btn-primary">
+                   {{ loading ? 'Enregistrement...' : 'Enregistrer les modifications' }}
                  </button>
-                 <span *ngIf="successMessage" class="ml-3 text-green-600 text-sm">{{ successMessage }}</span>
-                 <span *ngIf="errorMessage" class="ml-3 text-red-600 text-sm">{{ errorMessage }}</span>
+                 <span *ngIf="successMessage" class="text-success text-sm fade-in">✅ {{ successMessage }}</span>
+                 <span *ngIf="errorMessage" class="text-error text-sm fade-in">❌ {{ errorMessage }}</span>
                </div>
             </form>
           </div>
         </div>
 
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg border-t-4 border-red-500">
-          <div class="px-4 py-5 sm:px-6">
-            <h3 class="text-lg leading-6 font-medium text-red-600">Danger Zone</h3>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500">Irreversible actions.</p>
-          </div>
-          <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
-            <div>
-              <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Account</h3>
-              <div class="mt-2 max-w-xl text-sm text-gray-500">
-                <p>Once you delete your account, there is no going back. Please be certain.</p>
-              </div>
-              <div class="mt-5">
-                <button type="button" (click)="deleteAccount()" class="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
-                  Delete Account
-                </button>
-              </div>
+        <!-- DANGER ZONE -->
+        <div class="card glass border-t-2 border-red-500/30">
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">
+              <span class="text-2xl">⚠️</span> Zone de Danger
+            </h3>
+            <p class="text-text-secondary text-sm mb-6">Actions irréversibles concernant votre compte.</p>
+            
+            <div class="bg-red-500/5 rounded-lg p-6 border border-red-500/10">
+              <h4 class="font-bold text-white mb-2">Suppression définitive du compte</h4>
+              <p class="text-text-tertiary text-sm mb-5">
+                Une fois votre compte supprimé, il n'y a pas de retour en arrière possible. 
+                Toutes vos données seront effacées.
+              </p>
+              <button type="button" (click)="deleteAccount()" class="btn btn-outline border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+                Supprimer mon compte
+              </button>
             </div>
           </div>
         </div>
-
       </div>
     </div>
-  `
+    `,
+  styles: [`
+        .settings-container {
+            padding: 4rem 1rem;
+            min-height: calc(100vh - 100px);
+        }
+        .settings-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .settings-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .settings-header p {
+            color: var(--color-text-tertiary);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .text-success { color: var(--color-success); }
+        .text-error { color: var(--color-error); }
+    `]
 })
 export class UserSettingsComponent implements OnInit {
-    profileForm: FormGroup;
-    loading = false;
-    successMessage = '';
-    errorMessage = '';
-    currentUser: User | null = null;
+  profileForm: FormGroup;
+  loading = false;
+  successMessage = '';
+  errorMessage = '';
+  currentUser: User | null = null;
 
-    constructor(
-        private fb: FormBuilder,
-        private authService: AuthService,
-        private usersService: UsersService,
-        private router: Router
-    ) {
-        this.profileForm = this.fb.group({
-            username: ['', Validators.required],
-            email: ['', [Validators.required, Validators.email]]
-        });
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private usersService: UsersService,
+    private router: Router
+  ) {
+    this.profileForm = this.fb.group({
+      username: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]]
+    });
+  }
+
+  ngOnInit() {
+    this.currentUser = this.authService.currentUserValue;
+    if (this.currentUser) {
+      this.profileForm.patchValue({
+        username: this.currentUser.username,
+        email: (this.currentUser as any).email || ''
+      });
     }
+  }
 
-    ngOnInit() {
-        this.currentUser = this.authService.currentUserValue;
-        if (this.currentUser) {
-            this.profileForm.patchValue({
-                username: this.currentUser.username,
-                // email might not be on User interface yet if it's old interface, checking auth.ts
-                // If email is missing from User interface in auth.ts, I might need to fetch full profile.
-                // Assuming it's there or I need to update User interface.
-            });
-            // Fetch full profile if needed
+  onUpdateProfile() {
+    if (this.profileForm.invalid) return;
+    this.loading = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+
+    this.usersService.updateProfile(this.profileForm.value).subscribe({
+      next: (updatedUser) => {
+        this.loading = false;
+        this.successMessage = 'Profil mis à jour avec succès !';
+        // Optionnel: mettre à jour le user dans AuthService si nécessaire
+        // this.authService.updateCurrentUser(updatedUser);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = 'Erreur lors de la mise à jour : ' + (err.error?.message || err.message);
+      }
+    });
+  }
+
+  deleteAccount() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+      this.usersService.deleteSelf().subscribe({
+        next: () => {
+          this.authService.logout();
+          this.router.navigate(['/']);
+        },
+        error: (err) => {
+          alert('Erreur lors de la suppression du compte : ' + (err.error?.message || err.message));
         }
+      });
     }
-
-    onUpdateProfile() {
-        if (this.profileForm.invalid) return;
-        // Implementation for update profile if API supports it
-        // this.usersService.update(this.currentUser.id, this.profileForm.value)...
-    }
-
-    deleteAccount() {
-        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-            this.usersService.deleteSelf().subscribe({
-                next: () => {
-                    this.authService.logout();
-                    this.router.navigate(['/']);
-                },
-                error: (err) => {
-                    alert('Failed to delete account: ' + (err.error?.message || err.message));
-                }
-            });
-        }
-    }
+  }
 }

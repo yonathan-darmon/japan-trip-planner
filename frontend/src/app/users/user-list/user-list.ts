@@ -65,6 +65,50 @@ export class UserListComponent implements OnInit {
     });
   }
 
+  // --- GROUP MANAGEMENT ---
+  selectedUser: User | null = null;
+  userGroups: any[] = [];
+  allGroups: any[] = [];
+  showGroupModal = false;
+  loadingGroups = false;
+
+  openGroupManagement(user: User) {
+    this.selectedUser = user;
+    this.showGroupModal = true;
+    this.loadingGroups = true;
+
+    // Load existing groups for this user
+    this.usersService.getUserGroups(user.id).subscribe({
+      next: (groups) => {
+        this.userGroups = groups;
+        this.loadingGroups = false;
+      }
+    });
+
+    // Load available groups in system
+    // We should probably have a GroupsService.getAll()
+  }
+
+  closeGroupModal() {
+    this.showGroupModal = false;
+    this.selectedUser = null;
+    this.userGroups = [];
+  }
+
+  removeFromGroup(groupId: number) {
+    if (!this.selectedUser) return;
+    if (!confirm('Retirer cet utilisateur de ce groupe ?')) return;
+
+    this.usersService.removeUserFromGroup(this.selectedUser.id, groupId).subscribe({
+      next: () => {
+        this.userGroups = this.userGroups.filter(g => g.group.id !== groupId);
+      },
+      error: (err) => {
+        alert('Erreur: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
   getRoleBadgeClass(role: UserRole | string): string {
     return role === UserRole.SUPER_ADMIN || role === 'super_admin' ? 'badge-primary' : 'badge-secondary';
   }

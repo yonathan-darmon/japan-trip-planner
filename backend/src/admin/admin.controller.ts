@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -20,6 +20,19 @@ export class AdminController {
     @Get('groups')
     async findAllGroups() {
         return this.adminService.findAllGroups();
+    }
+
+    @Get('users/:userId/groups')
+    async getUserGroups(@Param('userId', ParseIntPipe) userId: number) {
+        return this.adminService.getUserGroups(userId);
+    }
+
+    @Delete('users/:userId/groups/:groupId')
+    async removeUserFromGroup(
+        @Param('userId', ParseIntPipe) userId: number,
+        @Param('groupId', ParseIntPipe) groupId: number,
+    ) {
+        return this.adminService.removeMember(userId, groupId);
     }
 
     @Post('users/:userId/groups')

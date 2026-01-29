@@ -8,6 +8,7 @@ import {
     UseGuards,
     ParseIntPipe,
     Request,
+    Patch,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
@@ -52,10 +53,14 @@ export class UsersController {
         return this.usersService.remove(id);
     }
 
-    @Delete('me/delete') // Explicit path to avoid conflict with :id if not careful, though 'me' is not int.
+    @Delete('me/delete')
     removeSelf(@Request() req: any) {
-        // req.user is populated by JwtStrategy
         return this.usersService.remove(req.user.id);
+    }
+
+    @Patch('me')
+    updateProfile(@Request() req: any, @Body() updateDto: { username?: string; email?: string }) {
+        return this.usersService.update(req.user.id, updateDto);
     }
 
     @Post('me/changelog-read')
