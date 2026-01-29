@@ -6,7 +6,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @Controller('countries')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class CountriesController {
     constructor(private readonly countriesService: CountriesService) { }
 
@@ -16,17 +15,20 @@ export class CountriesController {
     }
 
     @Get(':id')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     async findOne(@Param('id') id: string) {
         return this.countriesService.findOne(+id);
     }
 
     @Post()
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.SUPER_ADMIN)
     async create(@Body() createCountryDto: { name: string; code: string }) {
         return this.countriesService.create(createCountryDto);
     }
 
     @Post(':id/assign-suggestions')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.SUPER_ADMIN)
     async assignSuggestions(
         @Param('id') id: string,

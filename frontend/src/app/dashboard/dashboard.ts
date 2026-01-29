@@ -88,23 +88,22 @@ import { ChangelogService, Changelog } from '../core/services/changelog.service'
       </div>
     </div>
     <!-- CHANGELOG MODAL -->
-    <div *ngIf="showChangelog && latestChangelog" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full fade-in z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Nouveautés ({{ latestChangelog.version }})</h3>
-          <div class="mt-2 px-7 py-3">
-            <p class="text-sm text-gray-500 whitespace-pre-wrap text-left">{{ latestChangelog.content }}</p>
-          </div>
-          <div class="items-center px-4 py-3">
-             <button id="ok-btn" (click)="dismissChangelog()" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                J'ai compris
-             </button>
-          </div>
+    <div *ngIf="showChangelog && latestChangelog" class="modal-backdrop fade-in">
+      <div class="card glass changelog-card">
+        <div class="changelog-header">
+          <div class="changelog-icon">🎉</div>
+          <h2>Quoi de neuf ?</h2>
+          <div class="changelog-version">{{ latestChangelog.version }}</div>
+        </div>
+        
+        <div class="changelog-body">
+          <p>{{ latestChangelog.content }}</p>
+        </div>
+        
+        <div class="changelog-footer">
+           <button class="btn btn-primary full-width" (click)="dismissChangelog()">
+             C'est parti !
+           </button>
         </div>
       </div>
     </div>
@@ -113,6 +112,56 @@ import { ChangelogService, Changelog } from '../core/services/changelog.service'
     .dashboard-header {
       text-align: center;
       margin-bottom: 2rem;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .changelog-card {
+      max-width: 450px;
+      width: 100%;
+      padding: 2.5rem;
+      text-align: center;
+      border: 1px solid var(--color-glass-border);
+    }
+
+    .changelog-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .changelog-header h2 {
+      margin-bottom: 0.5rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .changelog-version {
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      background: rgba(var(--color-primary-rgb), 0.2);
+      color: var(--color-primary);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .changelog-body {
+      margin-bottom: 2rem;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      text-align: left;
     }
    `]
 })

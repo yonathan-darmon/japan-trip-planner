@@ -7,130 +7,198 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 @Component({
-    selector: 'app-signup',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-        <div>
-          <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p class="mt-2 text-center text-sm text-gray-600">
-            Start your journey by creating a group
-          </p>
+  selector: 'app-signup',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  template: `
+    <div class="signup-container">
+      <div class="card glass signup-card">
+        <div class="signup-header">
+          <h1>✨ Rejoignez l'aventure</h1>
+          <p>Créez votre compte et votre groupe de voyage</p>
         </div>
-        <form class="mt-8 space-y-6" [formGroup]="signupForm" (ngSubmit)="onSubmit()">
-          
-          <div class="rounded-md shadow-sm -space-y-px">
-            <div class="mb-4">
-              <label for="username" class="sr-only">Username</label>
-              <input id="username" type="text" formControlName="username" class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Username">
-            </div>
-            <div class="mb-4">
-              <label for="email" class="sr-only">Email address</label>
-              <input id="email" type="email" formControlName="email" class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Email address">
-            </div>
-            <div class="mb-4">
-              <label for="password" class="sr-only">Password</label>
-              <input id="password" type="password" formControlName="password" class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Password">
-            </div>
+
+        <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
+          <div class="form-group">
+            <label class="form-label" for="username">Nom d'utilisateur</label>
+            <input id="username" type="text" formControlName="username" class="form-input" placeholder="Choisissez un pseudo">
           </div>
 
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Destination Country</label>
-            <select formControlName="countryId" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-              <option [ngValue]="null">Select a country</option>
+          <div class="form-group">
+            <label class="form-label" for="email">E-mail</label>
+            <input id="email" type="email" formControlName="email" class="form-input" placeholder="votre@email.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Mot de passe</label>
+            <input id="password" type="password" formControlName="password" class="form-input" placeholder="6 caractères minimum">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="countryId">Destination</label>
+            <select formControlName="countryId" id="countryId" class="form-input select-field">
+              <option [ngValue]="null" disabled>Sélectionnez un pays</option>
               <option *ngFor="let country of countries" [ngValue]="country.id">{{ country.name }}</option>
-              <option [ngValue]="'new'">+ Create New Country</option>
+              <option [ngValue]="'new'">+ Ajouter une autre destination</option>
             </select>
           </div>
 
-          <div *ngIf="signupForm.get('countryId')?.value === 'new'" class="mb-4">
-             <label for="newCountryName" class="sr-only">New Country Name</label>
-             <input id="newCountryName" type="text" formControlName="newCountryName" class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Enter Country Name (e.g. France)">
+          <div *ngIf="signupForm.get('countryId')?.value === 'new'" class="form-group fade-in">
+             <label class="form-label" for="newCountryName">Nom du pays</label>
+             <input id="newCountryName" type="text" formControlName="newCountryName" class="form-input" placeholder="Ex: France, Italie...">
           </div>
 
-          <div>
-            <button type="submit" [disabled]="signupForm.invalid || loading" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
-              <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                <!-- Lock Icon -->
-                <svg class="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                </svg>
-              </span>
-              {{ loading ? 'Creating Account...' : 'Sign up' }}
-            </button>
-          </div>
-          
-          <div *ngIf="error" class="text-red-500 text-sm text-center mt-2">
+          <div class="error-alert" *ngIf="error">
             {{ error }}
           </div>
 
-          <div class="text-sm text-center">
-            <a routerLink="/login" class="font-medium text-indigo-600 hover:text-indigo-500">
-              Already have an account? Sign in
-            </a>
+          <button type="submit" [disabled]="signupForm.invalid || loading" class="btn btn-primary btn-lg full-width">
+            <span *ngIf="!loading">Créer mon compte</span>
+            <span *ngIf="loading">Création en cours...</span>
+          </button>
+          
+          <div class="signup-footer">
+            <p>Vous avez déjà un compte ? <a routerLink="/auth/login" class="link">Se connecter</a></p>
           </div>
         </form>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .signup-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .signup-card {
+      width: 100%;
+      max-width: 500px;
+      padding: 3rem 2.5rem;
+    }
+    .signup-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .signup-header h1 {
+      font-size: 2.2rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    .signup-header p {
+        color: var(--color-text-secondary);
+        font-size: 0.95rem;
+    }
+    .full-width {
+      width: 100%;
+      margin-top: 1.5rem;
+    }
+    .select-field {
+        cursor: pointer;
+        appearance: none;
+        background-color: rgba(255, 255, 255, 0.05); /* Matching other inputs */
+    }
+    .select-field option {
+        background: #1a1a1a;
+        color: white;
+    }
+    .fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .signup-footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.8;
+      border-top: 1px solid var(--color-glass-border);
+      padding-top: 1.5rem;
+    }
+    .link {
+        color: var(--color-primary);
+        font-weight: 500;
+        text-decoration: none;
+    }
+    .link:hover {
+        text-decoration: underline;
+    }
+    .error-alert {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid var(--color-error);
+      color: var(--color-error);
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  `]
 })
 export class SignupComponent {
-    signupForm: FormGroup;
-    countries: any[] = [];
-    loading = false;
-    error = '';
+  signupForm: FormGroup;
+  countries: any[] = [];
+  loading = false;
+  error = '';
 
-    constructor(
-        private fb: FormBuilder,
-        private authService: AuthService,
-        private router: Router,
-        private http: HttpClient
-    ) {
-        this.signupForm = this.fb.group({
-            username: ['', Validators.required],
-            email: ['', [Validators.required, Validators.email]],
-            password: ['', [Validators.required, Validators.minLength(6)]],
-            countryId: [null, Validators.required],
-            newCountryName: [''] // Conditional validator could be added
-        });
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router,
+    private http: HttpClient
+  ) {
+    this.signupForm = this.fb.group({
+      username: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      countryId: [null, Validators.required],
+      newCountryName: ['']
+    });
 
-        this.fetchCountries();
+    this.fetchCountries();
+  }
+
+  fetchCountries() {
+    this.http.get<any[]>(`${environment.apiUrl}/countries`).subscribe({
+      next: (data) => this.countries = data,
+      error: (err) => {
+        console.error('Failed to fetch countries', err);
+        this.error = 'Impossible de charger la liste des pays. Veuillez réessayer.';
+      }
+    });
+  }
+
+  onSubmit() {
+    if (this.signupForm.invalid) {
+      this.signupForm.markAllAsTouched();
+      return;
     }
 
-    fetchCountries() {
-        this.http.get<any[]>(`${environment.apiUrl}/countries`).subscribe({
-            next: (data) => this.countries = data,
-            error: (err) => console.error('Failed to fetch countries', err)
-        });
-    }
+    this.loading = true;
+    this.error = '';
 
-    onSubmit() {
-        if (this.signupForm.invalid) return;
+    const val = this.signupForm.value;
+    const payload = {
+      username: val.username,
+      email: val.email,
+      password: val.password,
+      countryId: val.countryId === 'new' ? null : val.countryId,
+      newCountryName: val.countryId === 'new' ? val.newCountryName : null
+    };
 
-        this.loading = true;
-        this.error = '';
-
-        const val = this.signupForm.value;
-        const payload = {
-            username: val.username,
-            email: val.email,
-            password: val.password,
-            countryId: val.countryId === 'new' ? null : val.countryId,
-            newCountryName: val.countryId === 'new' ? val.newCountryName : null
-        };
-
-        this.authService.register(payload).subscribe({
-            next: () => {
-                this.router.navigate(['/']); // Redirect to dashboard
-            },
-            error: (err) => {
-                this.error = err.error?.message || 'Registration failed';
-                this.loading = false;
-            }
-        });
-    }
+    this.authService.register(payload).subscribe({
+      next: () => {
+        this.router.navigate(['/groups']);
+      },
+      error: (err) => {
+        this.error = err.error?.message || 'Erreur lors de la création du compte';
+        this.loading = false;
+      }
+    });
+  }
 }
