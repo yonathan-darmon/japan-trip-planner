@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GroupsService, Group } from '../../core/services/groups.service';
+import { TripConfigService, TripConfig } from '../../core/services/trip-config';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 @Component({
@@ -80,6 +81,39 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
                         </div>
                     </li>
                 </ul>
+            </div>
+
+            <!-- TRIP SETTINGS SECTION -->
+            <div class="card glass" *ngIf="config">
+                <div class="px-6 py-5 border-b border-white/5">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <span class="mr-2">⚙️</span> Paramètres du Voyage
+                    </h3>
+                    <p class="mt-1 text-sm text-text-secondary">Définissez la durée et les dates de votre séjour.</p>
+                </div>
+                
+                <form (ngSubmit)="updateSettings()" class="px-6 py-5 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-group">
+                            <label class="text-xs font-bold text-text-tertiary uppercase mb-1 block">Durée (jours)</label>
+                            <input type="number" name="durationDays" [(ngModel)]="config.durationDays" class="form-input" min="1" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label class="text-xs font-bold text-text-tertiary uppercase mb-1 block">Date de début</label>
+                            <input type="date" name="startDate" [ngModel]="formatDate(config.startDate)" (ngModelChange)="config.startDate = $event" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="text-xs font-bold text-text-tertiary uppercase mb-1 block">Date de fin</label>
+                            <input type="date" name="endDate" [ngModel]="formatDate(config.endDate)" (ngModelChange)="config.endDate = $event" class="form-input">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" [disabled]="loading" class="btn btn-secondary btn-sm">
+                            Sauvegarder les paramètres
+                        </button>
+                    </div>
+                </form>
             </div>
 
             <!-- INVITE SECTION -->
@@ -164,6 +198,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 })
 export class GroupManageComponent implements OnInit {
     group: Group | null = null;
+    config: TripConfig | null = null;
     loading = false;
     inviteEmail = '';
     message = '';
@@ -172,6 +207,7 @@ export class GroupManageComponent implements OnInit {
 
     constructor(
         private groupsService: GroupsService,
+        private tripConfigService: TripConfigService,
         private route: ActivatedRoute
     ) { }
 
@@ -207,10 +243,15 @@ export class GroupManageComponent implements OnInit {
     loadGroup() {
         if (!this.currentGroupId) return;
         this.loading = true;
+
+        // Load group and its config
         this.groupsService.getGroup(this.currentGroupId).subscribe({
             next: (group) => {
                 this.group = group;
-                this.loading = false;
+                this.tripConfigService.getConfig().subscribe(config => {
+                    this.config = config;
+                    this.loading = false;
+                });
             },
             error: (err) => {
                 console.error('Failed to load group', err);
@@ -249,6 +290,36 @@ export class GroupManageComponent implements OnInit {
             },
             error: (err) => alert('Impossible de retirer le membre.')
         });
+    }
+
+    updateSettings() {
+        if (!this.config) return;
+        this.loading = true;
+        this.message = '';
+        this.isError = false;
+
+        this.tripConfigService.updateConfig({
+            durationDays: this.config.durationDays,
+            startDate: this.config.startDate,
+            endDate: this.config.endDate
+        }).subscribe({
+            next: (updated) => {
+                this.config = updated;
+                this.message = 'Paramètres mis à jour ! ✅';
+                this.loading = false;
+                setTimeout(() => this.message = '', 3000);
+            },
+            error: (err) => {
+                this.message = 'Erreur lors de la mise à jour.';
+                this.isError = true;
+                this.loading = false;
+            }
+        });
+    }
+
+    formatDate(dateStr: string | null | undefined): string {
+        if (!dateStr) return '';
+        return dateStr.split('T')[0];
     }
 
     canRemoveInfo(member: any): boolean {

@@ -40,31 +40,7 @@ import { ChangelogService, Changelog } from '../core/services/changelog.service'
       </div>
     </div>
 
-    <!-- ADMIN SECTION -->
-    <div class="admin-section fade-in" style="animation-delay: 150ms;" *ngIf="(currentUser$ | async)?.role === 'super_admin'">
-      <h2>⚙️ Administration</h2>
-      <div class="dashboard-actions">
-        <div class="card glass action-card">
-          <h3>👥 Utilisateurs</h3>
-          <p>Gérer les comptes et les accès.</p>
-          <button class="btn btn-outline full-width" routerLink="/users">Gérer</button>
-        </div>
-        <div class="card glass action-card">
-          <h3>⚙️ Configuration</h3>
-          <p>Modifier la durée et les paramètres du voyage.</p>
-          <button class="btn btn-outline full-width" routerLink="/trip-config">Configurer</button>
-        </div>
-        </div>
-      </div>
-      
-      <!-- Group Admin Actions -->
-      <div class="dashboard-actions mt-4">
-        <div class="card glass action-card">
-           <h3>👥 Mon Groupe</h3>
-           <p>Gérer les membres du groupe.</p>
-           <button class="btn btn-outline full-width" routerLink="/groups/manage">Gérer le Groupe</button>
-        </div>
-      </div>
+    <!-- NORMAL ACTIONS SECTION -->
 
     <div class="dashboard-actions fade-in" style="animation-delay: 200ms;">
       <div class="card glass action-card">

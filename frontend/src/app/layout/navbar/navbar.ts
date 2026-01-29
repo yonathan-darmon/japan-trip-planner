@@ -33,11 +33,11 @@ import { AsyncPipe, NgIf } from '@angular/common';
           
           <ng-container *ngIf="currentUser$ | async as user">
             <a *ngIf="user.role === 'super_admin'" 
-               routerLink="/trip-config" 
+               routerLink="/admin" 
                routerLinkActive="active" 
                class="nav-link admin-link" 
                (click)="closeMenu()">
-              ⚙️ Config
+              🛠️ Admin
             </a>
           </ng-container>
           

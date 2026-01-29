@@ -78,6 +78,11 @@ export const routes: Routes = [
                 loadComponent: () => import('./users/user-settings/user-settings.component').then(m => m.UserSettingsComponent)
             },
             {
+                path: 'admin',
+                loadComponent: () => import('./users/super-admin/super-admin').then(m => m.SuperAdminComponent),
+                canActivate: [superAdminGuard]
+            },
+            {
                 path: 'users',
                 loadComponent: () => import('./users/user-list/user-list').then(m => m.UserListComponent),
                 canActivate: [superAdminGuard]
