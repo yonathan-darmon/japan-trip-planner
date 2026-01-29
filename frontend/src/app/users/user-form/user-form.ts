@@ -44,7 +44,7 @@ export class UserFormComponent {
       },
       error: (err) => {
         console.error('Error creating user', err);
-        this.error = 'Erreur lors de la création (Vérifiez si l\'utilisateur existe déjà)';
+        this.error = err.error?.message || 'Erreur lors de la création';
         this.loading = false;
       }
     });

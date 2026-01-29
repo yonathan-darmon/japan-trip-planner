@@ -66,13 +66,15 @@ export class AuthService {
     }
 
     async register(registerDto: RegisterDto) {
-        // 1. Check if user exists
-        const existingUser = await this.usersRepository.findOne({
-            where: [{ username: registerDto.username }, { email: registerDto.email }],
-        });
+        // 1. Check if user exists (specific messages)
+        const userByUsername = await this.usersRepository.findOneBy({ username: registerDto.username });
+        if (userByUsername) {
+            throw new BadRequestException('Ce nom d\'utilisateur est déjà utilisé');
+        }
 
-        if (existingUser) {
-            throw new BadRequestException('User already exists');
+        const userByEmail = await this.usersRepository.findOneBy({ email: registerDto.email });
+        if (userByEmail) {
+            throw new BadRequestException('Cette adresse email est déjà utilisée');
         }
 
         // 2. Create User

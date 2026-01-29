@@ -251,7 +251,11 @@ export class DashboardComponent implements OnInit {
 
   dismissChangelog() {
     this.showChangelog = false;
-    this.usersService.markChangelogRead().subscribe();
+    this.usersService.markChangelogRead().subscribe({
+      next: (updatedUser) => {
+        this.authService.updateUser(updatedUser);
+      }
+    });
   }
 
   generateItinerary() {

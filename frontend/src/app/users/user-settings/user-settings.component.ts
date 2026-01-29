@@ -141,8 +141,7 @@ export class UserSettingsComponent implements OnInit {
       next: (updatedUser) => {
         this.loading = false;
         this.successMessage = 'Profil mis à jour avec succès !';
-        // Optionnel: mettre à jour le user dans AuthService si nécessaire
-        // this.authService.updateCurrentUser(updatedUser);
+        this.authService.updateUser(updatedUser);
       },
       error: (err) => {
         this.loading = false;

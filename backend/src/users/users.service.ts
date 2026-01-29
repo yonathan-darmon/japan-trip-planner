@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -30,6 +30,8 @@ export class UsersService {
     }
 
     async create(createUserDto: CreateUserDto): Promise<User> {
+        await this.checkUserAvailability(createUserDto.username, createUserDto.email);
+
         const passwordHash = await this.authService.hashPassword(createUserDto.password);
 
         const newUser = this.usersRepository.create({
@@ -46,6 +48,8 @@ export class UsersService {
     }
 
     async update(id: number, updateDto: { username?: string; email?: string }): Promise<User> {
+        await this.checkUserAvailability(updateDto.username, updateDto.email, id);
+
         const user = await this.findOne(id);
         if (!user) throw new Error('User not found');
 
@@ -53,6 +57,30 @@ export class UsersService {
         if (updateDto.email) user.email = updateDto.email;
 
         return this.usersRepository.save(user);
+    }
+
+    private async checkUserAvailability(username?: string, email?: string, excludeUserId?: number): Promise<void> {
+        if (username) {
+            const query = this.usersRepository.createQueryBuilder('user')
+                .where('user.username = :username', { username });
+            if (excludeUserId) query.andWhere('user.id != :id', { id: excludeUserId });
+
+            const existing = await query.getOne();
+            if (existing) {
+                throw new BadRequestException('Ce nom d\'utilisateur est déjà utilisé');
+            }
+        }
+
+        if (email) {
+            const query = this.usersRepository.createQueryBuilder('user')
+                .where('user.email = :email', { email });
+            if (excludeUserId) query.andWhere('user.id != :id', { id: excludeUserId });
+
+            const existing = await query.getOne();
+            if (existing) {
+                throw new BadRequestException('Cette adresse email est déjà utilisée');
+            }
+        }
     }
 
     async updateLastViewedChangelog(userId: number): Promise<User> {
