@@ -15,6 +15,7 @@ export class InitialMigration1780000000000 implements MigrationInterface {
         // Add missing fields to Users table
         await queryRunner.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "email" character varying(255) UNIQUE`);
         await queryRunner.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_viewed_changelog_at" TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "token_version" integer NOT NULL DEFAULT 1`);
 
         // 3. SEED Data: Japan
         await queryRunner.query(`INSERT INTO "countries" ("name", "code") VALUES ('Japan', 'JP') ON CONFLICT DO NOTHING`);
