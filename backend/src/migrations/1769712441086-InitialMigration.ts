@@ -29,9 +29,12 @@ export class InitialMigration1769712441086 implements MigrationInterface {
             // Add Member
             await queryRunner.query(`INSERT INTO "group_members" ("user_id", "group_id", "role") VALUES ($1, $2, 'admin')`, [user.id, groupId]);
 
-            // Migrate Itineraries (assuming 'userId' column exists in itineraries on prod - TypeORM default is camelCase)
-            await queryRunner.query(`UPDATE "itineraries" SET "group_id" = $1 WHERE "userId" = $2`, [groupId, user.id]);
+            // Migrate Itineraries
+            await queryRunner.query(`UPDATE "itineraries" SET "group_id" = $1 WHERE "created_by" = $2`, [groupId, user.id]);
         }
+
+        // Backfill Suggestions country_id
+        await queryRunner.query(`UPDATE "suggestions" SET "country_id" = $1 WHERE "country_id" IS NULL`, [japanId]);
 
         // 5. Add Constraints & Indices
         await queryRunner.query(`ALTER TABLE "groups" ADD CONSTRAINT "FK_groups_trip_config" FOREIGN KEY ("trip_config_id") REFERENCES "trip_config"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
