@@ -61,6 +61,7 @@ export class AuthService {
                 id: user.id,
                 username: user.username,
                 role: user.role,
+                lastViewedChangelogAt: user.lastViewedChangelogAt,
             },
         };
     }

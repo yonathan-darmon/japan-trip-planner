@@ -236,12 +236,14 @@ export class DashboardComponent implements OnInit {
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ user, changelogs }) => {
         if (changelogs && changelogs.length > 0) {
-          const latest = changelogs[0]; // Assuming sorted by Backend. If not, sort here.
+          const latest = changelogs[0]; // Assuming sorted by Backend.
           this.latestChangelog = latest;
-          const lastViewed = user?.lastViewedChangelogAt ? new Date(user.lastViewedChangelogAt) : null;
-          const published = new Date(latest.publishedAt);
 
-          if (!lastViewed || lastViewed < published) {
+          const lastViewedTime = user?.lastViewedChangelogAt ? new Date(user.lastViewedChangelogAt).getTime() : 0;
+          const publishedTime = new Date(latest.publishedAt).getTime();
+
+          // Buffer of 2 seconds to avoid precision issues between server/db
+          if (lastViewedTime < (publishedTime - 2000)) {
             this.showChangelog = true;
           }
         }
