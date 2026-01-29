@@ -24,7 +24,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // Find user to check token version
         const user = await this.usersRepository.findOneBy({ id: payload.sub });
 
-        if (!user || user.tokenVersion !== payload.version) {
+        // If payload.version is missing (legacy token), treat as version 1
+        const tokenVersion = payload.version || 1;
+
+        if (!user || user.tokenVersion !== tokenVersion) {
             throw new UnauthorizedException('Session expirée ou réinitialisée');
         }
 
