@@ -23,8 +23,8 @@ export class Group {
     @JoinColumn({ name: 'country_id' })
     country: Country;
 
-    @Column({ name: 'country_id', nullable: true })
-    countryId: number;
+    @Column({ name: 'country_id', type: 'int', nullable: true })
+    countryId: number | null;
 
     @OneToMany(() => GroupMember, member => member.group)
     members: GroupMember[];

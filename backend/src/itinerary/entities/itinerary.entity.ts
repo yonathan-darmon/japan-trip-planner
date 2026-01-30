@@ -46,6 +46,6 @@ export class Itinerary {
     @JoinColumn({ name: 'group_id' })
     group: Group;
 
-    @Column({ name: 'group_id', nullable: true })
-    groupId: number;
+    @Column({ name: 'group_id', type: 'int', nullable: true })
+    groupId: number | null;
 }

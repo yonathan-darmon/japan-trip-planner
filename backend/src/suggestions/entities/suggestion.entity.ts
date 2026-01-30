@@ -71,14 +71,14 @@ export class Suggestion {
     @Column({ name: 'created_by' })
     createdById: number;
 
-    @Column({ name: 'group_id', nullable: true })
+    @Column({ name: 'group_id', type: 'int', nullable: true })
     groupId: number | null;
 
     @ManyToOne(() => Country, { nullable: true })
     @JoinColumn({ name: 'country_id' })
     country: Country | null;
 
-    @Column({ name: 'country_id', nullable: true })
+    @Column({ name: 'country_id', type: 'int', nullable: true })
     countryId: number | null;
 
     @Column({ name: 'is_global', default: false })

@@ -32,8 +32,8 @@ export class TripConfig {
     @JoinColumn({ name: 'updated_by' })
     updatedBy: User;
 
-    @Column({ name: 'updated_by', nullable: true })
-    updatedById: number;
+    @Column({ name: 'updated_by', type: 'int', nullable: true })
+    updatedById: number | null;
 
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
