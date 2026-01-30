@@ -20,18 +20,19 @@ export class GeoUtils {
         return deg * (Math.PI / 180);
     }
 
-    static getCentroid(points: { latitude: number; longitude: number }[]): { latitude: number; longitude: number } {
-        if (points.length === 0) return { latitude: 0, longitude: 0 };
+    static getCentroid(points: { latitude: number | null; longitude: number | null }[]): { latitude: number; longitude: number } {
+        const validPoints = points.filter(p => p.latitude !== null && p.longitude !== null);
+        if (validPoints.length === 0) return { latitude: 0, longitude: 0 };
 
         let sumLat = 0, sumLng = 0;
-        points.forEach(p => {
+        validPoints.forEach(p => {
             sumLat += Number(p.latitude);
             sumLng += Number(p.longitude);
         });
 
         return {
-            latitude: sumLat / points.length,
-            longitude: sumLng / points.length
+            latitude: sumLat / validPoints.length,
+            longitude: sumLng / validPoints.length
         };
     }
 }

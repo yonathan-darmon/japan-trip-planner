@@ -446,11 +446,13 @@ export class SuggestionListComponent implements OnInit {
     const category = this.selectedCategory();
     const sort = this.sortOrder();
 
+    const currentGroupId = localStorage.getItem('currentGroupId');
+
     // 0. Filter by Tab
     if (tab === 'official') {
       list = list.filter(s => s.isGlobal);
     } else {
-      list = list.filter(s => !s.isGlobal);
+      list = list.filter(s => s.groupId && String(s.groupId) === currentGroupId);
     }
 
     // 1. Filter by Search Query
