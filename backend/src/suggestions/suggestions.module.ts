@@ -6,11 +6,13 @@ import { Suggestion } from './entities/suggestion.entity';
 import { S3Service } from './s3.service';
 import { GeocodingService } from './geocoding.service';
 import { ItineraryModule } from '../itinerary/itinerary.module';
+import { GroupsModule } from '../groups/groups.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Suggestion]),
-    forwardRef(() => ItineraryModule)
+    forwardRef(() => ItineraryModule),
+    forwardRef(() => GroupsModule)
   ],
   controllers: [SuggestionsController],
   providers: [SuggestionsService, S3Service, GeocodingService],

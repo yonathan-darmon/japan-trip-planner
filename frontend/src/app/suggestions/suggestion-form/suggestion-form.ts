@@ -332,6 +332,11 @@ export class SuggestionFormComponent implements OnInit {
         }
       });
 
+      const currentGroupId = localStorage.getItem('currentGroupId');
+      if (currentGroupId) {
+        formData.append('groupId', currentGroupId);
+      }
+
       if (this.selectedFile) {
         formData.append('file', this.selectedFile);
       }

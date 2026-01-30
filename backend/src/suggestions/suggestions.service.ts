@@ -15,6 +15,7 @@ import { S3Service } from './s3.service';
 import { GeocodingService } from './geocoding.service';
 import { SyncGateway } from '../sync/sync.gateway';
 import { ItineraryService } from '../itinerary/itinerary.service';
+import { GroupsService } from '../groups/groups.service';
 
 @Injectable()
 export class SuggestionsService {
@@ -26,6 +27,8 @@ export class SuggestionsService {
         private syncGateway: SyncGateway,
         @Inject(forwardRef(() => ItineraryService))
         private itineraryService: ItineraryService,
+        @Inject(forwardRef(() => GroupsService))
+        private groupsService: GroupsService,
     ) { }
 
     // ... (existing code for create, findAll, findOne) ...
@@ -95,8 +98,23 @@ export class SuggestionsService {
             ...createSuggestionDto,
             createdBy: user,
             createdById: user.id,
-            isGlobal: user.role === UserRole.SUPER_ADMIN ? true : (createSuggestionDto.isGlobal ?? false)
+            isGlobal: createSuggestionDto.isGlobal !== undefined
+                ? (String(createSuggestionDto.isGlobal) === 'true')
+                : (createSuggestionDto.groupId ? false : (user.role === UserRole.SUPER_ADMIN))
         });
+
+        // If groupId is provided, fetch total country context
+        if (createSuggestionDto.groupId) {
+            try {
+                const group = await this.groupsService.findOne(createSuggestionDto.groupId);
+                if (group && group.countryId) {
+                    suggestion.countryId = group.countryId;
+                    console.log(`🔗 Linked suggestion to country ${group.countryId} from group ${group.id}`);
+                }
+            } catch (err) {
+                console.warn(`Failed to fetch group ${createSuggestionDto.groupId} for suggestion context:`, err.message);
+            }
+        }
 
         // Upload image if present
         if (file) {
