@@ -7,7 +7,7 @@ import {
     Min,
     Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { SuggestionCategory } from '../entities/suggestion.entity';
 
 export class CreateSuggestionDto {
@@ -45,6 +45,11 @@ export class CreateSuggestionDto {
     @IsOptional()
     countryId?: number;
 
+    @Transform(({ value }) => {
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        return value;
+    })
     @IsOptional()
     isGlobal?: boolean;
 

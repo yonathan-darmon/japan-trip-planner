@@ -17,26 +17,40 @@ import { RouterLink } from '@angular/router';
     </div>
 
     <div class="card glass mb-6 fade-in" style="animation-delay: 100ms;">
-      <div class="p-6 flex flex-wrap gap-4 items-center justify-between">
+      <div class="p-4 flex flex-wrap gap-6 items-center justify-between">
+        <div class="flex gap-2">
+            <button 
+                class="tab-btn-sm" 
+                [class.active]="filterType === 'private'"
+                (click)="filterType = 'private'; loadSuggestions()">
+                🕒 À Modérer (Privés)
+            </button>
+            <button 
+                class="tab-btn-sm" 
+                [class.active]="filterType === 'global'"
+                (click)="filterType = 'global'; loadSuggestions()">
+                🌍 Catalogue Global
+            </button>
+            <button 
+                class="tab-btn-sm" 
+                [class.active]="filterType === 'all'"
+                (click)="filterType = 'all'; loadSuggestions()">
+                📋 Tous
+            </button>
+        </div>
+
         <div class="flex gap-4 items-center">
             <div class="filter-group">
-                <label class="text-xs font-bold uppercase opacity-50 block mb-1">Type</label>
-                <select [(ngModel)]="filterType" (change)="loadSuggestions()" class="form-input-sm">
-                    <option value="all">Toutes</option>
-                    <option value="global">Globales uniquement</option>
-                    <option value="private">Privées uniquement</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="text-xs font-bold uppercase opacity-50 block mb-1">Pays</label>
+                <label class="text-[10px] font-bold uppercase opacity-50 block mb-1">Pays</label>
                 <select [(ngModel)]="filterCountryId" (change)="loadSuggestions()" class="form-input-sm">
                     <option [ngValue]="null">Tous les pays</option>
                     <option *ngFor="let c of countries" [ngValue]="c.id">{{ c.name }}</option>
                 </select>
             </div>
-        </div>
-        <div class="search-box">
-             <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher..." class="form-input-sm w-64">
+            <div class="search-box">
+                 <label class="text-[10px] font-bold uppercase opacity-50 block mb-1">Recherche</label>
+                 <input type="text" [(ngModel)]="searchQuery" placeholder="Nom, lieu, auteur..." class="form-input-sm w-64">
+            </div>
         </div>
       </div>
     </div>
@@ -140,6 +154,19 @@ import { RouterLink } from '@angular/router';
     .admin-select:hover { border-color: rgba(255, 255, 255, 0.3); }
     .admin-select:focus { border-color: var(--color-primary); background: rgba(0, 0, 0, 0.4); }
 
+    .tab-btn-sm {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--color-text-secondary);
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+    .tab-btn-sm:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+    .tab-btn-sm.active { background: var(--color-primary); color: white; box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3); }
+
     @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
   `]
 })
@@ -149,7 +176,7 @@ export class SuggestionModerationComponent implements OnInit {
     loading = false;
 
     // Filters
-    filterType = 'all';
+    filterType = 'private';
     filterCountryId: number | null = null;
     searchQuery = '';
 

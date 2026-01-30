@@ -51,29 +51,35 @@ export class SuggestionsService {
             );
         }
 
-        // Check if location changed BEFORE updating fields
-        const locationChanged =
-            updateSuggestionDto.location &&
-            updateSuggestionDto.location !== suggestion.location;
+        // Update fields explicitly to handle casting from FormData strings
+        if (updateSuggestionDto.name !== undefined) suggestion.name = updateSuggestionDto.name;
+        if (updateSuggestionDto.location !== undefined) {
+            if (updateSuggestionDto.location !== suggestion.location) {
+                console.log(`📍 Location changed, re-geocoding...`);
+                const coords = await this.geocodingService.getCoordinatesWithRetry(updateSuggestionDto.location);
+                if (coords) {
+                    suggestion.latitude = coords.lat;
+                    suggestion.longitude = coords.lng;
+                }
+            }
+            suggestion.location = updateSuggestionDto.location;
+        }
+        if (updateSuggestionDto.description !== undefined) suggestion.description = updateSuggestionDto.description;
+        if (updateSuggestionDto.price !== undefined) suggestion.price = updateSuggestionDto.price ? +updateSuggestionDto.price : null;
+        if (updateSuggestionDto.category !== undefined) suggestion.category = updateSuggestionDto.category;
+        if (updateSuggestionDto.durationHours !== undefined) suggestion.durationHours = updateSuggestionDto.durationHours ? +updateSuggestionDto.durationHours : 2;
+        if (updateSuggestionDto.countryId !== undefined) suggestion.countryId = updateSuggestionDto.countryId ? +updateSuggestionDto.countryId : null;
 
-        // Update basic fields
-        Object.assign(suggestion, updateSuggestionDto);
+        if (updateSuggestionDto.isGlobal !== undefined) {
+            // Robust boolean casting
+            suggestion.isGlobal = String(updateSuggestionDto.isGlobal) === 'true';
+        }
+
+        if (updateSuggestionDto.groupId !== undefined) suggestion.groupId = updateSuggestionDto.groupId ? +updateSuggestionDto.groupId : null;
 
         // Upload new image if present
         if (file) {
             suggestion.photoUrl = await this.s3Service.uploadFile(file);
-        }
-
-        // Re-geocode if location changed
-        if (locationChanged) {
-            console.log(`📍 Location changed, re-geocoding...`);
-            const coords = await this.geocodingService.getCoordinatesWithRetry(
-                updateSuggestionDto.location!,
-            );
-            if (coords) {
-                suggestion.latitude = coords.lat;
-                suggestion.longitude = coords.lng;
-            }
         }
 
         const updatedSuggestion = await this.suggestionsRepository.save(suggestion);
@@ -98,9 +104,7 @@ export class SuggestionsService {
             ...createSuggestionDto,
             createdBy: user,
             createdById: user.id,
-            isGlobal: createSuggestionDto.isGlobal !== undefined
-                ? (String(createSuggestionDto.isGlobal) === 'true')
-                : (createSuggestionDto.groupId ? false : (user.role === UserRole.SUPER_ADMIN))
+            isGlobal: createSuggestionDto.isGlobal ?? (createSuggestionDto.groupId ? false : (user.role === UserRole.SUPER_ADMIN))
         });
 
         // If groupId is provided, fetch total country context

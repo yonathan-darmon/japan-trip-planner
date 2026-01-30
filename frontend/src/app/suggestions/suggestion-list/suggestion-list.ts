@@ -24,6 +24,22 @@ import { WebSocketService } from '../../core/services/websocket.service';
       </a>
     </div>
 
+    <!-- TABS -->
+    <div class="tabs-container fade-in" style="animation-delay: 30ms;">
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'official'"
+        (click)="activeTab.set('official')">
+        🌍 Catalogue Officiel
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab() === 'group'"
+        (click)="activeTab.set('group')">
+        🔒 Les Idées du Groupe
+      </button>
+    </div>
+
     <!-- FILTER BAR -->
     <div class="filter-bar card glass fade-in" style="animation-delay: 50ms;">
       <div class="filter-group">
@@ -170,6 +186,35 @@ import { WebSocketService } from '../../core/services/websocket.service';
       background: var(--color-bg-elevated);
       color: var(--color-text-primary);
     }
+
+    .tabs-container {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--color-glass-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-text-primary);
+    }
+    .tab-btn.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-glow);
+    }
+
     .icon {
       opacity: 0.7;
     }
@@ -386,6 +431,7 @@ export class SuggestionListComponent implements OnInit {
   currentUser: any;
 
   // Filter Signals
+  activeTab = signal<'official' | 'group'>('official');
   searchQuery = signal('');
   selectedCategory = signal('');
   sortOrder = signal('recent');
@@ -395,9 +441,17 @@ export class SuggestionListComponent implements OnInit {
   // Computed Filtered Suggestions
   filteredSuggestions = computed(() => {
     let list = this.suggestions();
+    const tab = this.activeTab();
     const query = this.searchQuery().toLowerCase();
     const category = this.selectedCategory();
     const sort = this.sortOrder();
+
+    // 0. Filter by Tab
+    if (tab === 'official') {
+      list = list.filter(s => s.isGlobal);
+    } else {
+      list = list.filter(s => !s.isGlobal);
+    }
 
     // 1. Filter by Search Query
     if (query) {

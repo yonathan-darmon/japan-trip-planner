@@ -41,7 +41,7 @@ export class Suggestion {
     photoUrl: string;
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-    price: number;
+    price: number | null;
 
     @Column({
         type: 'enum',
@@ -50,10 +50,10 @@ export class Suggestion {
     category: SuggestionCategory;
 
     @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-    latitude: number;
+    latitude: number | null;
 
     @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-    longitude: number;
+    longitude: number | null;
 
     @Column({
         type: 'decimal',
@@ -72,14 +72,14 @@ export class Suggestion {
     createdById: number;
 
     @Column({ name: 'group_id', nullable: true })
-    groupId: number;
+    groupId: number | null;
 
     @ManyToOne(() => Country, { nullable: true })
     @JoinColumn({ name: 'country_id' })
-    country: Country;
+    country: Country | null;
 
     @Column({ name: 'country_id', nullable: true })
-    countryId: number;
+    countryId: number | null;
 
     @Column({ name: 'is_global', default: false })
     isGlobal: boolean;
