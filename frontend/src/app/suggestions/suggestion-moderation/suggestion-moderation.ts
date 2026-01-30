@@ -97,6 +97,7 @@ import { RouterLink } from '@angular/router';
                                 <button (click)="toggleGlobal(s)" [class.btn-success]="!s.isGlobal" [class.btn-outline]="s.isGlobal" class="btn btn-xs">
                                     {{ s.isGlobal ? 'Privatiser' : 'Globaliser' }}
                                 </button>
+                                <a [routerLink]="['/suggestions/edit', s.id]" class="btn btn-xs btn-outline">✏️</a>
                                 <button (click)="deleteSuggestion(s)" class="btn btn-xs btn-error">🗑️</button>
                             </div>
                         </td>

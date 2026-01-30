@@ -333,7 +333,7 @@ export class SuggestionFormComponent implements OnInit {
       });
 
       const currentGroupId = localStorage.getItem('currentGroupId');
-      if (currentGroupId) {
+      if (currentGroupId && !this.isEditing) {
         formData.append('groupId', currentGroupId);
       }
 
