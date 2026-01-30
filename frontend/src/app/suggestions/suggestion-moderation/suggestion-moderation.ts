@@ -41,67 +41,105 @@ import { RouterLink } from '@angular/router';
       </div>
     </div>
 
-    <div class="space-y-4 fade-in" style="animation-delay: 200ms;">
-        <div *ngIf="loading" class="text-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p class="mt-4 opacity-50">Chargement des suggestions...</p>
-        </div>
-
-        <div *ngIf="!loading && suggestions().length === 0" class="card glass p-12 text-center">
-            <p class="opacity-50 italic">Aucune suggestion trouvée avec ces filtres.</p>
-        </div>
-
-        <div *ngFor="let s of filteredSuggestions()" class="card glass hover:bg-white/5 transition-colors overflow-hidden">
-            <div class="flex flex-col md:flex-row">
-                <div class="md:w-48 h-32 md:h-auto bg-cover bg-center" 
-                     [style.backgroundImage]="s.photoUrl ? 'url(' + s.photoUrl + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
-                </div>
-                <div class="flex-1 p-5">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="text-lg font-bold flex items-center gap-2">
-                                {{ s.name }}
-                                <span *ngIf="s.isGlobal" class="badge badge-success text-[10px] uppercase">Global</span>
-                                <span *ngIf="!s.isGlobal" class="badge badge-secondary text-[10px] uppercase">Privé (Groupe #{{ s.groupId }})</span>
-                            </h3>
-                            <p class="text-sm opacity-70">📍 {{ s.location }}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button (click)="toggleGlobal(s)" [class.btn-success]="!s.isGlobal" [class.btn-outline]="s.isGlobal" class="btn btn-xs">
-                                {{ s.isGlobal ? 'Rendre Privé' : 'Globaliser 🌍' }}
-                            </button>
-                            <button (click)="deleteSuggestion(s)" class="btn btn-xs btn-error">Supprimer</button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-black/20 p-3 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-bold uppercase opacity-50">Attribuer au Pays :</span>
-                            <select [(ngModel)]="s.countryId" (change)="updateCountry(s)" class="form-input-xs bg-white/10 border-none rounded text-xs py-1">
-                                <option [ngValue]="null">Non attribué</option>
+    <div class="card glass fade-in" style="animation-delay: 200ms;">
+        <div class="overflow-x-auto">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Suggestion</th>
+                        <th>Status</th>
+                        <th>Pays</th>
+                        <th>Auteur / Groupe</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let s of filteredSuggestions()" class="hover:bg-white/5 transition-colors">
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded bg-cover bg-center" [style.backgroundImage]="s.photoUrl ? 'url(' + s.photoUrl + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"></div>
+                                <div>
+                                    <div class="font-bold">{{ s.name }}</div>
+                                    <div class="text-xs opacity-50">{{ s.location | slice:0:30 }}...</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span *ngIf="s.isGlobal" class="badge badge-success">🌍 Global</span>
+                            <span *ngIf="!s.isGlobal" class="badge badge-secondary">🔒 Privé</span>
+                        </td>
+                        <td>
+                            <select [(ngModel)]="s.countryId" (change)="updateCountry(s)" class="admin-select">
+                                <option [ngValue]="null">Non défini</option>
                                 <option *ngFor="let c of countries" [ngValue]="c.id">{{ c.name }}</option>
                             </select>
-                        </div>
-                        <div class="flex items-center gap-3 text-xs opacity-70">
-                            <span>Créé par : <strong>{{ s.createdBy.username }}</strong></span>
-                            <span>Catégorie : <strong>{{ s.category }}</strong></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        </td>
+                        <td>
+                            <div class="text-sm">{{ s.createdBy.username }}</div>
+                            <div class="text-[10px] opacity-40" *ngIf="s.groupId">Groupe: #{{ s.groupId }}</div>
+                        </td>
+                        <td>
+                            <div class="flex gap-2">
+                                <button (click)="toggleGlobal(s)" [class.btn-success]="!s.isGlobal" [class.btn-outline]="s.isGlobal" class="btn btn-xs">
+                                    {{ s.isGlobal ? 'Privatiser' : 'Globaliser' }}
+                                </button>
+                                <button (click)="deleteSuggestion(s)" class="btn btn-xs btn-error">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div *ngIf="!loading && suggestions().length === 0" class="p-12 text-center">
+            <p class="opacity-50 italic">Aucune suggestion trouvée.</p>
         </div>
     </div>
   `,
     styles: [`
-    .dashboard-header { text-align: center; margin-bottom: 2rem; }
-    .dashboard-header h1 { font-size: 2.2rem; font-weight: 800; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .form-input-sm { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; padding: 0.4rem 0.8rem; color: white; font-size: 0.875rem; }
-    .form-input-xs { color: white; outline: none; }
-    .btn-xs { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
-    .badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-    .badge-success { background: rgba(76, 175, 80, 0.2); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.3); }
-    .badge-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); }
-    .fade-in { animation: fadeIn 0.5s ease-out forwards; opacity: 0; transform: translateY(10px); }
+    .dashboard-header { 
+        text-align: left; 
+        margin-bottom: 2.5rem; 
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(255,107,157,0.1) 0%, rgba(78,205,196,0.1) 100%);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--color-glass-border);
+    }
+    .dashboard-header h1 { 
+        font-size: 2.5rem; 
+        font-weight: 800; 
+        margin-bottom: 0.5rem;
+        background: var(--gradient-primary); 
+        -webkit-background-clip: text; 
+        -webkit-text-fill-color: transparent; 
+        letter-spacing: -1px;
+    }
+    .dashboard-header p {
+        font-size: 1.1rem;
+        opacity: 0.8;
+        margin-bottom: 0;
+    }
+    .form-input-sm { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 0.6rem 1rem; color: white; font-size: 0.9rem; transition: all 0.2s; }
+    .form-input-sm:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(255,107,157,0.2); outline: none; }
+    
+    .btn-xs { padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; }
+    .badge-success { background: rgba(107, 207, 127, 0.2); color: #6bcf7f; border: 1px solid rgba(107, 207, 127, 0.3); }
+    .badge-secondary { background: rgba(255, 255, 255, 0.05); color: #8891b8; border: 1px solid rgba(255, 255, 255, 0.1); }
+    
+    .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+    
+    /* Table styles */
+    .admin-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+    .admin-table th { padding: 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--color-text-tertiary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
+    .admin-table td { padding: 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+    
+    .admin-select { background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.85rem; outline: none; cursor: pointer; transition: all 0.2s; }
+    .admin-select:hover { border-color: rgba(255, 255, 255, 0.3); }
+    .admin-select:focus { border-color: var(--color-primary); background: rgba(0, 0, 0, 0.4); }
+
     @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
   `]
 })
@@ -133,7 +171,7 @@ export class SuggestionModerationComponent implements OnInit {
 
     loadSuggestions() {
         this.loading = true;
-        const options: any = {};
+        const options: any = { includePrivate: true };
         if (this.filterType === 'global') options.isGlobal = true;
         if (this.filterType === 'private') options.isGlobal = false;
         if (this.filterCountryId) options.countryId = this.filterCountryId;

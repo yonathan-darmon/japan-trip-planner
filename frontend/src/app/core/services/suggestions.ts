@@ -48,11 +48,12 @@ export class SuggestionsService {
 
   constructor(private http: HttpClient) { }
 
-  getAll(options: { countryId?: number; isGlobal?: boolean; groupId?: number } = {}): Observable<Suggestion[]> {
+  getAll(options: { countryId?: number; isGlobal?: boolean; groupId?: number; includePrivate?: boolean } = {}): Observable<Suggestion[]> {
     let params: any = {};
     if (options.countryId) params.countryId = options.countryId;
     if (options.isGlobal !== undefined) params.isGlobal = options.isGlobal;
     if (options.groupId) params.groupId = options.groupId;
+    if (options.includePrivate) params.includePrivate = 'true';
 
     return this.http.get<Suggestion[]>(this.apiUrl, { params });
   }

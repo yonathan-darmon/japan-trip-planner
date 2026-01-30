@@ -40,11 +40,13 @@ export class SuggestionsController {
         @Query('countryId') countryId?: string,
         @Query('isGlobal') isGlobal?: string,
         @Query('groupId') groupId?: string,
+        @Query('includePrivate') includePrivate?: string,
     ) {
         return this.suggestionsService.findAll({
             countryId: countryId ? +countryId : undefined,
             isGlobal: isGlobal === 'true' ? true : (isGlobal === 'false' ? false : undefined),
-            groupId: groupId ? +groupId : undefined
+            groupId: groupId ? +groupId : undefined,
+            includePrivate: includePrivate === 'true'
         });
     }
 

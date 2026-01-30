@@ -56,7 +56,11 @@ import { WebSocketService } from '../../core/services/websocket.service';
     <div class="suggestions-grid fade-in" style="animation-delay: 100ms;">
       <div *ngFor="let suggestion of filteredSuggestions(); trackBy: trackById" class="card glass suggestion-card">
         <div class="card-image" [style.backgroundImage]="suggestion.photoUrl ? 'url(' + suggestion.photoUrl + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
-          <span class="badge badge-secondary category-badge">{{ suggestion.category }}</span>
+          <div class="badge-container">
+            <span class="badge badge-secondary category-badge">{{ suggestion.category }}</span>
+            <span *ngIf="suggestion.isGlobal" class="badge badge-success global-badge" title="Toute la plateforme">🌍 Global</span>
+            <span *ngIf="!suggestion.isGlobal" class="badge badge-info group-badge" title="Uniquement votre groupe">🔒 Groupe</span>
+          </div>
         </div>
         
         <div class="card-content">
@@ -191,10 +195,36 @@ import { WebSocketService } from '../../core/services/websocket.service';
       border-top-left-radius: var(--radius-lg);
       border-top-right-radius: var(--radius-lg);
     }
-    .category-badge {
+    .badge-container {
       position: absolute;
       top: 1rem;
+      left: 1rem;
       right: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+    .badge {
+      pointer-events: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      font-size: 0.7rem;
+      padding: 0.3rem 0.6rem;
+    }
+    .badge-info {
+        background: rgba(99, 179, 237, 0.8);
+        backdrop-filter: blur(4px);
+        color: white;
+    }
+    .badge-success {
+        background: rgba(76, 175, 80, 0.8);
+        backdrop-filter: blur(4px);
+        color: white;
+    }
+    .badge-secondary {
+        background: rgba(126, 87, 194, 0.8);
+        backdrop-filter: blur(4px);
     }
     .card-content {
       padding: 1.5rem;
@@ -419,7 +449,8 @@ export class SuggestionListComponent implements OnInit {
   }
 
   loadSuggestions() {
-    this.suggestionsService.getAll()
+    const groupId = localStorage.getItem('currentGroupId');
+    this.suggestionsService.getAll({ groupId: groupId ? +groupId : undefined })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => this.suggestions.set(data),

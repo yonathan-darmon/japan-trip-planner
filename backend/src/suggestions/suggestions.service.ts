@@ -143,22 +143,32 @@ export class SuggestionsService {
         groupId?: number;
         includePrivate?: boolean; // For Super Admin
     } = {}): Promise<Suggestion[]> {
-        const where: any = {};
+        let where: any;
 
-        if (options.countryId) {
-            where.countryId = options.countryId;
+        if (options.includePrivate) {
+            // Admin Panel: No restriction on global/private, but respect other filters
+            where = {};
+            if (options.countryId) where.countryId = options.countryId;
+            if (options.isGlobal !== undefined) where.isGlobal = options.isGlobal;
+            if (options.groupId) where.groupId = options.groupId;
+        } else {
+            // Standard/Classic View: (isGlobal: true OR groupId: X)
+            const conditions: any[] = [];
+
+            // 1. Always show global suggestions matching country (if given)
+            const globalCond: any = { isGlobal: true };
+            if (options.countryId) globalCond.countryId = options.countryId;
+            conditions.push(globalCond);
+
+            // 2. If a group context is provided, also show its private suggestions
+            if (options.groupId) {
+                const groupCond: any = { groupId: options.groupId };
+                if (options.countryId) groupCond.countryId = options.countryId;
+                conditions.push(groupCond);
+            }
+
+            where = conditions;
         }
-
-        if (options.isGlobal !== undefined) {
-            where.isGlobal = options.isGlobal;
-        }
-
-        if (options.groupId) {
-            where.groupId = options.groupId;
-        }
-
-        // If not explicit and not admin, we usually want (isGlobal OR myGroups)
-        // But for simplicity of the admin tool, we'll keep it flexible
 
         return this.suggestionsRepository.find({
             where,
