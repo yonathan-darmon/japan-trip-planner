@@ -52,7 +52,9 @@ export class ItineraryService {
     constructor(private http: HttpClient) { }
 
     generate(data: GenerateItineraryRequest): Observable<Itinerary> {
-        return this.http.post<Itinerary>(`${this.apiUrl}/generate`, data);
+        const groupId = localStorage.getItem('currentGroupId');
+        const payload = { ...data, groupId: groupId ? +groupId : undefined };
+        return this.http.post<Itinerary>(`${this.apiUrl}/generate`, payload);
     }
 
     getAll(): Observable<Itinerary[]> {

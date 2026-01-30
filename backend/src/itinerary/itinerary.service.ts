@@ -50,12 +50,12 @@ export class ItineraryService {
     /**
      * PHASE 1: Collect trip configuration and voted suggestions
      */
-    private async collectData(): Promise<{ config: TripConfig; votedSuggestions: Suggestion[] }> {
+    private async collectData(groupId?: number): Promise<{ config: TripConfig; votedSuggestions: Suggestion[] }> {
         const config = await this.tripConfigService.getConfig();
-        const allSuggestions = await this.suggestionsService.findAll();
+        const allSuggestions = await this.suggestionsService.findAll({ groupId });
 
-        this.logger.log('=== PHASE 1: COLLECT DATA ===');
-        this.logger.debug(`Total suggestions in DB: ${allSuggestions.length}`);
+        this.logger.log(`=== PHASE 1: COLLECT DATA (Group: ${groupId || 'None'}) ===`);
+        this.logger.debug(`Total suggestions visible: ${allSuggestions.length}`);
 
         // 1. Activities MUST be voted (and not deleted, but findAll handles that)
         // Also exclude accommodations from this list to avoid duplicates if we merge later
@@ -281,10 +281,10 @@ export class ItineraryService {
      * Main generation method
      */
     async generate(dto: GenerateItineraryDto, userId: number): Promise<Itinerary> {
-        this.logger.log(`=== STARTING ITINERARY GENERATION for User ${userId} ===`);
+        this.logger.log(`=== STARTING ITINERARY GENERATION for User ${userId} (Group: ${dto.groupId}) ===`);
 
         // Phase 1: Collect data
-        const { config, votedSuggestions } = await this.collectData();
+        const { config, votedSuggestions } = await this.collectData(dto.groupId);
 
         if (votedSuggestions.length === 0) {
             throw new BadRequestException('No suggestions have been voted for. Please vote for some suggestions first.');
@@ -340,6 +340,7 @@ export class ItineraryService {
             totalDays: config.durationDays,
             totalCost,
             createdById: userId,
+            groupId: dto.groupId,
             days,
         });
 

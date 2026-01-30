@@ -10,4 +10,8 @@ export class GenerateItineraryDto {
     @Max(10)
     @IsOptional()
     maxActivitiesPerDay?: number = 4;
+
+    @IsInt()
+    @IsOptional()
+    groupId?: number;
 }

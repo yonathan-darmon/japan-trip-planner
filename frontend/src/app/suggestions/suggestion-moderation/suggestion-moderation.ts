@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SuggestionsService, Suggestion, SuggestionCategory } from '../../core/services/suggestions';
 import { CountriesService, Country } from '../../core/services/countries.service';
+import { GroupsService, Group } from '../../core/services/groups.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 
@@ -63,7 +64,8 @@ import { RouterLink } from '@angular/router';
                         <th>Suggestion</th>
                         <th>Status</th>
                         <th>Pays</th>
-                        <th>Auteur / Groupe</th>
+                        <th>Groupe</th>
+                        <th>Auteur</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -89,8 +91,13 @@ import { RouterLink } from '@angular/router';
                             </select>
                         </td>
                         <td>
+                            <select [(ngModel)]="s.groupId" (change)="updateGroup(s)" class="admin-select">
+                                <option [ngValue]="null">Public / Aucun</option>
+                                <option *ngFor="let g of groups" [ngValue]="g.id">#{{ g.id }} - {{ g.name }}</option>
+                            </select>
+                        </td>
+                        <td>
                             <div class="text-sm">{{ s.createdBy.username }}</div>
-                            <div class="text-[10px] opacity-40" *ngIf="s.groupId">Groupe: #{{ s.groupId }}</div>
                         </td>
                         <td>
                             <div class="flex gap-2">
@@ -174,6 +181,7 @@ import { RouterLink } from '@angular/router';
 export class SuggestionModerationComponent implements OnInit {
     suggestions = signal<Suggestion[]>([]);
     countries: Country[] = [];
+    groups: Group[] = [];
     loading = false;
 
     // Filters
@@ -185,16 +193,22 @@ export class SuggestionModerationComponent implements OnInit {
 
     constructor(
         private suggestionsService: SuggestionsService,
-        private countriesService: CountriesService
+        private countriesService: CountriesService,
+        private groupsService: GroupsService
     ) { }
 
     ngOnInit() {
         this.loadCountries();
+        this.loadGroups();
         this.loadSuggestions();
     }
 
     loadCountries() {
         this.countriesService.findAll().subscribe(data => this.countries = data);
+    }
+
+    loadGroups() {
+        this.groupsService.getAllGroups().subscribe(data => this.groups = data);
     }
 
     loadSuggestions() {
@@ -242,13 +256,21 @@ export class SuggestionModerationComponent implements OnInit {
 
     updateCountry(s: Suggestion) {
         const formData = new FormData();
-        if (s.countryId) formData.append('countryId', String(s.countryId));
+        formData.append('countryId', s.countryId ? String(s.countryId) : '');
 
         this.suggestionsService.update(s.id, formData).subscribe({
-            next: () => {
-                // Updated automatically via ngModel but we confirm with server
-            },
+            next: () => { },
             error: (err: any) => alert("Erreur lors de l'affectation au pays")
+        });
+    }
+
+    updateGroup(s: Suggestion) {
+        const formData = new FormData();
+        formData.append('groupId', s.groupId ? String(s.groupId) : '');
+
+        this.suggestionsService.update(s.id, formData).subscribe({
+            next: () => { },
+            error: (err: any) => alert("Erreur lors de l'affectation au groupe")
         });
     }
 
