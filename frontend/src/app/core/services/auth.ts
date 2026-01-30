@@ -14,6 +14,7 @@ export interface User {
   role: UserRole | string;
   email?: string;
   lastViewedChangelogAt?: string;
+  groups?: any[];
 }
 
 export interface AuthResponse {

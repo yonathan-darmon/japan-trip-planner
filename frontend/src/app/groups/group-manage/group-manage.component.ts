@@ -40,7 +40,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
                         <p class="mt-1 text-sm text-text-secondary">Voyage au Japon</p>
                     </div>
                     <span class="badge badge-primary">
-                        {{ group?.members?.length }} membres
+                        {{ group.members?.length || 0 }} membres
                     </span>
                 </div>
             </div>
