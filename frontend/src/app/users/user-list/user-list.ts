@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { UsersService } from '../../core/services/users';
 import { User, UserRole } from '../../core/services/auth';
+import { GroupRole } from '../../core/services/groups.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './user-list.html',
   styleUrls: ['./user-list.css']
 })
@@ -20,6 +22,7 @@ export class UserListComponent implements OnInit {
 
   ngOnInit() {
     this.loadUsers();
+    this.loadAllGroups();
   }
 
   loadUsers() {
@@ -66,27 +69,41 @@ export class UserListComponent implements OnInit {
   }
 
   // --- GROUP MANAGEMENT ---
-  selectedUser: User | null = null;
+  selectedUser: any | null = null;
   userGroups: any[] = [];
   allGroups: any[] = [];
   showGroupModal = false;
   loadingGroups = false;
 
-  openGroupManagement(user: User) {
+  // Form for adding to group
+  newMembership = {
+    groupId: 0,
+    role: GroupRole.MEMBER
+  };
+
+  loadAllGroups() {
+    this.usersService.getAllGroups().subscribe(groups => {
+      this.allGroups = groups;
+    });
+  }
+
+  openGroupManagement(user: any) {
     this.selectedUser = user;
     this.showGroupModal = true;
     this.loadingGroups = true;
+    this.newMembership = { groupId: 0, role: GroupRole.MEMBER };
 
-    // Load existing groups for this user
-    this.usersService.getUserGroups(user.id).subscribe({
+    this.loadUserGroups(user.id);
+  }
+
+  loadUserGroups(userId: number) {
+    this.loadingGroups = true;
+    this.usersService.getUserGroups(userId).subscribe({
       next: (groups) => {
         this.userGroups = groups;
         this.loadingGroups = false;
       }
     });
-
-    // Load available groups in system
-    // We should probably have a GroupsService.getAll()
   }
 
   closeGroupModal() {
@@ -101,12 +118,51 @@ export class UserListComponent implements OnInit {
 
     this.usersService.removeUserFromGroup(this.selectedUser.id, groupId).subscribe({
       next: () => {
-        this.userGroups = this.userGroups.filter(g => g.group.id !== groupId);
+        this.loadUserGroups(this.selectedUser!.id);
+        this.loadUsers(); // Refresh main table
       },
       error: (err) => {
         alert('Erreur: ' + (err.error?.message || err.message));
       }
     });
+  }
+
+  addToGroup() {
+    if (!this.selectedUser || !this.newMembership.groupId) return;
+
+    this.usersService.addUserToGroup(
+      this.selectedUser.id,
+      this.newMembership.groupId,
+      this.newMembership.role
+    ).subscribe({
+      next: () => {
+        this.loadUserGroups(this.selectedUser!.id);
+        this.loadUsers(); // Refresh main table
+        this.newMembership.groupId = 0;
+      },
+      error: (err) => {
+        alert('Erreur: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  changeRole(groupId: number, role: string) {
+    if (!this.selectedUser) return;
+
+    this.usersService.addUserToGroup(this.selectedUser.id, groupId, role).subscribe({
+      next: () => {
+        this.loadUsers();
+      },
+      error: (err) => {
+        alert('Erreur: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  getAvailableGroups() {
+    // Filter out groups user is already in
+    const userGroupIds = this.userGroups.map(ug => ug.group.id);
+    return this.allGroups.filter(g => !userGroupIds.includes(g.id));
   }
 
   getRoleBadgeClass(role: UserRole | string): string {

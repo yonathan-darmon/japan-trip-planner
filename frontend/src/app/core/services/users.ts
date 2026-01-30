@@ -16,8 +16,12 @@ export class UsersService {
         return this.http.get<number>(`${this.apiUrl}/count`);
     }
 
-    getAll(): Observable<User[]> {
-        return this.http.get<User[]>(this.apiUrl);
+    getAll(): Observable<any[]> {
+        return this.http.get<any[]>(`${environment.apiUrl}/admin/users`);
+    }
+
+    getAllGroups(): Observable<any[]> {
+        return this.http.get<any[]>(`${environment.apiUrl}/admin/groups`);
     }
 
     delete(id: number): Observable<void> {
@@ -50,5 +54,9 @@ export class UsersService {
 
     forceLogout(userId: number): Observable<void> {
         return this.http.post<void>(`${environment.apiUrl}/admin/users/${userId}/force-logout`, {});
+    }
+
+    addUserToGroup(userId: number, groupId: number, role: string): Observable<any> {
+        return this.http.post<any>(`${environment.apiUrl}/admin/users/${userId}/groups`, { groupId, role });
     }
 }

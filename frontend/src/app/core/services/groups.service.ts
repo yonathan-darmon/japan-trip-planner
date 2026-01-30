@@ -3,17 +3,22 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export enum GroupRole {
+    ADMIN = 'admin',
+    MEMBER = 'member',
+}
+
 export interface Group {
     id: number;
     name: string;
-    role: string;
+    role: GroupRole | string;
     country?: { name: string; code: string };
     members?: GroupMember[];
 }
 
 export interface GroupMember {
     id: number;
-    role: string;
+    role: GroupRole | string;
     user: { id: number; username: string; email: string };
     joinedAt: string;
 }

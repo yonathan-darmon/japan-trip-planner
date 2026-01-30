@@ -17,6 +17,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Nom d'utilisateur</th>
+                        <th>Groupes</th>
                         <th>Rôle</th>
                         <th>Actions</th>
                     </tr>
@@ -28,6 +29,15 @@
                             <div class="user-info">
                                 <span class="avatar">{{ user.username.charAt(0).toUpperCase() }}</span>
                                 {{ user.username }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="flex flex-wrap gap-1">
+                                <span *ngFor="let ug of user.groups" class="badge badge-secondary text-xs"
+                                    [title]="'ID Group: ' + ug.group.id">
+                                    {{ ug.group.name }} ({{ ug.role }})
+                                </span>
+                                <span *ngIf="!user.groups?.length" class="text-xs opacity-50 italic">Aucun</span>
                             </div>
                         </td>
                         <td>
@@ -51,7 +61,7 @@
                         </td>
                     </tr>
                     <tr *ngIf="users.length === 0 && !loading">
-                        <td colspan="5" class="text-center">Aucun utilisateur trouvé</td>
+                        <td colspan="6" class="text-center">Aucun utilisateur trouvé</td>
                     </tr>
                 </tbody>
             </table>
@@ -60,33 +70,79 @@
 
     <!-- MODAL GESTION GROUPES -->
     <div class="modal-backdrop fade-in" *ngIf="showGroupModal">
-        <div class="modal card glass p-0 overflow-hidden">
+        <div class="modal card glass p-0 overflow-hidden max-w-2xl">
             <div class="modal-header p-4 flex justify-between items-center border-b border-white/10">
-                <h3 class="m-0 text-white">Groupes de {{ selectedUser?.username }}</h3>
+                <h3 class="m-0 text-white">Gestion des Groupes : {{ selectedUser?.username }}</h3>
                 <button class="btn-close" (click)="closeGroupModal()">✕</button>
             </div>
 
             <div class="modal-body p-6">
-                <div *ngIf="loadingGroups" class="text-center py-4">Chargement...</div>
+                <div *ngIf="loadingGroups" class="text-center py-4 text-primary">Chargement...</div>
 
-                <div *ngIf="!loadingGroups && userGroups.length === 0" class="text-center py-4 text-text-tertiary">
-                    Cet utilisateur n'appartient à aucun groupe.
+                <div class="mb-8">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-text-tertiary mb-4">Groupes Actuels</h4>
+                    <div *ngIf="!loadingGroups && userGroups.length === 0"
+                        class="text-center py-6 bg-white/5 rounded-lg border border-dashed border-white/10 text-text-tertiary">
+                        Cet utilisateur n'appartient à aucun groupe.
+                    </div>
+
+                    <ul class="space-y-3" *ngIf="userGroups.length > 0">
+                        <li *ngFor="let ug of userGroups"
+                            class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-all">
+                            <div class="flex-1">
+                                <div class="font-bold text-white">{{ ug.group.name }}</div>
+                                <div class="text-xs text-text-tertiary">ID: {{ ug.group.id }} | Pays: {{
+                                    ug.group.country?.name || 'N/A' }}</div>
+                            </div>
+
+                            <div class="flex items-center gap-4">
+                                <select class="form-input-sm bg-black/20 border-white/10 text-xs py-1"
+                                    [ngModel]="ug.role" (ngModelChange)="changeRole(ug.group.id, $event)">
+                                    <option value="member">Membre</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+
+                                <button
+                                    class="btn btn-sm btn-outline border-red-500/30 text-red-400 hover:bg-red-500/20 px-3"
+                                    (click)="removeFromGroup(ug.group.id)">
+                                    Retirer
+                                </button>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
 
-                <ul class="space-y-3" *ngIf="userGroups.length > 0">
-                    <li *ngFor="let ug of userGroups"
-                        class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
-                        <div>
-                            <div class="font-bold text-white">{{ ug.group.name }}</div>
-                            <div class="text-xs text-text-tertiary">Rôle: {{ ug.role }} | Pays: {{
-                                ug.group.country?.name }}</div>
+                <div class="pt-6 border-t border-white/10">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-text-tertiary mb-4">Ajouter à un groupe
+                    </h4>
+                    <div class="flex gap-3 items-end">
+                        <div class="flex-1">
+                            <label class="block text-xs mb-1 opacity-70">Sélectionner un groupe</label>
+                            <select [(ngModel)]="newMembership.groupId"
+                                class="form-input w-full bg-white/5 border-white/10">
+                                <option [value]="0" disabled>Choisir un groupe...</option>
+                                <option *ngFor="let g of getAvailableGroups()" [value]="g.id">
+                                    {{ g.name }} (ID: {{ g.id }})
+                                </option>
+                            </select>
                         </div>
-                        <button class="btn btn-sm border-red-500/30 text-red-400 hover:bg-red-500/20"
-                            (click)="removeFromGroup(ug.group.id)">
-                            Retirer
+                        <div class="w-32">
+                            <label class="block text-xs mb-1 opacity-70">Rôle</label>
+                            <select [(ngModel)]="newMembership.role"
+                                class="form-input w-full bg-white/5 border-white/10">
+                                <option value="member">Membre</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button (click)="addToGroup()" [disabled]="!newMembership.groupId" class="btn btn-primary">
+                            Ajouter
                         </button>
-                    </li>
-                </ul>
+                    </div>
+                    <p *ngIf="allGroups.length > 0 && getAvailableGroups().length === 0"
+                        class="text-xs text-center mt-4 opacity-50 italic">
+                        L'utilisateur appartient déjà à tous les groupes disponibles.
+                    </p>
+                </div>
             </div>
 
             <div class="modal-footer p-4 bg-white/5 text-right flex justify-end">
