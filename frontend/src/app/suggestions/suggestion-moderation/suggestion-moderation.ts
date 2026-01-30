@@ -214,8 +214,6 @@ export class SuggestionModerationComponent implements OnInit {
     loadSuggestions() {
         this.loading = true;
         const options: any = { includePrivate: true };
-        if (this.filterType === 'global') options.isGlobal = true;
-        if (this.filterType === 'private') options.isGlobal = false;
         if (this.filterCountryId) options.countryId = this.filterCountryId;
 
         this.suggestionsService.getAll(options)
@@ -233,13 +231,29 @@ export class SuggestionModerationComponent implements OnInit {
     }
 
     filteredSuggestions = computed(() => {
+        let list = this.suggestions();
         const query = this.searchQuery.toLowerCase();
-        if (!query) return this.suggestions();
-        return this.suggestions().filter(s =>
-            s.name.toLowerCase().includes(query) ||
-            s.location.toLowerCase().includes(query) ||
-            s.createdBy.username.toLowerCase().includes(query)
-        );
+        const type = this.filterType;
+
+        // 1. Filter by Tab (Reactive!)
+        if (type === 'all') {
+            // No filter
+        } else if (type === 'global') {
+            list = list.filter(s => s.isGlobal);
+        } else if (type === 'private') {
+            list = list.filter(s => !s.isGlobal);
+        }
+
+        // 2. Filter by Search Query
+        if (query) {
+            list = list.filter(s =>
+                s.name.toLowerCase().includes(query) ||
+                s.location.toLowerCase().includes(query) ||
+                s.createdBy.username.toLowerCase().includes(query)
+            );
+        }
+
+        return list;
     });
 
     toggleGlobal(s: Suggestion) {

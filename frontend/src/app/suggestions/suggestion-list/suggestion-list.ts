@@ -74,8 +74,9 @@ import { WebSocketService } from '../../core/services/websocket.service';
         <div class="card-image" [style.backgroundImage]="suggestion.photoUrl ? 'url(' + suggestion.photoUrl + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
           <div class="badge-container">
             <span class="badge badge-secondary category-badge">{{ suggestion.category }}</span>
-            <span *ngIf="suggestion.isGlobal" class="badge badge-success global-badge" title="Toute la plateforme">🌍 Global</span>
-            <span *ngIf="!suggestion.isGlobal" class="badge badge-info group-badge" title="Uniquement votre groupe">🔒 Groupe</span>
+            <span *ngIf="suggestion.isGlobal && !suggestion.groupId" class="badge badge-success global-badge" title="Catalogue Officiel">🌍 Officiel</span>
+            <span *ngIf="suggestion.isGlobal && suggestion.groupId" class="badge badge-warning promo-badge" title="Votre idée a été validée officiellement !">⭐ Sélectionnée</span>
+            <span *ngIf="!suggestion.isGlobal" class="badge badge-info group-badge" title="Uniquement votre groupe">🔒 Privé</span>
           </div>
         </div>
         
@@ -266,6 +267,13 @@ import { WebSocketService } from '../../core/services/websocket.service';
         background: rgba(76, 175, 80, 0.8);
         backdrop-filter: blur(4px);
         color: white;
+    }
+    .badge-warning {
+        background: rgba(255, 217, 61, 0.8);
+        backdrop-filter: blur(4px);
+        color: #000;
+        font-weight: 700;
+        box-shadow: 0 0 10px rgba(255, 217, 61, 0.3);
     }
     .badge-secondary {
         background: rgba(126, 87, 194, 0.8);
