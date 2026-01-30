@@ -86,7 +86,8 @@ import { FormsModule } from '@angular/forms';
           </div>
 
           <div class="space-y-3">
-            <button class="btn btn-secondary full-width" routerLink="/suggestions">Gérer les suggestions</button>
+            <button class="btn btn-secondary full-width" routerLink="/suggestions">Voir le catalogue</button>
+            <button class="btn btn-primary full-width" routerLink="/admin/suggestions">🛡️ Modérer les suggestions site-wide</button>
           </div>
         </div>
       </div>

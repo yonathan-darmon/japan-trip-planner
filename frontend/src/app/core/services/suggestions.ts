@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { User } from './auth';
 import { UserPreference } from './preferences';
+import { Country } from './countries.service';
 
 export enum SuggestionCategory {
   RESTAURANT = 'Restaurant',
@@ -31,6 +32,10 @@ export interface Suggestion {
   createdById: number;
   createdAt: string;
   preferences?: UserPreference[];
+  countryId?: number;
+  country?: Country;
+  isGlobal: boolean;
+  groupId?: number;
 }
 
 import { environment } from '../../../environments/environment';
@@ -43,12 +48,13 @@ export class SuggestionsService {
 
   constructor(private http: HttpClient) { }
 
-  getAll(countryId?: number): Observable<Suggestion[]> {
-    let url = this.apiUrl;
-    if (countryId) {
-      url += `?countryId=${countryId}`;
-    }
-    return this.http.get<Suggestion[]>(url);
+  getAll(options: { countryId?: number; isGlobal?: boolean; groupId?: number } = {}): Observable<Suggestion[]> {
+    let params: any = {};
+    if (options.countryId) params.countryId = options.countryId;
+    if (options.isGlobal !== undefined) params.isGlobal = options.isGlobal;
+    if (options.groupId) params.groupId = options.groupId;
+
+    return this.http.get<Suggestion[]>(this.apiUrl, { params });
   }
 
   getOne(id: number): Observable<Suggestion> {

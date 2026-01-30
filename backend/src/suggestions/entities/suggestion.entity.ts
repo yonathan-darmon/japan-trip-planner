@@ -64,6 +64,16 @@ export class Suggestion {
     })
     durationHours: number;
 
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'created_by' })
+    createdBy: User;
+
+    @Column({ name: 'created_by' })
+    createdById: number;
+
+    @Column({ name: 'group_id', nullable: true })
+    groupId: number;
+
     @ManyToOne(() => Country, { nullable: true })
     @JoinColumn({ name: 'country_id' })
     country: Country;
@@ -71,12 +81,8 @@ export class Suggestion {
     @Column({ name: 'country_id', nullable: true })
     countryId: number;
 
-    @ManyToOne(() => User)
-    @JoinColumn({ name: 'created_by' })
-    createdBy: User;
-
-    @Column({ name: 'created_by' })
-    createdById: number;
+    @Column({ name: 'is_global', default: false })
+    isGlobal: boolean;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;

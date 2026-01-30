@@ -83,13 +83,13 @@ export const routes: Routes = [
                 canActivate: [superAdminGuard]
             },
             {
-                path: 'users',
-                loadComponent: () => import('./users/user-list/user-list').then(m => m.UserListComponent),
+                path: 'users/new',
+                loadComponent: () => import('./users/user-form/user-form').then(m => m.UserFormComponent),
                 canActivate: [superAdminGuard]
             },
             {
-                path: 'users/new',
-                loadComponent: () => import('./users/user-form/user-form').then(m => m.UserFormComponent),
+                path: 'admin/suggestions',
+                loadComponent: () => import('./suggestions/suggestion-moderation/suggestion-moderation').then(m => m.SuggestionModerationComponent),
                 canActivate: [superAdminGuard]
             }
         ]

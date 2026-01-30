@@ -39,4 +39,17 @@ export class CreateSuggestionDto {
     @Max(8)
     @IsOptional()
     durationHours?: number;
+
+    @Type(() => Number)
+    @IsNumber()
+    @IsOptional()
+    countryId?: number;
+
+    @IsOptional()
+    isGlobal?: boolean;
+
+    @Type(() => Number)
+    @IsNumber()
+    @IsOptional()
+    groupId?: number;
 }

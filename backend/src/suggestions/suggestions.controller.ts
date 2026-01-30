@@ -36,8 +36,16 @@ export class SuggestionsController {
     }
 
     @Get()
-    findAll(@Query('countryId') countryId?: string) {
-        return this.suggestionsService.findAll(countryId ? +countryId : undefined);
+    findAll(
+        @Query('countryId') countryId?: string,
+        @Query('isGlobal') isGlobal?: string,
+        @Query('groupId') groupId?: string,
+    ) {
+        return this.suggestionsService.findAll({
+            countryId: countryId ? +countryId : undefined,
+            isGlobal: isGlobal === 'true' ? true : (isGlobal === 'false' ? false : undefined),
+            groupId: groupId ? +groupId : undefined
+        });
     }
 
     @Get(':id')

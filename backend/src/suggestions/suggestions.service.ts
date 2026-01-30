@@ -95,6 +95,7 @@ export class SuggestionsService {
             ...createSuggestionDto,
             createdBy: user,
             createdById: user.id,
+            isGlobal: user.role === UserRole.SUPER_ADMIN ? true : (createSuggestionDto.isGlobal ?? false)
         });
 
         // Upload image if present
@@ -118,15 +119,33 @@ export class SuggestionsService {
         return savedSuggestion;
     }
 
-    async findAll(countryId?: number): Promise<Suggestion[]> {
+    async findAll(options: {
+        countryId?: number;
+        isGlobal?: boolean;
+        groupId?: number;
+        includePrivate?: boolean; // For Super Admin
+    } = {}): Promise<Suggestion[]> {
         const where: any = {};
-        if (countryId) {
-            where.countryId = countryId;
+
+        if (options.countryId) {
+            where.countryId = options.countryId;
         }
+
+        if (options.isGlobal !== undefined) {
+            where.isGlobal = options.isGlobal;
+        }
+
+        if (options.groupId) {
+            where.groupId = options.groupId;
+        }
+
+        // If not explicit and not admin, we usually want (isGlobal OR myGroups)
+        // But for simplicity of the admin tool, we'll keep it flexible
+
         return this.suggestionsRepository.find({
             where,
             order: { createdAt: 'DESC' },
-            relations: ['createdBy', 'preferences', 'preferences.user'],
+            relations: ['createdBy', 'country', 'preferences', 'preferences.user'],
         });
     }
 

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { GroupsService, Group } from '../../core/services/groups.service';
 import { TripConfigService, TripConfig } from '../../core/services/trip-config';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth';
 
 @Component({
     selector: 'app-group-manage',
@@ -92,7 +93,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
                     <p class="mt-1 text-sm text-text-secondary">Définissez la durée et les dates de votre séjour.</p>
                 </div>
                 
-                <form (ngSubmit)="updateSettings()" class="px-6 py-5 space-y-4">
+                <div *ngIf="!isAdmin()" class="p-6 text-center text-text-tertiary italic text-sm">
+                    Seuls les administrateurs du groupe peuvent modifier ces paramètres.
+                </div>
+
+                <form *ngIf="isAdmin()" (ngSubmit)="updateSettings()" class="px-6 py-5 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="form-group">
                             <label class="text-xs font-bold text-text-tertiary uppercase mb-1 block">Durée (jours)</label>
@@ -117,7 +122,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
             </div>
 
             <!-- INVITE SECTION -->
-            <div class="card glass">
+            <div class="card glass" *ngIf="isAdmin()">
                 <div class="px-6 py-5">
                     <h3 class="text-lg font-bold text-white flex items-center">
                         <span class="mr-2">✉️</span> Inviter un ami
@@ -208,6 +213,7 @@ export class GroupManageComponent implements OnInit {
     constructor(
         private groupsService: GroupsService,
         private tripConfigService: TripConfigService,
+        private authService: AuthService,
         private route: ActivatedRoute
     ) { }
 
@@ -323,7 +329,15 @@ export class GroupManageComponent implements OnInit {
     }
 
     canRemoveInfo(member: any): boolean {
-        // Simple placeholder logic
-        return true;
+        if (!this.isAdmin()) return false;
+        // Don't allow removing self from here (you are admin)
+        return member.user.id !== this.authService.currentUserValue?.id;
+    }
+
+    isAdmin(): boolean {
+        if (!this.group || !this.authService.currentUserValue) return false;
+        const currentUserId = this.authService.currentUserValue.id;
+        const member = this.group.members?.find(m => m.user.id === currentUserId);
+        return member?.role === 'admin' || this.authService.currentUserValue.role === 'super_admin';
     }
 }
