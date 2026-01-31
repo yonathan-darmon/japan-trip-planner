@@ -16,12 +16,15 @@ import { GeocodingService } from './geocoding.service';
 import { SyncGateway } from '../sync/sync.gateway';
 import { ItineraryService } from '../itinerary/itinerary.service';
 import { GroupsService } from '../groups/groups.service';
+import { Country } from '../countries/entities/country.entity';
 
 @Injectable()
 export class SuggestionsService {
     constructor(
         @InjectRepository(Suggestion)
         private suggestionsRepository: Repository<Suggestion>,
+        @InjectRepository(Country)
+        private countriesRepository: Repository<Country>,
         private s3Service: S3Service,
         private geocodingService: GeocodingService,
         private syncGateway: SyncGateway,
@@ -53,10 +56,20 @@ export class SuggestionsService {
 
         // Update fields explicitly to handle casting from FormData strings
         if (updateSuggestionDto.name !== undefined) suggestion.name = updateSuggestionDto.name;
+        // Handle manual coordinates
+        const manualCoords = updateSuggestionDto.latitude !== undefined || updateSuggestionDto.longitude !== undefined;
+        if (updateSuggestionDto.latitude !== undefined) suggestion.latitude = updateSuggestionDto.latitude;
+        if (updateSuggestionDto.longitude !== undefined) suggestion.longitude = updateSuggestionDto.longitude;
+
         if (updateSuggestionDto.location !== undefined) {
-            if (updateSuggestionDto.location !== suggestion.location) {
+            if (updateSuggestionDto.location !== suggestion.location && !manualCoords) {
                 console.log(`📍 Location changed, re-geocoding...`);
-                const coords = await this.geocodingService.getCoordinatesWithRetry(updateSuggestionDto.location);
+                // Resolve context
+                const effectiveCountryId = updateSuggestionDto.countryId ?? suggestion.countryId;
+                const effectiveGroupId = updateSuggestionDto.groupId ?? suggestion.groupId;
+                const context = await this.getCountryContext(effectiveCountryId, effectiveGroupId);
+
+                const coords = await this.geocodingService.getCoordinatesWithRetry(updateSuggestionDto.location, context);
                 if (coords) {
                     suggestion.latitude = coords.lat;
                     suggestion.longitude = coords.lng;
@@ -125,10 +138,20 @@ export class SuggestionsService {
             suggestion.photoUrl = await this.s3Service.uploadFile(file);
         }
 
-        // Geocode location with retry
-        if (createSuggestionDto.location) {
+        // Geocode location with retry ONLY if coordinates are not manually provided
+        if (createSuggestionDto.location && (!createSuggestionDto.latitude || !createSuggestionDto.longitude)) {
+            const countryContext = await this.getCountryContext(createSuggestionDto.countryId, createSuggestionDto.groupId);
+            // Default to Japan if no context found (classic behavior) ??
+            // User requested "what if I search outside Japan". 
+            // So if context is undefined, we should NOT force Japan??
+            // But if context is undefined, `geocoding.service` will just search globally (as per Step 427/432 logic: `query = context ? ... : address`).
+            // However, the helper might return "Japan" if the group is assigned to Japan.
+            // If the group has NO country, it returns undefined.
+            // In that case, global search is correct.
+
             const coords = await this.geocodingService.getCoordinatesWithRetry(
                 createSuggestionDto.location,
+                countryContext
             );
             if (coords) {
                 suggestion.latitude = coords.lat;
@@ -234,5 +257,17 @@ export class SuggestionsService {
         throw new NotFoundException(
             'Impossible de géocoder cette adresse. Vérifiez qu\'elle est correcte.',
         );
+    }
+
+    private async getCountryContext(countryId?: number | null, groupId?: number | null): Promise<string | undefined> {
+        if (countryId) {
+            const country = await this.countriesRepository.findOneBy({ id: countryId });
+            return country?.name;
+        }
+        if (groupId) {
+            const group = await this.groupsService.findOne(groupId);
+            return group?.country?.name;
+        }
+        return undefined;
     }
 }

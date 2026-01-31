@@ -35,7 +35,7 @@ export class CreateSuggestionDto {
 
     @Type(() => Number)
     @IsNumber()
-    @Min(0.5)
+    @Min(0)
     @Max(8)
     @IsOptional()
     durationHours?: number;
@@ -52,6 +52,16 @@ export class CreateSuggestionDto {
     })
     @IsOptional()
     isGlobal?: boolean;
+
+    @Type(() => Number)
+    @IsNumber()
+    @IsOptional()
+    latitude?: number;
+
+    @Type(() => Number)
+    @IsNumber()
+    @IsOptional()
+    longitude?: number;
 
     @Type(() => Number)
     @IsNumber()

@@ -59,12 +59,24 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
             <small class="hint">Plus c'est précis, mieux ce sera placé sur la carte ! 🗺️</small>
           </div>
 
+          <div class="form-row">
+            <div class="form-group half">
+              <label class="form-label" for="latitude">Latitude (Optionnel)</label>
+              <input id="latitude" type="number" class="form-input" formControlName="latitude" placeholder="Ex: 35.6591" step="any">
+            </div>
+            <div class="form-group half">
+              <label class="form-label" for="longitude">Longitude (Optionnel)</label>
+              <input id="longitude" type="number" class="form-input" formControlName="longitude" placeholder="Ex: 139.7006" step="any">
+            </div>
+          </div>
+          <small class="hint" style="display:block; margin-top:-1rem; margin-bottom:1rem;">Remplissez ces champs uniquement si la localisation automatique est incorrecte.</small>
+
           <div class="form-group">
             <label class="form-label" for="price">Prix estimé (€)</label>
             <input id="price" type="number" class="form-input" formControlName="price" placeholder="0">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" *ngIf="suggestionForm.get('category')?.value !== SuggestionCategory.HEBERGEMENT">
             <label class="form-label">Durée estimée</label>
             <div class="duration-selector">
               <button 
@@ -260,6 +272,7 @@ export class SuggestionFormComponent implements OnInit {
   selectedFile: File | null = null;
   imagePreview: string | null = null;
   categories = Object.values(SuggestionCategory);
+  SuggestionCategory = SuggestionCategory; // Expose enum for template
 
   constructor(
     private fb: FormBuilder,
@@ -273,7 +286,9 @@ export class SuggestionFormComponent implements OnInit {
       category: [SuggestionCategory.ACTIVITE, Validators.required],
       price: [null],
       description: [''],
-      durationHours: [2, [Validators.min(0.5), Validators.max(8)]]
+      durationHours: [2, [Validators.min(0.5), Validators.max(8)]],
+      latitude: [null],
+      longitude: [null]
     });
   }
 
@@ -289,6 +304,22 @@ export class SuggestionFormComponent implements OnInit {
           this.loadSuggestion(this.suggestionId);
         }
       });
+
+    // Monitor category changes
+    this.suggestionForm.get('category')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(cat => {
+        const durationControl = this.suggestionForm.get('durationHours');
+        if (cat === SuggestionCategory.HEBERGEMENT) {
+          durationControl?.setValue(0);
+          durationControl?.disable();
+        } else {
+          durationControl?.enable();
+          if (durationControl?.value === 0) {
+            durationControl?.setValue(2);
+          }
+        }
+      });
   }
 
   loadSuggestion(id: number) {
@@ -300,7 +331,9 @@ export class SuggestionFormComponent implements OnInit {
           location: data.location,
           category: data.category,
           price: data.price,
-          description: data.description
+          description: data.description,
+          latitude: data.latitude,
+          longitude: data.longitude
         });
         this.imagePreview = data.photoUrl;
       });

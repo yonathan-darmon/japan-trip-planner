@@ -36,7 +36,7 @@ export class GeocodingService {
     /**
      * Try Photon API first (more reliable), fallback to Nominatim
      */
-    async getCoordinates(address: string): Promise<{ lat: number; lng: number } | null> {
+    async getCoordinates(address: string, countryContext?: string): Promise<{ lat: number; lng: number } | null> {
         if (!address || address.trim().length === 0) {
             return null;
         }
@@ -44,24 +44,25 @@ export class GeocodingService {
         await this.respectRateLimit();
 
         // Try Photon first
-        const photonResult = await this.tryPhoton(address);
+        const photonResult = await this.tryPhoton(address, countryContext);
         if (photonResult) return photonResult;
 
         // Fallback to Nominatim
-        const nominatimResult = await this.tryNominatim(address);
+        const nominatimResult = await this.tryNominatim(address, countryContext);
         return nominatimResult;
     }
 
     /**
      * Try Photon geocoding API (Komoot)
      */
-    private async tryPhoton(address: string): Promise<{ lat: number; lng: number } | null> {
+    private async tryPhoton(address: string, countryContext?: string): Promise<{ lat: number; lng: number } | null> {
+        const query = countryContext ? `${address}, ${countryContext}` : address;
         try {
-            this.logger.debug(`🔍 [Photon] Geocoding: "${address}"`);
+            this.logger.debug(`🔍 [Photon] Geocoding: "${query}"`);
 
             const response = await axios.get(this.photonUrl, {
                 params: {
-                    q: address,
+                    q: query,
                     limit: 1,
                     lang: 'en',
                 },
@@ -75,7 +76,7 @@ export class GeocodingService {
                 return { lat, lng };
             }
 
-            this.logger.warn(`⚠️ [Photon] No results for: "${address}"`);
+            this.logger.warn(`⚠️ [Photon] No results for: "${query}"`);
             return null;
         } catch (error) {
             this.logger.error(`❌ [Photon] Error: ${error.message}`);
@@ -86,17 +87,26 @@ export class GeocodingService {
     /**
      * Try Nominatim geocoding API (OpenStreetMap)
      */
-    private async tryNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
+    private async tryNominatim(address: string, countryContext?: string): Promise<{ lat: number; lng: number } | null> {
+        const query = countryContext ? `${address}, ${countryContext}` : address;
         try {
-            this.logger.debug(`🔍 [Nominatim] Geocoding: "${address}"`);
+            this.logger.debug(`🔍 [Nominatim] Geocoding: "${query}"`);
+
+            const params: any = {
+                q: query,
+                format: 'json',
+                limit: 1,
+                addressdetails: 1,
+            };
+
+            // If context is strictly "Japan", we can add countrycodes for optimization, 
+            // but for generic support, appending name to query is safer unless we map codes.
+            if (countryContext?.toLowerCase() === 'japan' || countryContext?.toLowerCase() === 'japon') {
+                params.countrycodes = 'jp';
+            }
 
             const response = await axios.get(this.nominatimUrl, {
-                params: {
-                    q: address,
-                    format: 'json',
-                    limit: 1,
-                    addressdetails: 1,
-                },
+                params,
                 headers: {
                     'User-Agent': 'JapanTripPlanner/1.0',
                     'Accept-Language': 'en',
@@ -115,11 +125,11 @@ export class GeocodingService {
                 };
             }
 
-            this.logger.warn(`⚠️ [Nominatim] No results for: "${address}"`);
+            this.logger.warn(`⚠️ [Nominatim] No results for: "${query}"`);
             return null;
         } catch (error) {
             if (error.code === 'ECONNABORTED') {
-                this.logger.error(`❌ [Nominatim] Timeout for: "${address}"`);
+                this.logger.error(`❌ [Nominatim] Timeout for: "${query}"`);
             } else if (error.response) {
                 this.logger.error(`❌ [Nominatim] API error (${error.response.status}): ${error.response.statusText}`);
             } else {
@@ -134,10 +144,11 @@ export class GeocodingService {
      */
     async getCoordinatesWithRetry(
         address: string,
+        countryContext?: string,
         maxRetries: number = 2,
     ): Promise<{ lat: number; lng: number } | null> {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            const result = await this.getCoordinates(address);
+            const result = await this.getCoordinates(address, countryContext);
 
             if (result) {
                 if (attempt > 0) {

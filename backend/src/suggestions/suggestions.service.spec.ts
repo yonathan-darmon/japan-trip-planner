@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SuggestionsService } from './suggestions.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Suggestion } from './entities/suggestion.entity';
+import { Country } from '../countries/entities/country.entity';
 import { S3Service } from './s3.service';
 import { GeocodingService } from './geocoding.service';
 import { SyncGateway } from '../sync/sync.gateway';
@@ -39,6 +40,10 @@ describe('SuggestionsService', () => {
     findOne: jest.fn(),
   };
 
+  const mockCountriesRepository = {
+    findOneBy: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -66,6 +71,10 @@ describe('SuggestionsService', () => {
         {
           provide: GroupsService,
           useValue: mockGroupsService,
+        },
+        {
+          provide: getRepositoryToken(Country),
+          useValue: mockCountriesRepository,
         },
       ],
     }).compile();
