@@ -383,8 +383,17 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
           price: data.price,
           description: data.description,
           latitude: data.latitude,
-          longitude: data.longitude
-        });
+          longitude: data.longitude,
+          durationHours: data.durationHours
+        }, { emitEvent: false });
+
+        // Handle category logic manually since we suppressed events
+        const durationControl = this.suggestionForm.get('durationHours');
+        if (data.category === SuggestionCategory.HEBERGEMENT) {
+          durationControl?.disable({ emitEvent: false });
+        } else {
+          durationControl?.enable({ emitEvent: false });
+        }
 
         // Update Map Reference
         if (data.latitude && data.longitude) {

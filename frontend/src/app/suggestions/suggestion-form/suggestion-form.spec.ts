@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SuggestionFormComponent } from './suggestion-form.ts';
+import { SuggestionFormComponent } from './suggestion-form';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
@@ -68,5 +68,27 @@ describe('SuggestionFormComponent', () => {
 
         expect(durationControl?.enabled).toBeTruthy();
         expect(durationControl?.value).toBe(2); // Default reset
+    });
+
+    it('should correctly load durationHours when loading an existing suggestion', () => {
+        const mockSuggestion = {
+            id: 1,
+            name: 'Temple of Time',
+            location: 'Kyoto',
+            category: SuggestionCategory.ACTIVITE,
+            price: 15,
+            description: 'A great place',
+            latitude: 35.0,
+            longitude: 135.0,
+            durationHours: 5.5,
+            photoUrl: 'http://example.com/photo.jpg'
+        };
+
+        mockSuggestionsService.getOne.mockReturnValue(of(mockSuggestion));
+
+        component.loadSuggestion(1);
+        fixture.detectChanges();
+
+        expect(component.suggestionForm.get('durationHours')?.value).toBe(5.5);
     });
 });

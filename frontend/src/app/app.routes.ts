@@ -83,6 +83,11 @@ export const routes: Routes = [
                 canActivate: [superAdminGuard]
             },
             {
+                path: 'users',
+                loadComponent: () => import('./users/user-list/user-list').then(m => m.UserListComponent),
+                canActivate: [superAdminGuard]
+            },
+            {
                 path: 'users/new',
                 loadComponent: () => import('./users/user-form/user-form').then(m => m.UserFormComponent),
                 canActivate: [superAdminGuard]
