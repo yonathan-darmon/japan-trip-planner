@@ -133,6 +133,19 @@ export class SuggestionsService {
             }
         }
 
+        // Fallback: If no country linked via group, use the first available country (default to Japan context)
+        if (!suggestion.countryId) {
+            try {
+                const defaultCountry = await this.countriesRepository.findOne({ where: {} });
+                if (defaultCountry) {
+                    suggestion.countryId = defaultCountry.id;
+                    console.log(`🌍 Linked global suggestion to default country: ${defaultCountry.name}`);
+                }
+            } catch (err) {
+                console.warn('Failed to find a default country for suggestion linkage');
+            }
+        }
+
         // Upload image if present
         if (file) {
             suggestion.photoUrl = await this.s3Service.uploadFile(file);

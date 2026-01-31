@@ -205,12 +205,21 @@ export class DashboardComponent implements OnInit {
         next: (config) => {
           this.config = config;
           const countryId = config?.group?.country?.id;
-          const groupId = localStorage.getItem('currentGroupId');
+
+          // Restore group context in localStorage if it was lost
+          let groupId = localStorage.getItem('currentGroupId');
+          if (!groupId && config?.group?.id) {
+            groupId = String(config.group.id);
+            localStorage.setItem('currentGroupId', groupId);
+            console.log('🔄 Restored group context from config:', groupId);
+          }
+
+          const activeGroupId = groupId ? Number(groupId) : undefined;
 
           // Fix: Pass object with named properties
           this.suggestionsService.getAll({
             countryId: countryId,
-            groupId: groupId ? +groupId : undefined
+            groupId: activeGroupId
           })
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
@@ -219,7 +228,7 @@ export class DashboardComponent implements OnInit {
             });
 
           // Load itineraries with group context
-          this.itineraryService.getAll(groupId ? +groupId : undefined)
+          this.itineraryService.getAll(activeGroupId)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: (itineraries) => {

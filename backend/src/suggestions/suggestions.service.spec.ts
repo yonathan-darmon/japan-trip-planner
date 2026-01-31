@@ -42,6 +42,7 @@ describe('SuggestionsService', () => {
 
   const mockCountriesRepository = {
     findOneBy: jest.fn(),
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -119,6 +120,23 @@ describe('SuggestionsService', () => {
       const result = await service.create(dto, user);
 
       expect(result.isGlobal).toBe(true);
+    });
+
+    it('should link to a default country if no groupId is provided', async () => {
+      const dto = { name: 'Test', location: 'Tokyo' } as any;
+      const user = { id: 1, role: 'user' } as any;
+      const mockCountry = { id: 1, name: 'Japan' };
+
+      mockRepository.create.mockImplementation(dto => ({ ...dto, createdBy: user, createdById: user.id }));
+      mockRepository.save.mockImplementation(s => Promise.resolve({ ...s, id: 1 }));
+      mockCountriesRepository.findOne.mockResolvedValue(mockCountry);
+      mockGeocodingService.getCoordinatesWithRetry.mockResolvedValue(null);
+      mockGroupsService.findOne.mockResolvedValue(null);
+
+      const result = await service.create(dto, user);
+
+      expect(result.countryId).toBe(1);
+      expect(mockCountriesRepository.findOne).toHaveBeenCalled();
     });
   });
 
