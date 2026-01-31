@@ -50,4 +50,7 @@ export class GroupsService {
     removeMember(groupId: number, userId: number): Observable<any> {
         return this.http.delete(`${this.apiUrl}/${groupId}/members/${userId}`);
     }
+    update(id: number, data: { countryId?: number }): Observable<Group> {
+        return this.http.patch<Group>(`${this.apiUrl}/${id}`, data);
+    }
 }

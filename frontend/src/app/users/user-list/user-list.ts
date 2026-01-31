@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { UsersService } from '../../core/services/users';
 import { User, UserRole } from '../../core/services/auth';
-import { GroupRole } from '../../core/services/groups.service';
+import { GroupRole, GroupsService } from '../../core/services/groups.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -18,7 +18,10 @@ export class UserListComponent implements OnInit {
   loading = false;
   error = '';
 
-  constructor(private usersService: UsersService) { }
+  constructor(
+    private usersService: UsersService,
+    private groupsService: GroupsService
+  ) { }
 
   ngOnInit() {
     this.loadUsers();
@@ -167,5 +170,28 @@ export class UserListComponent implements OnInit {
 
   getRoleBadgeClass(role: UserRole | string): string {
     return role === UserRole.SUPER_ADMIN || role === 'super_admin' ? 'badge-primary' : 'badge-secondary';
+  }
+
+  setGroupCountry(groupId: number) {
+    const countryIdStr = prompt('Entrez l\'ID du pays pour ce groupe (ex: 1 pour Japon) :', '1');
+    if (!countryIdStr) return;
+    const countryId = parseInt(countryIdStr, 10);
+    if (isNaN(countryId)) {
+      alert('ID invalide');
+      return;
+    }
+
+    this.groupsService.update(groupId, { countryId }).subscribe({
+      next: () => {
+        alert('Pays du groupe mis à jour !');
+        if (this.selectedUser) {
+          this.loadUserGroups(this.selectedUser.id);
+        }
+      },
+      error: (err) => {
+        console.error(err);
+        alert('Erreur lors de la mise à jour');
+      }
+    });
   }
 }

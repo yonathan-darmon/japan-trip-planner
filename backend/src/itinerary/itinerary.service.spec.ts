@@ -91,23 +91,23 @@ describe('ItineraryService', () => {
             const result = await service.findAll(userId);
 
             expect(mockItineraryRepository.find).toHaveBeenCalledWith({
-                where: { createdById: userId },
+                where: [{ createdById: userId }],
                 order: { generatedAt: 'DESC' },
                 relations: ['createdBy']
             });
             expect(result).toEqual(expectedResult);
         });
 
-        it('should return itineraries filtered by groupId when groupId is provided', async () => {
+        it('should return itineraries filtered by userId OR groupId when groupId is provided', async () => {
             const userId = 1;
             const groupId = 5;
-            const expectedResult = [{ id: 2, groupId: 5 }] as Itinerary[];
+            const expectedResult = [{ id: 2, groupId: 5 }, { id: 1, createdById: 1 }] as unknown as Itinerary[];
             mockItineraryRepository.find.mockResolvedValue(expectedResult);
 
             const result = await service.findAll(userId, groupId);
 
             expect(mockItineraryRepository.find).toHaveBeenCalledWith({
-                where: { groupId: groupId },
+                where: [{ createdById: userId }, { groupId: groupId }],
                 order: { generatedAt: 'DESC' },
                 relations: ['createdBy']
             });

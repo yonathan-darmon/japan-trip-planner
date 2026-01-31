@@ -348,12 +348,12 @@ export class ItineraryService {
     }
 
     async findAll(userId: number, groupId?: number): Promise<Itinerary[]> {
-        const where: any = {};
+        const where: any[] = [
+            { createdById: userId } // Always include own itineraries
+        ];
 
         if (groupId) {
-            where.groupId = groupId;
-        } else {
-            where.createdById = userId;
+            where.push({ groupId: groupId }); // Include group itineraries
         }
 
         return this.itineraryRepository.find({

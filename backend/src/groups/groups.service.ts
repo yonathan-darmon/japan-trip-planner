@@ -67,4 +67,14 @@ export class GroupsService {
     async removeMember(groupId: number, userId: number) {
         return this.groupMembersRepository.delete({ groupId, userId });
     }
+    async update(id: number, data: { countryId?: number }) {
+        const group = await this.groupsRepository.findOneBy({ id });
+        if (!group) throw new NotFoundException('Group not found');
+
+        if (data.countryId) {
+            group.country = <any>{ id: data.countryId }; // Simple relation set
+        }
+
+        return this.groupsRepository.save(group);
+    }
 }

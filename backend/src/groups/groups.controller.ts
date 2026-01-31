@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, ParseIntPipe, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, UseGuards, Request, ParseIntPipe, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { GroupsService } from './groups.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -49,5 +49,14 @@ export class GroupsController {
     ) {
         // Check permissions
         return this.groupsService.removeMember(groupId, userId);
+    }
+    @Patch(':id')
+    async update(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { countryId?: number },
+        @Request() req: any
+    ) {
+        // TODO: Check if user is admin of group
+        return this.groupsService.update(id, body);
     }
 }
