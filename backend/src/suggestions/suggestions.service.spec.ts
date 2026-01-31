@@ -106,4 +106,41 @@ describe('SuggestionsService', () => {
       expect(mockRepository.save).toHaveBeenCalledWith(expect.objectContaining({ price: 0 }));
     });
   });
+  describe('create', () => {
+    it('should set isGlobal to true by default', async () => {
+      const dto = { name: 'Test', location: 'Tokyo' } as any;
+      const user = { id: 1, role: 'user' } as any;
+
+      mockRepository.create.mockImplementation(dto => ({ ...dto, createdBy: user, createdById: user.id, isGlobal: true }));
+      mockRepository.save.mockImplementation(s => Promise.resolve({ ...s, id: 1 }));
+      mockGeocodingService.getCoordinatesWithRetry.mockResolvedValue(null);
+      mockGroupsService.findOne.mockResolvedValue(null);
+
+      const result = await service.create(dto, user);
+
+      expect(result.isGlobal).toBe(true);
+    });
+  });
+
+  describe('remove', () => {
+    it('should allow Super Admin to delete others suggestion', async () => {
+      const suggestion = { id: 1, createdById: 99 } as any; // Created by other
+      const admin = { id: 2, role: 'super_admin' } as any;
+
+      mockRepository.findOne.mockResolvedValue(suggestion);
+      mockRepository.softRemove.mockResolvedValue(suggestion);
+
+      await expect(service.remove(1, admin)).resolves.not.toThrow();
+      expect(mockRepository.softRemove).toHaveBeenCalled();
+    });
+
+    it('should deny non-owner/non-admin', async () => {
+      const suggestion = { id: 1, createdById: 99 } as any;
+      const user = { id: 2, role: 'user' } as any;
+
+      mockRepository.findOne.mockResolvedValue(suggestion);
+
+      await expect(service.remove(1, user)).rejects.toThrow('Vous ne pouvez supprimer que vos propres suggestions');
+    });
+  });
 });

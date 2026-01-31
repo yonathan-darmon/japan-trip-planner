@@ -1,8 +1,9 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
-import { CommonModule, NgIf, NgFor } from '@angular/common';
+import { Component, OnInit, DestroyRef, inject, Inject, PLATFORM_ID, AfterViewInit } from '@angular/core';
+import { CommonModule, NgIf, NgFor, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import * as L from 'leaflet';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
 
 @Component({
@@ -68,7 +69,17 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
               <label class="form-label" for="longitude">Longitude (Optionnel)</label>
               <input id="longitude" type="number" class="form-input" formControlName="longitude" placeholder="Ex: 139.7006" step="any">
             </div>
+            </div>
           </div>
+          
+          <div class="form-group">
+            <label class="form-label">Position sur la carte</label>
+            <div class="map-container">
+              <div id="map"></div>
+            </div>
+            <small class="hint">Vous pouvez déplacer le marqueur pour ajuster la position.</small>
+          </div>
+
           <small class="hint" style="display:block; margin-top:-1rem; margin-bottom:1rem;">Remplissez ces champs uniquement si la localisation automatique est incorrecte.</small>
 
           <div class="form-group">
@@ -262,9 +273,22 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
         gap: 0;
       }
     }
+    .map-container {
+      height: 300px;
+      width: 100%;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 1rem;
+      border: 1px solid var(--color-border);
+      z-index: 0;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
   `]
 })
-export class SuggestionFormComponent implements OnInit {
+export class SuggestionFormComponent implements OnInit, AfterViewInit {
   suggestionForm: FormGroup;
   isEditing = false;
   suggestionId: number | null = null;
@@ -274,11 +298,16 @@ export class SuggestionFormComponent implements OnInit {
   categories = Object.values(SuggestionCategory);
   SuggestionCategory = SuggestionCategory; // Expose enum for template
 
+  private map: L.Map | undefined;
+  private marker: L.Marker | undefined;
+  private urlGroupId: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private suggestionsService: SuggestionsService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.suggestionForm = this.fb.group({
       name: ['', Validators.required],
@@ -305,6 +334,15 @@ export class SuggestionFormComponent implements OnInit {
         }
       });
 
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        if (params['groupId']) {
+          this.urlGroupId = params['groupId'];
+          console.log('🔗 Group Context:', this.urlGroupId);
+        }
+      });
+
     // Monitor category changes
     this.suggestionForm.get('category')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -318,6 +356,19 @@ export class SuggestionFormComponent implements OnInit {
           if (durationControl?.value === 0) {
             durationControl?.setValue(2);
           }
+        }
+      });
+
+    // Monitor coordinates changes (Manual Input)
+    this.suggestionForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(val => {
+        if (val.latitude && val.longitude && this.map) {
+          // Check if marker is already there to avoid jitter?
+          // updateMarker handles marker creation/move
+          this.updateMarker(val.latitude, val.longitude, false);
+          // Optional: Pan to it
+          // this.map.panTo([val.latitude, val.longitude]);
         }
       });
   }
@@ -335,6 +386,17 @@ export class SuggestionFormComponent implements OnInit {
           latitude: data.latitude,
           longitude: data.longitude
         });
+
+        // Update Map Reference
+        if (data.latitude && data.longitude) {
+          // Even if map not ready, initMap will pick up from form values
+          // But if map IS ready (e.g. reused component?), update it
+          if (this.map) {
+            this.updateMarker(data.latitude, data.longitude, false);
+            this.map.setView([data.latitude, data.longitude], 15);
+          }
+        }
+
         this.imagePreview = data.photoUrl;
       });
   }
@@ -365,7 +427,8 @@ export class SuggestionFormComponent implements OnInit {
         }
       });
 
-      const currentGroupId = localStorage.getItem('currentGroupId');
+      // Prioritize URL groupId (more reliable), then LocalStorage
+      const currentGroupId = this.urlGroupId || localStorage.getItem('currentGroupId');
       if (currentGroupId && !this.isEditing) {
         formData.append('groupId', currentGroupId);
       }
@@ -390,6 +453,55 @@ export class SuggestionFormComponent implements OnInit {
       });
     } else {
       this.suggestionForm.markAllAsTouched();
+    }
+  }
+
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => this.initMap(), 100);
+    }
+  }
+
+  private initMap(): void {
+    if (this.map) return;
+
+    const latVal = this.suggestionForm.get('latitude')?.value;
+    const lngVal = this.suggestionForm.get('longitude')?.value;
+    const hasLocation = latVal && lngVal;
+
+    const centerLat = hasLocation ? latVal : 35.6762; // Tokyo default
+    const centerLng = hasLocation ? lngVal : 139.6503;
+
+    this.map = L.map('map').setView([centerLat, centerLng], hasLocation ? 15 : 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(this.map);
+
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      this.updateMarker(e.latlng.lat, e.latlng.lng, true);
+    });
+
+    if (hasLocation) {
+      this.updateMarker(latVal, lngVal, false);
+    }
+  }
+
+  private updateMarker(lat: number, lng: number, updateForm: boolean) {
+    if (!this.map) return;
+
+    if (this.marker) {
+      this.marker.setLatLng([lat, lng]);
+    } else {
+      this.marker = L.marker([lat, lng], { draggable: true }).addTo(this.map);
+      this.marker.on('dragend', () => {
+        const pos = this.marker!.getLatLng();
+        this.suggestionForm.patchValue({ latitude: pos.lat, longitude: pos.lng }, { emitEvent: false });
+      });
+    }
+
+    if (updateForm) {
+      this.suggestionForm.patchValue({ latitude: lat, longitude: lng }, { emitEvent: false });
     }
   }
 

@@ -19,7 +19,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
         <h1>Suggestions de Visite</h1>
         <p>Découvrez les lieux proposés par le groupe</p>
       </div>
-      <a routerLink="/suggestions/new" class="btn btn-primary">
+      <a [routerLink]="['/suggestions/new']" [queryParams]="{ groupId: getCurrentGroupId() }" class="btn btn-primary">
         + Ajouter un lieu
       </a>
     </div>
@@ -663,5 +663,10 @@ export class SuggestionListComponent implements OnInit {
     if (hours === 1) return '🕐 1h';
     if (hours % 1 === 0) return `🕐 ${hours}h`;
     return `🕐 ${hours}h`;
+  }
+
+  getCurrentGroupId(): number | null {
+    const gid = localStorage.getItem('currentGroupId');
+    return gid ? +gid : null;
   }
 }

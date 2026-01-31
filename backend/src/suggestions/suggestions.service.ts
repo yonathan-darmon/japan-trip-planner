@@ -117,7 +117,7 @@ export class SuggestionsService {
             ...createSuggestionDto,
             createdBy: user,
             createdById: user.id,
-            isGlobal: createSuggestionDto.isGlobal ?? (createSuggestionDto.groupId ? false : (user.role === UserRole.SUPER_ADMIN))
+            isGlobal: true // Force public visibility as per requirement "always public"
         });
 
         // If groupId is provided, fetch total country context
