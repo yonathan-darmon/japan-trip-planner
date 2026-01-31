@@ -218,7 +218,8 @@ export class ItineraryListComponent implements OnInit {
   }
 
   loadItineraries(): void {
-    this.itineraryService.getAll().subscribe({
+    const groupId = localStorage.getItem('currentGroupId');
+    this.itineraryService.getAll(groupId ? +groupId : undefined).subscribe({
       next: (itineraries) => {
         this.itineraries = itineraries;
         this.loading = false;

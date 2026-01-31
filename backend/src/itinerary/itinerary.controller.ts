@@ -9,6 +9,7 @@ import {
     ParseIntPipe,
     UseGuards,
     Request,
+    Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ItineraryService } from './itinerary.service';
@@ -26,9 +27,9 @@ export class ItineraryController {
     }
 
     @Get()
-    async findAll(@Request() req) {
-        console.log('🔍 [GET /itinerary] Called by user:', req.user.id);
-        return this.itineraryService.findAll(req.user.id);
+    async findAll(@Request() req, @Query('groupId') groupId?: string) {
+        console.log('🔍 [GET /itinerary] Called by user:', req.user.id, 'Group:', groupId);
+        return this.itineraryService.findAll(req.user.id, groupId ? +groupId : undefined);
     }
 
     @Get('all')

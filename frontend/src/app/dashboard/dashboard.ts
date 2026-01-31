@@ -204,29 +204,35 @@ export class DashboardComponent implements OnInit {
       .subscribe({
         next: (config) => {
           this.config = config;
-          // Load suggestions filtered by country
           const countryId = config?.group?.country?.id;
-          this.suggestionsService.getAll(countryId)
-            .pipe(takeUntilDestroyed(this.destroyRef)) // Note: nesting pipe logic might be tricky with destroyRef if repeated? Actually separate subscription is fine.
+          const groupId = localStorage.getItem('currentGroupId');
+
+          // Fix: Pass object with named properties
+          this.suggestionsService.getAll({
+            countryId: countryId,
+            groupId: groupId ? +groupId : undefined
+          })
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: (suggestions) => this.suggestionCount = suggestions.length,
               error: (err) => console.error('Error loading suggestions:', err)
+            });
+
+          // Load itineraries with group context
+          this.itineraryService.getAll(groupId ? +groupId : undefined)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (itineraries) => {
+                console.log('Loaded itineraries:', itineraries);
+                this.itineraries = itineraries;
+              },
+              error: (err) => console.error('Error loading itineraries:', err)
             });
         },
         error: (err) => console.error('Error loading config:', err)
       });
 
-    this.itineraryService.getAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (itineraries) => {
-          console.log('Loaded itineraries:', itineraries);
-          this.itineraries = itineraries;
-        },
-        error: (err) => console.error('Error loading itineraries:', err)
-      });
-
-    this.participantCount = 1;
+    this.participantCount = 1; // Todo: fetch real count from group
   }
 
   checkChangelog() {

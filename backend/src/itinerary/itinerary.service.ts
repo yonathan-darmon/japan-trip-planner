@@ -347,10 +347,19 @@ export class ItineraryService {
         return this.itineraryRepository.save(itinerary);
     }
 
-    async findAll(userId: number): Promise<Itinerary[]> {
+    async findAll(userId: number, groupId?: number): Promise<Itinerary[]> {
+        const where: any = {};
+
+        if (groupId) {
+            where.groupId = groupId;
+        } else {
+            where.createdById = userId;
+        }
+
         return this.itineraryRepository.find({
-            where: { createdById: userId },
+            where,
             order: { generatedAt: 'DESC' },
+            relations: ['createdBy']
         });
     }
 

@@ -57,8 +57,11 @@ export class ItineraryService {
         return this.http.post<Itinerary>(`${this.apiUrl}/generate`, payload);
     }
 
-    getAll(): Observable<Itinerary[]> {
-        return this.http.get<Itinerary[]>(`${this.apiUrl}/all`);
+    getAll(groupId?: number): Observable<Itinerary[]> {
+        const params: any = {};
+        if (groupId) params.groupId = groupId;
+        // Use root endpoint which supports filtering, instead of /all which is public only
+        return this.http.get<Itinerary[]>(`${this.apiUrl}`, { params });
     }
 
     getOne(id: number): Observable<Itinerary> {
