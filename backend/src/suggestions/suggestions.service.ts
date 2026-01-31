@@ -120,16 +120,33 @@ export class SuggestionsService {
             isGlobal: true // Force public visibility as per requirement "always public"
         });
 
-        // If groupId is provided, fetch total country context
-        if (createSuggestionDto.groupId) {
+        // Ensure groupId is a number
+        let effectiveGroupId = createSuggestionDto.groupId ? +createSuggestionDto.groupId : null;
+
+        // Auto-link: If no groupId provided, check if user has a unique group they belong to
+        if (!effectiveGroupId) {
             try {
-                const group = await this.groupsService.findOne(createSuggestionDto.groupId);
+                const userGroups = await this.groupsService.findByUser(user.id);
+                if (userGroups && userGroups.length === 1) {
+                    effectiveGroupId = userGroups[0].id;
+                    console.log(`🤖 Auto-linked suggestion to user's only group: ${effectiveGroupId}`);
+                }
+            } catch (err) {
+                console.warn('Failed to auto-fetch groups for suggestion linkage:', err.message);
+            }
+        }
+
+        // Apply group and fetch country context
+        if (effectiveGroupId) {
+            suggestion.groupId = effectiveGroupId;
+            try {
+                const group = await this.groupsService.findOne(effectiveGroupId);
                 if (group && group.countryId) {
                     suggestion.countryId = group.countryId;
                     console.log(`🔗 Linked suggestion to country ${group.countryId} from group ${group.id}`);
                 }
             } catch (err) {
-                console.warn(`Failed to fetch group ${createSuggestionDto.groupId} for suggestion context:`, err.message);
+                console.warn(`Failed to fetch group ${effectiveGroupId} for suggestion context:`, err.message);
             }
         }
 

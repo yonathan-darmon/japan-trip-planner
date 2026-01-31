@@ -5,6 +5,7 @@ import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as L from 'leaflet';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
+import { TripConfigService } from '../../core/services/trip-config';
 
 @Component({
   selector: 'app-suggestion-form',
@@ -19,6 +20,15 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
         </div>
 
         <form [formGroup]="suggestionForm" (ngSubmit)="onSubmit()">
+          <!-- Context Info -->
+          <div class="context-banner glass" *ngIf="contextGroup">
+            <span class="context-label">📍 Destination :</span>
+            <span class="context-value">
+              {{ contextGroup.country?.name || 'Japon' }} — <strong>{{ contextGroup.name }}</strong>
+            </span>
+            <small class="context-hint">(Lié automatiquement)</small>
+          </div>
+
           <!-- Photo Upload -->
           <div class="form-group upload-section">
             <div 
@@ -285,6 +295,37 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
       height: 100%;
       width: 100%;
     }
+    
+    .context-banner {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 1.5rem;
+      border-radius: var(--radius-md);
+      background: rgba(99, 179, 237, 0.1);
+      border: 1px solid rgba(99, 179, 237, 0.3);
+      color: var(--color-text-primary);
+      animation: slideDown 0.4s ease-out;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .context-label {
+      color: var(--color-primary-light);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .context-value {
+      font-size: 1rem;
+    }
+    .context-hint {
+      margin-left: auto;
+      color: var(--color-text-tertiary);
+      font-style: italic;
+      font-size: 0.8rem;
+    }
   `]
 })
 export class SuggestionFormComponent implements OnInit, AfterViewInit {
@@ -296,6 +337,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
   imagePreview: string | null = null;
   categories = Object.values(SuggestionCategory);
   SuggestionCategory = SuggestionCategory; // Expose enum for template
+  contextGroup: any = null;
 
   private map: L.Map | undefined;
   private marker: L.Marker | undefined;
@@ -304,6 +346,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
   constructor(
     private fb: FormBuilder,
     private suggestionsService: SuggestionsService,
+    private tripConfigService: TripConfigService,
     private router: Router,
     private route: ActivatedRoute,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -339,6 +382,11 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
         if (params['groupId']) {
           this.urlGroupId = params['groupId'];
           console.log('🔗 Group Context:', this.urlGroupId);
+        }
+
+        // Load context details if not editing
+        if (!this.isEditing) {
+          this.loadContext();
         }
       });
 
@@ -515,5 +563,16 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
 
   setDuration(hours: number) {
     this.suggestionForm.patchValue({ durationHours: hours });
+  }
+
+  private loadContext() {
+    this.tripConfigService.getConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (config) => {
+          this.contextGroup = config.group;
+        },
+        error: (err) => console.warn('Could not load trip context', err)
+      });
   }
 }

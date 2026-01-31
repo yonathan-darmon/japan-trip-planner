@@ -38,6 +38,7 @@ describe('SuggestionsService', () => {
 
   const mockGroupsService = {
     findOne: jest.fn(),
+    findByUser: jest.fn(),
   };
 
   const mockCountriesRepository = {
@@ -137,6 +138,25 @@ describe('SuggestionsService', () => {
 
       expect(result.countryId).toBe(1);
       expect(mockCountriesRepository.findOne).toHaveBeenCalled();
+    });
+
+    it('should auto-link to user\'s only group if groupId is missing', async () => {
+      const dto = { name: 'Test', location: 'Tokyo' } as any;
+      const user = { id: 1, role: 'user' } as any;
+      const mockGroups = [{ id: 10, name: 'Japan Trip', role: 'admin' }];
+      const mockGroup = { id: 10, name: 'Japan Trip', countryId: 1 };
+
+      mockRepository.create.mockImplementation(dto => ({ ...dto, createdBy: user, createdById: user.id }));
+      mockRepository.save.mockImplementation(s => Promise.resolve({ ...s, id: 1 }));
+      mockGroupsService.findByUser.mockResolvedValue(mockGroups);
+      mockGroupsService.findOne.mockResolvedValue(mockGroup);
+      mockGeocodingService.getCoordinatesWithRetry.mockResolvedValue(null);
+
+      const result = await service.create(dto, user);
+
+      expect(result.groupId).toBe(10);
+      expect(result.countryId).toBe(1);
+      expect(mockGroupsService.findByUser).toHaveBeenCalledWith(user.id);
     });
   });
 
