@@ -78,9 +78,9 @@ export class SuggestionsService {
             suggestion.location = updateSuggestionDto.location;
         }
         if (updateSuggestionDto.description !== undefined) suggestion.description = updateSuggestionDto.description;
-        if (updateSuggestionDto.price !== undefined) suggestion.price = updateSuggestionDto.price ? +updateSuggestionDto.price : null;
+        if (updateSuggestionDto.price !== undefined) suggestion.price = (updateSuggestionDto.price !== null && (updateSuggestionDto.price as any) !== '') ? +updateSuggestionDto.price : null;
         if (updateSuggestionDto.category !== undefined) suggestion.category = updateSuggestionDto.category;
-        if (updateSuggestionDto.durationHours !== undefined) suggestion.durationHours = updateSuggestionDto.durationHours ? +updateSuggestionDto.durationHours : 2;
+        if (updateSuggestionDto.durationHours !== undefined) suggestion.durationHours = (updateSuggestionDto.durationHours !== null && (updateSuggestionDto.durationHours as any) !== '') ? +updateSuggestionDto.durationHours : 2;
         if (updateSuggestionDto.countryId !== undefined) suggestion.countryId = updateSuggestionDto.countryId ? +updateSuggestionDto.countryId : null;
 
         if (updateSuggestionDto.isGlobal !== undefined) {

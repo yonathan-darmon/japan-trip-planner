@@ -85,4 +85,25 @@ describe('SuggestionsService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  describe('update', () => {
+    it('should allow setting price to 0', async () => {
+      const suggestion = { id: 1, createdById: 1, price: 100 } as any;
+      const user = { id: 1, role: 'user' } as any;
+
+      // Mock findOne for the initial fetch
+      mockRepository.findOne.mockReturnValue(Promise.resolve(suggestion));
+
+      mockRepository.save.mockImplementation(s => Promise.resolve(s));
+      mockGroupsService.findOne.mockResolvedValue(null);
+
+      // Reset mock calls
+      mockRepository.save.mockClear();
+
+      const result = await service.update(1, { price: 0 }, user);
+
+      expect(result.price).toBe(0);
+      expect(mockRepository.save).toHaveBeenCalledWith(expect.objectContaining({ price: 0 }));
+    });
+  });
 });
