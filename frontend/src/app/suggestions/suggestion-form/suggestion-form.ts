@@ -70,7 +70,6 @@ import { SuggestionsService, SuggestionCategory } from '../../core/services/sugg
               <input id="longitude" type="number" class="form-input" formControlName="longitude" placeholder="Ex: 139.7006" step="any">
             </div>
             </div>
-          </div>
           
           <div class="form-group">
             <label class="form-label">Position sur la carte</label>
