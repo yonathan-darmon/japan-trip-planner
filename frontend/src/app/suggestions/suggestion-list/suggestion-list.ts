@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth';
 import { PreferencesService, UserPreference } from '../../core/services/preferences';
 import { PreferenceSelectorComponent } from '../preference-selector/preference-selector';
 import { WebSocketService } from '../../core/services/websocket.service';
+import { CurrencyService } from '../../core/services/currency.service';
 
 @Component({
   selector: 'app-suggestion-list',
@@ -111,6 +112,9 @@ import { WebSocketService } from '../../core/services/websocket.service';
             
             <div class="price-tag" *ngIf="suggestion.price">
               {{ suggestion.price }} {{ suggestion.country?.currencySymbol || '€' }}
+              <small class="converted-price" *ngIf="getConvertedPrice(suggestion)">
+                ({{ getConvertedPrice(suggestion) }})
+              </small>
             </div>
           </div>
           
@@ -430,6 +434,11 @@ import { WebSocketService } from '../../core/services/websocket.service';
       align-items: center;
       gap: 0.25rem;
     }
+    .converted-price {
+      opacity: 0.8;
+      font-size: 0.9em;
+      margin-left: 0.3rem;
+    }
   `]
 })
 export class SuggestionListComponent implements OnInit {
@@ -498,7 +507,8 @@ export class SuggestionListComponent implements OnInit {
     private suggestionsService: SuggestionsService,
     private preferencesService: PreferencesService,
     private authService: AuthService,
-    private wsService: WebSocketService
+    private wsService: WebSocketService,
+    private currencyService: CurrencyService
   ) {
     this.authService.currentUser$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -605,6 +615,20 @@ export class SuggestionListComponent implements OnInit {
         return { ...s, preferences: newPreferences };
       });
     });
+  }
+
+  // --- Currency Helper ---
+  getConvertedPrice(suggestion: Suggestion): string | null {
+    if (!suggestion.price || !suggestion.country?.currencyCode) return null;
+
+    // Si la devise est déjà l'Euro, pas besoin de conversion
+    if (suggestion.country.currencyCode === 'EUR') return null;
+
+    const converted = this.currencyService.convert(suggestion.price, suggestion.country.currencyCode, 'EUR');
+    if (converted !== null) {
+      return `≈ ${converted.toFixed(2)} €`;
+    }
+    return null;
   }
 
   canEdit(suggestion: Suggestion): boolean {
