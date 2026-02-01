@@ -13,6 +13,7 @@ export interface User {
   username: string;
   role: UserRole | string;
   email?: string;
+  avatarUrl?: string; // URL of the S3 avatar
   lastViewedChangelogAt?: string;
   groups?: any[];
 }

@@ -20,6 +20,21 @@ import { Router } from '@angular/router';
         <!-- PROFILE CARD -->
         <div class="card glass mb-8">
           <div class="p-6">
+            <div class="flex flex-col items-center mb-8">
+              <div class="relative group cursor-pointer" (click)="fileInput.click()">
+                <div class="avatar-container glass rounded-full w-32 h-32 flex items-center justify-center overflow-hidden border-4 border-primary/20 transition-all group-hover:border-primary">
+                   <img *ngIf="currentUser?.avatarUrl" [src]="currentUser?.avatarUrl" alt="Avatar" class="w-full h-full object-cover">
+                   <span *ngIf="!currentUser?.avatarUrl" class="text-4xl">👤</span>
+                   
+                   <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                     <span class="text-white font-bold">Modifier</span>
+                   </div>
+                </div>
+                <input #fileInput type="file" class="hidden" (change)="onAvatarSelected($event)" accept="image/*">
+              </div>
+              <p class="mt-2 text-sm text-text-secondary">Cliquez pour changer votre photo</p>
+            </div>
+
             <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
               <span class="text-primary">📝</span> Informations Générales
             </h3>
@@ -148,6 +163,24 @@ export class UserSettingsComponent implements OnInit {
         this.errorMessage = 'Erreur lors de la mise à jour : ' + (err.error?.message || err.message);
       }
     });
+  }
+
+  onAvatarSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.loading = true;
+      this.usersService.uploadAvatar(file).subscribe({
+        next: (updatedUser) => {
+          this.loading = false;
+          this.authService.updateUser(updatedUser); // Update local state
+          this.currentUser = updatedUser;
+        },
+        error: (err) => {
+          this.loading = false;
+          alert('Erreur upload avatar: ' + (err.error?.message || err.message));
+        }
+      });
+    }
   }
 
   deleteAccount() {

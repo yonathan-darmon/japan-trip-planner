@@ -44,6 +44,12 @@ export class UsersService {
         return this.http.patch<User>(`${this.apiUrl}/me`, data);
     }
 
+    uploadAvatar(file: File): Observable<User> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post<User>(`${this.apiUrl}/me/avatar`, formData);
+    }
+
     getUserGroups(userId: number): Observable<any[]> {
         return this.http.get<any[]>(`${environment.apiUrl}/admin/users/${userId}/groups`);
     }

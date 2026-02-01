@@ -14,6 +14,7 @@ import { CountriesModule } from './countries/countries.module';
 import { GroupsModule } from './groups/groups.module';
 import { ChangelogModule } from './changelog/changelog.module';
 import { AdminModule } from './admin/admin.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -54,7 +55,9 @@ import { AdminModule } from './admin/admin.module';
     CountriesModule,
     GroupsModule,
     ChangelogModule,
+    ChangelogModule,
     AdminModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

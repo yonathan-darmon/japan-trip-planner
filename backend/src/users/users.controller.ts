@@ -9,7 +9,10 @@ import {
     ParseIntPipe,
     Request,
     Patch,
+    UseInterceptors,
+    UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -61,6 +64,12 @@ export class UsersController {
     @Patch('me')
     updateProfile(@Request() req: any, @Body() updateDto: { username?: string; email?: string }) {
         return this.usersService.update(req.user.id, updateDto);
+    }
+
+    @Post('me/avatar')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadAvatar(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
+        return this.usersService.uploadAvatar(req.user.id, file);
     }
 
     @Post('me/changelog-read')

@@ -237,11 +237,18 @@ export class DashboardComponent implements OnInit {
               },
               error: (err) => console.error('Error loading itineraries:', err)
             });
+
+          // Update participant count based on group members
+          if (config?.group && Array.isArray(config.group.members)) {
+            this.participantCount = config.group.members.length;
+          } else {
+            this.participantCount = 1;
+          }
         },
         error: (err) => console.error('Error loading config:', err)
       });
 
-    this.participantCount = 1; // Todo: fetch real count from group
+
   }
 
   checkChangelog() {

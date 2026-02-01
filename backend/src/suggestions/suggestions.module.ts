@@ -4,7 +4,7 @@ import { SuggestionsService } from './suggestions.service';
 import { SuggestionsController } from './suggestions.controller';
 import { Suggestion } from './entities/suggestion.entity';
 import { Country } from '../countries/entities/country.entity';
-import { S3Service } from './s3.service';
+import { StorageModule } from '../storage/storage.module';
 import { GeocodingService } from './geocoding.service';
 import { ItineraryModule } from '../itinerary/itinerary.module';
 import { GroupsModule } from '../groups/groups.module';
@@ -13,10 +13,11 @@ import { GroupsModule } from '../groups/groups.module';
   imports: [
     TypeOrmModule.forFeature([Suggestion, Country]),
     forwardRef(() => ItineraryModule),
-    forwardRef(() => GroupsModule)
+    forwardRef(() => GroupsModule),
+    StorageModule
   ],
   controllers: [SuggestionsController],
-  providers: [SuggestionsService, S3Service, GeocodingService],
+  providers: [SuggestionsService, GeocodingService],
   exports: [SuggestionsService],
 })
 export class SuggestionsModule { }

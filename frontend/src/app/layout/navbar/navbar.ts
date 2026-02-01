@@ -32,6 +32,18 @@ import { AsyncPipe, NgIf } from '@angular/common';
           <a routerLink="/help" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Guide</a>
           
           <ng-container *ngIf="currentUser$ | async as user">
+             <!-- Profile Link with Avatar -->
+            <a routerLink="/settings" 
+               routerLinkActive="active" 
+               class="nav-link profile-link flex items-center gap-2" 
+               (click)="closeMenu()">
+               <div class="w-8 h-8 rounded-full overflow-hidden border border-primary/30">
+                 <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="P" class="w-full h-full object-cover">
+                 <div *ngIf="!user.avatarUrl" class="w-full h-full bg-primary/10 flex items-center justify-center text-xs">👤</div>
+               </div>
+               <span class="md:hidden">Mon Profil</span>
+            </a>
+
             <a *ngIf="user.role === 'super_admin'" 
                routerLink="/admin" 
                routerLinkActive="active" 

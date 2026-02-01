@@ -31,10 +31,12 @@ Ce projet permet à un groupe d'amis de proposer des activités, de voter pour l
 
 ### 📅 Gestion Flexible de l'Itinéraire
 - **Drag & Drop** : Déplacez facilement une activité d'un jour à l'autre.
+- **Items Logistiques** : Ajoutez des cartes de transport ou des eSIMs pour suivre votre budget sans impacter le clustering géographique.
 - **Édition Rapide** : Changez l'hébergement ou l'ordre des visites en un clic.
-- **Sécurité** : 
-  - Chaque utilisateur gère ses propres itinéraires.
-  - Mode **lecture seule** pour consulter les plannings des amis sans risque de modification.
+- **Sécurité & Confidentialité** : 
+  - **Groupes** : Créez des groupes de voyage distincts (ex: "Voyage 2024", "Japon avec les parents").
+  - **Visibilité** : Choisissez de rendre vos suggestions publiques (pour la communauté) ou privées (pour votre groupe uniquement).
+  - Mode **lecture seule** pour consulter les plannings sans risque.
 
 ## 🚀 Stack Technologique
 

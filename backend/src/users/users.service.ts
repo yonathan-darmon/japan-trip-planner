@@ -5,13 +5,26 @@ import { User } from './entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
+import { S3Service } from '../storage/s3.service';
+
 @Injectable()
 export class UsersService {
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
         private authService: AuthService,
+        private s3Service: S3Service,
     ) { }
+
+    async uploadAvatar(userId: number, file: Express.Multer.File): Promise<User> {
+        const avatarUrl = await this.s3Service.uploadFile(file);
+        if (!avatarUrl) throw new BadRequestException('Image upload failed');
+
+        await this.usersRepository.update(userId, { avatarUrl });
+        const updatedUser = await this.findOne(userId);
+        if (!updatedUser) throw new Error('User not found after update');
+        return updatedUser;
+    }
 
     async countAll(): Promise<number> {
         return this.usersRepository.count();
