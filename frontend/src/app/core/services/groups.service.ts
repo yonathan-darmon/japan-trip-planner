@@ -12,7 +12,7 @@ export interface Group {
     id: number;
     name: string;
     role: GroupRole | string;
-    country?: { name: string; code: string };
+    country?: { name: string; code: string; currencySymbol?: string; currencyCode?: string };
     members?: GroupMember[];
 }
 

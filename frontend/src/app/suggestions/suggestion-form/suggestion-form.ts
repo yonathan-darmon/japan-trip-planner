@@ -5,6 +5,7 @@ import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as L from 'leaflet';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
+import { GroupsService } from '../../core/services/groups.service';
 import { TripConfigService } from '../../core/services/trip-config';
 
 @Component({
@@ -346,6 +347,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
   constructor(
     private fb: FormBuilder,
     private suggestionsService: SuggestionsService,
+    private groupsService: GroupsService,
     private tripConfigService: TripConfigService,
     private router: Router,
     private route: ActivatedRoute,
@@ -386,7 +388,11 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
 
         // Load context details if not editing
         if (!this.isEditing) {
-          this.loadContext();
+          if (this.urlGroupId) {
+            this.loadGroupContext(+this.urlGroupId);
+          } else {
+            this.loadContext();
+          }
         }
       });
 
@@ -469,6 +475,17 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
             this.updateMarker(data.latitude, data.longitude, false);
             this.map.setView([data.latitude, data.longitude], 15);
           }
+        }
+
+        // Populate context for currency display
+        if (data.country) {
+          this.contextGroup = {
+            country: data.country,
+            name: 'Lié à la suggestion'
+          };
+        } else if (!this.contextGroup) {
+          // Fallback to loading general context if suggestion has no country (rare but possible)
+          this.loadContext();
         }
 
         this.imagePreview = data.photoUrl;
@@ -581,6 +598,17 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
 
   setDuration(hours: number) {
     this.suggestionForm.patchValue({ durationHours: hours });
+  }
+
+  private loadGroupContext(groupId: number) {
+    this.groupsService.getGroup(groupId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (group) => {
+          this.contextGroup = group;
+        },
+        error: (err) => console.warn('Could not load group context', err)
+      });
   }
 
   private loadContext() {

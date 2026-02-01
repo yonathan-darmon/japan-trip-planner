@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
 import { TripConfigService } from '../../core/services/trip-config';
+import { GroupsService } from '../../core/services/groups.service';
 import { of } from 'rxjs';
 
 describe('SuggestionFormComponent', () => {
@@ -23,6 +24,10 @@ describe('SuggestionFormComponent', () => {
             getConfig: jasmine.createSpy('getConfig').and.returnValue(of({ group: { name: 'Test Group', country: { name: 'Japan' } } }))
         };
 
+        const mockGroupsService = {
+            getGroup: jasmine.createSpy('getGroup').and.returnValue(of({ name: 'Test Group', country: { name: 'Japan', currencySymbol: '¥' } }))
+        };
+
         await TestBed.configureTestingModule({
             imports: [
                 SuggestionFormComponent,
@@ -32,7 +37,8 @@ describe('SuggestionFormComponent', () => {
             ],
             providers: [
                 { provide: SuggestionsService, useValue: mockSuggestionsService },
-                { provide: TripConfigService, useValue: mockTripConfigService }
+                { provide: TripConfigService, useValue: mockTripConfigService },
+                { provide: GroupsService, useValue: mockGroupsService }
             ]
         })
             .compileComponents();
