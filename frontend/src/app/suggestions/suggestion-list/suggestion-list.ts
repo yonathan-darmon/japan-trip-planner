@@ -110,7 +110,7 @@ import { WebSocketService } from '../../core/services/websocket.service';
             </div>
             
             <div class="price-tag" *ngIf="suggestion.price">
-              {{ suggestion.price }} €
+              {{ suggestion.price }} {{ suggestion.country?.currencySymbol || '€' }}
             </div>
           </div>
           

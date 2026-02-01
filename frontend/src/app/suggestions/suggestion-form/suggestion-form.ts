@@ -92,7 +92,7 @@ import { TripConfigService } from '../../core/services/trip-config';
           <small class="hint" style="display:block; margin-top:-1rem; margin-bottom:1rem;">Remplissez ces champs uniquement si la localisation automatique est incorrecte.</small>
 
           <div class="form-group">
-            <label class="form-label" for="price">Prix estimé (€)</label>
+            <label class="form-label" for="price">Prix estimé ({{ contextGroup?.country?.currencySymbol || '€' }})</label>
             <input id="price" type="number" class="form-input" formControlName="price" placeholder="0">
           </div>
 
