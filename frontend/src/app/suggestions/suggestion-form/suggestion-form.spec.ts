@@ -2,7 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SuggestionFormComponent } from './suggestion-form';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
+import { TripConfigService } from '../../core/services/trip-config';
 import { of } from 'rxjs';
 
 describe('SuggestionFormComponent', () => {
@@ -12,19 +14,25 @@ describe('SuggestionFormComponent', () => {
 
     beforeEach(async () => {
         mockSuggestionsService = {
-            getOne: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn()
+            getOne: jasmine.createSpy('getOne'),
+            create: jasmine.createSpy('create'),
+            update: jasmine.createSpy('update')
+        };
+
+        const mockTripConfigService = {
+            getConfig: jasmine.createSpy('getConfig').and.returnValue(of({ group: { name: 'Test Group', country: { name: 'Japan' } } }))
         };
 
         await TestBed.configureTestingModule({
             imports: [
                 SuggestionFormComponent,
                 ReactiveFormsModule,
-                RouterTestingModule
+                RouterTestingModule,
+                HttpClientTestingModule
             ],
             providers: [
-                { provide: SuggestionsService, useValue: mockSuggestionsService }
+                { provide: SuggestionsService, useValue: mockSuggestionsService },
+                { provide: TripConfigService, useValue: mockTripConfigService }
             ]
         })
             .compileComponents();
@@ -84,7 +92,7 @@ describe('SuggestionFormComponent', () => {
             photoUrl: 'http://example.com/photo.jpg'
         };
 
-        mockSuggestionsService.getOne.mockReturnValue(of(mockSuggestion));
+        mockSuggestionsService.getOne.and.returnValue(of(mockSuggestion));
 
         component.loadSuggestion(1);
         fixture.detectChanges();
