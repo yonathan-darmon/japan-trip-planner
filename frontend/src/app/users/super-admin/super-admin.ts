@@ -75,10 +75,10 @@ import { FormsModule } from '@angular/forms';
 
             <div class="country-form glass p-3 rounded-lg">
                 <p class="text-xs font-bold mb-2 uppercase opacity-70">Nouveau Pays</p>
-                <div class="flex gap-2">
-                    <input type="text" [(ngModel)]="newCountry.name" placeholder="Nom (ex: Japon)" class="form-input-sm flex-1">
-                    <input type="text" [(ngModel)]="newCountry.code" placeholder="Code (ex: JP)" class="form-input-sm w-20">
-                    <button (click)="createCountry()" [disabled]="!newCountry.name || !newCountry.code || loadingCountry" class="btn btn-primary btn-sm">
+                <div class="flex flex-wrap gap-2">
+                    <input type="text" [(ngModel)]="newCountry.name" placeholder="Nom (ex: Japon)" class="form-input-sm flex-1 min-w-[120px]">
+                    <input type="text" [(ngModel)]="newCountry.code" placeholder="Code" class="form-input-sm w-16 text-center">
+                    <button (click)="createCountry()" [disabled]="!newCountry.name || !newCountry.code || loadingCountry" class="btn btn-primary btn-sm flex-shrink-0">
                         {{ loadingCountry ? '...' : 'Ajouter' }}
                     </button>
                 </div>

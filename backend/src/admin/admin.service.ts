@@ -74,7 +74,7 @@ export class AdminService {
         if (!user) {
             throw new Error('User not found');
         }
-        user.tokenVersion = (user.tokenVersion || 0) + 1;
+        user.tokenVersion = (user.tokenVersion || 1) + 1;
         return this.usersRepository.save(user);
     }
 }
