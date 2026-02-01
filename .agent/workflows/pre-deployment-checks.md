@@ -1,19 +1,17 @@
 ---
-description: Mandatory checks before any deployment
+description: Mandatory checks before any deployment (commit/push)
 ---
-Before deploying or pushing to the main branch, strict adherence to the following checks is required:
+# Pre-Deployment Checks
 
-1. **Unit Tests**:
-   - Run ALL backend unit tests: `npm run test` (in backend).
-   - Verify 100% pass rate.
+Before committing and asking to push to production, you MUST follow this checklist:
 
-2. **Build Verification**:
-   - Run Frontend Build: `ng build` (in frontend).
-   - Run Backend Build: `npm run build` (in backend).
-   - Verify both builds complete without errors.
-
-// turbo-all
-3. **If any check fails**:
-   - STOP. Do not push.
-   - Fix the errors.
-   - Re-run checks.
+1. **Review Rules**: Re-read all active workflows (e.g., `/unit-test-rule`, `/changelog-rule`, `/planning-rule`) to ensure no requirement was missed during implementation.
+2. **Verify Compliance**:
+    - Are all unit tests present and passing for modified files?
+    - Is the changelog updated (with emojis and French description)?
+    - Is the code buildable (`ng build` or `npm build` passed)?
+3. **Commit**:
+    - If all checks pass, proceed to `git add .` and `git commit -m "<type>: <description>"`.
+4. **Ask for Push**:
+    - **DO NOT** run `git push` automatically.
+    - Notify the user: "✅ All checks passed & changes committed. Ready to push to production?"
