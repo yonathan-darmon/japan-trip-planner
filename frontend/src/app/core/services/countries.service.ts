@@ -7,6 +7,7 @@ export interface Country {
     id: number;
     name: string;
     code: string;
+    supportedFeatures?: Record<string, boolean>;
 }
 
 @Injectable({

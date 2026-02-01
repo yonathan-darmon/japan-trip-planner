@@ -11,6 +11,9 @@ export class Country {
     @Column({ length: 3, unique: true })
     code: string;
 
+    @Column({ type: 'jsonb', name: 'supported_features', default: {} })
+    supportedFeatures: Record<string, boolean>;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 

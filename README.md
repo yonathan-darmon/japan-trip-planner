@@ -51,6 +51,7 @@ Ce projet permet à un groupe d'amis de proposer des activités, de voter pour l
 - **TypeORM** pour l'interaction avec la base de données
 - **PostgreSQL** comme base de données principale
 - **Passport/JWT** pour l'authentification sécurisée
+- **Architecture Modulaire** : Système de "Feature Flags" pour gérer les spécificités par pays (ex: JR Pass pour le Japon).
 
 ### Services Externes
 - **Scaleway Object Storage** (compatible S3) pour le stockage des photos

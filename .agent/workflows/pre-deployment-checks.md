@@ -9,6 +9,7 @@ Before committing and asking to push to production, you MUST follow this checkli
 2. **Verify Compliance**:
     - Are all unit tests present and passing for modified files?
     - Is the changelog updated (with emojis and French description)?
+    - Is the `README.md` updated if this feature impacts installation, configuration, or features list?
     - Is the code buildable (`ng build` or `npm build` passed)?
 3. **Commit**:
     - If all checks pass, proceed to `git add .` and `git commit -m "<type>: <description>"`.
