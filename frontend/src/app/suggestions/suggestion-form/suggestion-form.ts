@@ -357,7 +357,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
       category: [SuggestionCategory.ACTIVITE, Validators.required],
       price: [null],
       description: [''],
-      durationHours: [2, [Validators.min(0.5), Validators.max(8)]],
+      durationHours: [2, [Validators.min(0), Validators.max(8)]],
       latitude: [null],
       longitude: [null]
     });
@@ -395,10 +395,28 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(cat => {
         const durationControl = this.suggestionForm.get('durationHours');
+
+        // Reset validators based on category
+        if (cat === SuggestionCategory.AUTRE || cat === SuggestionCategory.HEBERGEMENT) {
+          durationControl?.setValidators([Validators.min(0), Validators.max(24)]); // Allow 0, max 24h
+        } else {
+          durationControl?.setValidators([Validators.min(0.5), Validators.max(8)]); // Standard activities
+        }
+        durationControl?.updateValueAndValidity();
+
         if (cat === SuggestionCategory.HEBERGEMENT) {
           durationControl?.setValue(0);
           durationControl?.disable();
+        } else if (cat === SuggestionCategory.AUTRE) {
+          // For Autre (eSIM etc), default to 0 but allow edit
+          if (durationControl?.value > 0 && durationControl?.value !== 2) {
+            // Keep existing value if user typed it
+          } else {
+            durationControl?.setValue(0);
+          }
+          durationControl?.enable();
         } else {
+          // For others, ensure valid duration
           durationControl?.enable();
           if (durationControl?.value === 0) {
             durationControl?.setValue(2);

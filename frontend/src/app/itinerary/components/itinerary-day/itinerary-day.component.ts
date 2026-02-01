@@ -54,7 +54,9 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
           <div class="activity-content">
             <div class="activity-main">
                 <strong class="activity-name">{{ activity.suggestion.name }}</strong>
-                <span class="activity-category">{{ activity.suggestion.category }}</span>
+                <span class="activity-category">
+                    {{ getCategoryIcon(activity.suggestion.category) }} {{ activity.suggestion.category }}
+                </span>
             </div>
             <div class="activity-meta" *ngIf="activity.suggestion.price">
               <span class="price">{{ activity.suggestion.price }}€</span>
@@ -385,7 +387,8 @@ export class ItineraryDayComponent {
 
     activities.forEach((act, index) => {
       // 1. Duration of activity itself
-      hours += Number(act.suggestion.durationHours || 2);
+      const duration = act.suggestion.durationHours;
+      hours += (duration !== undefined && duration !== null) ? Number(duration) : 2;
 
       // 2. Travel time to next activity
       if (index < activities.length - 1) {
@@ -439,6 +442,20 @@ export class ItineraryDayComponent {
     if (id) {
       this.addActivity.emit({ day: this.day, suggestionId: id });
       this.isAdding = false;
+    }
+  }
+
+  getCategoryIcon(category: string | SuggestionCategory): string {
+    switch (category) {
+      case SuggestionCategory.HEBERGEMENT: return '🏨';
+      case SuggestionCategory.RESTAURANT: return '🍽️';
+      case SuggestionCategory.TRANSPORT: return '🚆';
+      case SuggestionCategory.AUTRE: return '🧾';
+      case SuggestionCategory.TEMPLE: return '⛩️';
+      case SuggestionCategory.NATURE: return '🌳';
+      case SuggestionCategory.SHOPPING: return '🛍️';
+      case SuggestionCategory.MUSEE: return '🎨';
+      default: return '📍';
     }
   }
 

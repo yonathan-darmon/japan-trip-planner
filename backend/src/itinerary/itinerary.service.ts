@@ -61,6 +61,8 @@ export class ItineraryService {
         // Also exclude accommodations from this list to avoid duplicates if we merge later
         const votedActivities = allSuggestions.filter(s =>
             s.category !== SuggestionCategory.HEBERGEMENT &&
+            s.category !== SuggestionCategory.TRANSPORT &&
+            s.category !== SuggestionCategory.AUTRE &&
             s.preferences &&
             s.preferences.some(p => p.selected)
         );

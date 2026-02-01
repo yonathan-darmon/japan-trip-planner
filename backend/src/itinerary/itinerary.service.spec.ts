@@ -114,4 +114,53 @@ describe('ItineraryService', () => {
             expect(result).toEqual(expectedResult);
         });
     });
+    describe('generate', () => {
+        it('should exclude TRANSPORT and AUTRE from clustering', async () => {
+            const userId = 1;
+            const dto = { groupId: 1 };
+
+            // Mock Config
+            mockTripConfigService.getConfig.mockResolvedValue({ durationDays: 3, startDate: new Date() });
+
+            // Mock Suggestions
+            const suggestions = [
+                { id: 1, category: 'Restaurant', name: 'Sushi', preferences: [{ selected: true }] },
+                { id: 2, category: 'Transport', name: 'Train', preferences: [{ selected: true }] }, // Should be excluded
+                { id: 3, category: 'Autre', name: 'eSIM', preferences: [{ selected: true }] },      // Should be excluded
+                { id: 4, category: 'Temple', name: 'Kinkaku-ji', preferences: [{ selected: true }] },
+                { id: 5, category: 'Hébergement', name: 'Hotel', preferences: [{ selected: true }] } // Handled separately
+            ];
+            mockSuggestionsService.findAll.mockResolvedValue(suggestions);
+
+            // Mock Clustering to capture what it receives
+            mockClusteringService.clusterByLocation.mockReturnValue([]);
+            mockRoutingService.nearestNeighbor.mockReturnValue([]);
+
+            // Mock Repository Save
+            mockItineraryRepository.create.mockReturnValue({ id: 1 });
+            mockItineraryRepository.save.mockImplementation(i => Promise.resolve(i));
+
+            await service.generate(dto as any, userId);
+
+            // Verify Clustering was called, and capture the arguments
+            expect(mockClusteringService.clusterByLocation).toHaveBeenCalled();
+
+            // Get the first argument of the first call
+            const clusteredItems = mockClusteringService.clusterByLocation.mock.calls[0][0];
+
+            // Should contain id 1 (Restaurant) and id 4 (Temple)
+            // Should NOT contain id 2 (Transport), 3 (Autre), or 5 (Hebergement - filtered earlier)
+            expect(clusteredItems).toHaveLength(2);
+            expect(clusteredItems).toEqual(expect.arrayContaining([
+                expect.objectContaining({ id: 1 }),
+                expect.objectContaining({ id: 4 })
+            ]));
+            expect(clusteredItems).not.toEqual(expect.arrayContaining([
+                expect.objectContaining({ id: 2 })
+            ]));
+            expect(clusteredItems).not.toEqual(expect.arrayContaining([
+                expect.objectContaining({ id: 3 })
+            ]));
+        });
+    });
 });
