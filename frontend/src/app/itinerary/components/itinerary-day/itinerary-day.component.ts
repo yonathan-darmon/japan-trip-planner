@@ -59,7 +59,7 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
                 </span>
             </div>
             <div class="activity-meta" *ngIf="activity.suggestion.price">
-              <span class="price">{{ activity.suggestion.price }}€</span>
+              <span class="price">{{ activity.suggestion.price }} {{ activity.suggestion.country?.currencySymbol || '€' }}</span>
             </div>
             <div class="selection-checkbox" *ngIf="!readOnly">
                <input type="checkbox" 
