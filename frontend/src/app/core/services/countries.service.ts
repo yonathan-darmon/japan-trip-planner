@@ -8,6 +8,8 @@ export interface Country {
     name: string;
     code: string;
     supportedFeatures?: Record<string, boolean>;
+    currencyCode?: string;
+    currencySymbol?: string;
 }
 
 @Injectable({

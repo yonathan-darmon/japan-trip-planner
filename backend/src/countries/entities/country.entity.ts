@@ -14,6 +14,12 @@ export class Country {
     @Column({ type: 'jsonb', name: 'supported_features', default: {} })
     supportedFeatures: Record<string, boolean>;
 
+    @Column({ name: 'currency_code', length: 3, default: 'EUR' })
+    currencyCode: string;
+
+    @Column({ name: 'currency_symbol', length: 5, default: '€' })
+    currencySymbol: string;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 
