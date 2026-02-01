@@ -237,7 +237,7 @@ export class SuggestionsService {
     async findOne(id: number): Promise<Suggestion> {
         const suggestion = await this.suggestionsRepository.findOne({
             where: { id },
-            relations: ['createdBy'],
+            relations: ['createdBy', 'country'],
         });
 
         if (!suggestion) {
