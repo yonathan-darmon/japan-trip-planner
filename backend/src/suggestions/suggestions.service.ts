@@ -11,7 +11,7 @@ import { Suggestion } from './entities/suggestion.entity';
 import { CreateSuggestionDto } from './dto/create-suggestion.dto';
 import { UpdateSuggestionDto } from './dto/update-suggestion.dto';
 import { User, UserRole } from '../users/entities/user.entity';
-import { S3Service } from './s3.service';
+import { S3Service } from '../storage/s3.service';
 import { GeocodingService } from './geocoding.service';
 import { SyncGateway } from '../sync/sync.gateway';
 import { ItineraryService } from '../itinerary/itinerary.service';
