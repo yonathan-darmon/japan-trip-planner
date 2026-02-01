@@ -138,4 +138,26 @@ describe('SuggestionFormComponent', () => {
 
         expect(component.convertedHint).toContain('3250 ¥');
     });
+    it('should be valid after loading a standard suggestion', () => {
+        const mockSuggestion = {
+            id: 41,
+            name: 'Test Suggestion',
+            location: 'Tokyo',
+            category: SuggestionCategory.ACTIVITE,
+            price: 1000,
+            description: 'Desc',
+            latitude: 35.0,
+            longitude: 139.0,
+            durationHours: 2,
+            photoUrl: '',
+            country: { id: 1, name: 'Japan', currencyCode: 'JPY', currencySymbol: '¥' }
+        };
+
+        mockSuggestionsService.getOne.and.returnValue(of(mockSuggestion));
+        component.loadSuggestion(41);
+        fixture.detectChanges();
+
+        expect(component.suggestionForm.get('price')?.value).toBe(1000);
+        expect(component.suggestionForm.valid).toBeTrue();
+    });
 });

@@ -486,7 +486,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
           name: data.name,
           location: data.location,
           category: data.category,
-          price: data.price,
+          // price is managed separately via displayedPrice
           description: data.description,
           latitude: data.latitude,
           longitude: data.longitude,
@@ -525,6 +525,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
         // Init displayed price (Always local initially)
         this.displayedPrice = data.price;
         this.updateConvertedHint();
+        this.updateFormValue(); // Sync to form control
 
         this.imagePreview = data.photoUrl;
       });
@@ -582,6 +583,16 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
       });
     } else {
       this.suggestionForm.markAllAsTouched();
+      // Debug: Log validation errors
+      const errors: any = {};
+      Object.keys(this.suggestionForm.controls).forEach(key => {
+        const control = this.suggestionForm.get(key);
+        if (control?.errors) {
+          errors[key] = control.errors;
+        }
+      });
+      console.error('❌ Form is invalid. Errors:', errors);
+      alert(`Formulaire invalide. Vérifiez: ${Object.keys(errors).join(', ')}`);
     }
   }
 
