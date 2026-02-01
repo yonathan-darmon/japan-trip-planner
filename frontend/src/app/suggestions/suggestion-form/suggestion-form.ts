@@ -1,17 +1,18 @@
 import { Component, OnInit, DestroyRef, inject, Inject, PLATFORM_ID, AfterViewInit } from '@angular/core';
 import { CommonModule, NgIf, NgFor, isPlatformBrowser } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as L from 'leaflet';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
 import { GroupsService } from '../../core/services/groups.service';
 import { TripConfigService } from '../../core/services/trip-config';
+import { CurrencyService } from '../../core/services/currency.service';
 
 @Component({
   selector: 'app-suggestion-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, NgIf, NgFor],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, NgIf, NgFor],
   template: `
     <div class="form-container fade-in">
       <div class="card glass form-card">
@@ -93,8 +94,23 @@ import { TripConfigService } from '../../core/services/trip-config';
           <small class="hint" style="display:block; margin-top:-1rem; margin-bottom:1rem;">Remplissez ces champs uniquement si la localisation automatique est incorrecte.</small>
 
           <div class="form-group">
-            <label class="form-label" for="price">Prix estimé ({{ contextGroup?.country?.currencySymbol || '€' }})</label>
-            <input id="price" type="number" class="form-input" formControlName="price" placeholder="0">
+            <label class="form-label" for="price">Prix estimé</label>
+            <div class="price-input-group">
+              <input 
+                id="price" 
+                type="number" 
+                class="form-input" 
+                [ngModel]="displayedPrice" 
+                (ngModelChange)="onPriceChange($event)"
+                [ngModelOptions]="{standalone: true}"
+                placeholder="0"
+              >
+              <select class="currency-select" [(ngModel)]="currencyMode" (ngModelChange)="onCurrencyModeChange()" [ngModelOptions]="{standalone: true}">
+                <option value="LOCAL">{{ contextGroup?.country?.currencySymbol || 'Local' }}</option>
+                <option value="EUR">€ (EUR)</option>
+              </select>
+            </div>
+            <small class="hint" *ngIf="convertedHint">{{ convertedHint }}</small>
           </div>
 
           <div class="form-group" *ngIf="suggestionForm.get('category')?.value !== SuggestionCategory.HEBERGEMENT">
@@ -327,6 +343,19 @@ import { TripConfigService } from '../../core/services/trip-config';
       font-style: italic;
       font-size: 0.8rem;
     }
+    
+    .price-input-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .currency-select {
+      width: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background-color: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+    }
   `]
 })
 export class SuggestionFormComponent implements OnInit, AfterViewInit {
@@ -340,6 +369,10 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
   SuggestionCategory = SuggestionCategory; // Expose enum for template
   contextGroup: any = null;
 
+  currencyMode: 'LOCAL' | 'EUR' = 'LOCAL';
+  displayedPrice: number | null = null;
+  convertedHint: string | null = null;
+
   private map: L.Map | undefined;
   private marker: L.Marker | undefined;
   private urlGroupId: string | null = null;
@@ -349,6 +382,7 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
     private suggestionsService: SuggestionsService,
     private groupsService: GroupsService,
     private tripConfigService: TripConfigService,
+    private currencyService: CurrencyService,
     private router: Router,
     private route: ActivatedRoute,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -488,6 +522,10 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
           this.loadContext();
         }
 
+        // Init displayed price (Always local initially)
+        this.displayedPrice = data.price;
+        this.updateConvertedHint();
+
         this.imagePreview = data.photoUrl;
       });
   }
@@ -609,6 +647,55 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
         },
         error: (err) => console.warn('Could not load group context', err)
       });
+  }
+
+  onPriceChange(val: number) {
+    this.displayedPrice = val;
+    this.updateConvertedHint();
+    this.updateFormValue();
+  }
+
+  onCurrencyModeChange() {
+    this.updateConvertedHint();
+    this.updateFormValue();
+  }
+
+  private updateConvertedHint() {
+    if (!this.displayedPrice) {
+      this.convertedHint = null;
+      return;
+    }
+
+    const localCode = this.contextGroup?.country?.currencyCode || 'JPY';
+    const localSymbol = this.contextGroup?.country?.currencySymbol || '¥';
+
+    if (this.currencyMode === 'EUR') {
+      // EUR -> Local
+      const converted = this.currencyService.convert(this.displayedPrice, 'EUR', localCode);
+      this.convertedHint = converted ? `≈ ${Math.round(converted)} ${localSymbol}` : null;
+    } else {
+      // Local -> EUR
+      const converted = this.currencyService.convert(this.displayedPrice, localCode, 'EUR');
+      this.convertedHint = converted ? `≈ ${converted.toFixed(2)} €` : null;
+    }
+  }
+
+  private updateFormValue() {
+    if (!this.displayedPrice) {
+      this.suggestionForm.patchValue({ price: null });
+      return;
+    }
+
+    if (this.currencyMode === 'EUR') {
+      const localCode = this.contextGroup?.country?.currencyCode || 'JPY';
+      const converted = this.currencyService.convert(this.displayedPrice, 'EUR', localCode);
+      // Save rounded value for clean integer prices in Yen/Won etc
+      const roundedPrice = converted ? Math.round(converted) : null;
+      console.log(`💱 Converting Price: ${this.displayedPrice} EUR -> ${roundedPrice} ${localCode}`);
+      this.suggestionForm.patchValue({ price: roundedPrice });
+    } else {
+      this.suggestionForm.patchValue({ price: this.displayedPrice });
+    }
   }
 
   private loadContext() {

@@ -1,11 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SuggestionFormComponent } from './suggestion-form';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
 import { TripConfigService } from '../../core/services/trip-config';
 import { GroupsService } from '../../core/services/groups.service';
+import { CurrencyService } from '../../core/services/currency.service';
 import { of } from 'rxjs';
 
 describe('SuggestionFormComponent', () => {
@@ -28,17 +29,27 @@ describe('SuggestionFormComponent', () => {
             getGroup: jasmine.createSpy('getGroup').and.returnValue(of({ name: 'Test Group', country: { name: 'Japan', currencySymbol: '¥' } }))
         };
 
+        const mockCurrencyService = {
+            convert: jasmine.createSpy('convert').and.callFake((val, from, to) => {
+                if (from === 'EUR' && to === 'JPY') return val * 162.5;
+                if (from === 'JPY' && to === 'EUR') return val / 162.5;
+                return val;
+            })
+        };
+
         await TestBed.configureTestingModule({
             imports: [
                 SuggestionFormComponent,
                 ReactiveFormsModule,
+                FormsModule,
                 RouterTestingModule,
                 HttpClientTestingModule
             ],
             providers: [
                 { provide: SuggestionsService, useValue: mockSuggestionsService },
                 { provide: TripConfigService, useValue: mockTripConfigService },
-                { provide: GroupsService, useValue: mockGroupsService }
+                { provide: GroupsService, useValue: mockGroupsService },
+                { provide: CurrencyService, useValue: mockCurrencyService }
             ]
         })
             .compileComponents();
@@ -104,5 +115,27 @@ describe('SuggestionFormComponent', () => {
         fixture.detectChanges();
 
         expect(component.suggestionForm.get('durationHours')?.value).toBe(5.5);
+    });
+
+    it('should convert EUR price to JPY when submitting', () => {
+        // Setup context
+        component.contextGroup = { country: { currencyCode: 'JPY', currencySymbol: '¥' } };
+
+        // Simulate user input: 20 EUR
+        component.currencyMode = 'EUR';
+        component.onPriceChange(20);
+
+        // Check form value (should be JPY)
+        // 20 * 162.5 = 3250
+        expect(component.suggestionForm.get('price')?.value).toBe(3250);
+    });
+
+    it('should display hint when converting', () => {
+        component.contextGroup = { country: { currencyCode: 'JPY', currencySymbol: '¥' } };
+
+        component.currencyMode = 'EUR';
+        component.onPriceChange(20);
+
+        expect(component.convertedHint).toContain('3250 ¥');
     });
 });
