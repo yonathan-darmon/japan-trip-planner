@@ -172,7 +172,7 @@ import { CurrencyService } from '../../core/services/currency.service';
 
           <div class="form-actions">
             <a routerLink="/suggestions" class="btn btn-ghost">Annuler</a>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" [disabled]="suggestionForm.invalid || isLoading">
               {{ isLoading ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer la suggestion') }}
             </button>
           </div>
@@ -495,6 +495,15 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
 
         // Handle category logic manually since we suppressed events
         const durationControl = this.suggestionForm.get('durationHours');
+
+        // Apply correct validators based on category
+        if (data.category === SuggestionCategory.AUTRE || data.category === SuggestionCategory.HEBERGEMENT) {
+          durationControl?.setValidators([Validators.min(0), Validators.max(24)]);
+        } else {
+          durationControl?.setValidators([Validators.min(0.5), Validators.max(8)]);
+        }
+        durationControl?.updateValueAndValidity({ emitEvent: false });
+
         if (data.category === SuggestionCategory.HEBERGEMENT) {
           durationControl?.disable({ emitEvent: false });
         } else {
