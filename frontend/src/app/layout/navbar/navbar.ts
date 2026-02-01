@@ -37,9 +37,9 @@ import { AsyncPipe, NgIf } from '@angular/common';
                routerLinkActive="active" 
                class="nav-link profile-link flex items-center gap-2" 
                (click)="closeMenu()">
-               <div class="w-8 h-8 rounded-full overflow-hidden border border-primary/30">
-                 <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="P" class="w-full h-full object-cover">
-                 <div *ngIf="!user.avatarUrl" class="w-full h-full bg-primary/10 flex items-center justify-center text-xs">👤</div>
+               <div class="w-8 h-8 rounded-full overflow-hidden border border-primary/30 flex-shrink-0 bg-bg-tertiary">
+                 <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="P" class="w-full h-full object-cover block">
+                 <div *ngIf="!user.avatarUrl" class="w-full h-full bg-primary/10 flex items-center justify-center text-xs select-none">👤</div>
                </div>
                <span class="md:hidden">Mon Profil</span>
             </a>

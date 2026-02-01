@@ -22,12 +22,12 @@ import { Router } from '@angular/router';
           <div class="p-6">
             <div class="flex flex-col items-center mb-8">
               <div class="relative group cursor-pointer" (click)="fileInput.click()">
-                <div class="avatar-container glass rounded-full w-32 h-32 flex items-center justify-center overflow-hidden border-4 border-primary/20 transition-all group-hover:border-primary">
-                   <img *ngIf="currentUser?.avatarUrl" [src]="currentUser?.avatarUrl" alt="Avatar" class="w-full h-full object-cover">
-                   <span *ngIf="!currentUser?.avatarUrl" class="text-4xl">👤</span>
+                <div class="avatar-container glass rounded-full w-32 h-32 flex-shrink-0 flex items-center justify-center overflow-hidden border-4 border-primary/20 transition-all group-hover:border-primary relative bg-bg-tertiary">
+                   <img *ngIf="currentUser?.avatarUrl" [src]="currentUser?.avatarUrl" alt="Avatar" class="w-full h-full object-cover block">
+                   <span *ngIf="!currentUser?.avatarUrl" class="text-4xl select-none">👤</span>
                    
                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                     <span class="text-white font-bold">Modifier</span>
+                     <span class="text-white font-bold text-sm">Modifier</span>
                    </div>
                 </div>
                 <input #fileInput type="file" class="hidden" (change)="onAvatarSelected($event)" accept="image/*">
