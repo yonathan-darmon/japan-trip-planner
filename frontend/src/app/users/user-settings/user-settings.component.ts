@@ -22,12 +22,12 @@ import { Router } from '@angular/router';
           <div class="p-6">
             <div class="flex flex-col items-center mb-8">
               <div class="relative group cursor-pointer" (click)="fileInput.click()">
-                <div class="avatar-container glass rounded-full w-32 h-32 flex-shrink-0 flex items-center justify-center overflow-hidden border-4 border-primary/20 transition-all group-hover:border-primary relative bg-bg-tertiary">
-                   <img *ngIf="currentUser?.avatarUrl" [src]="currentUser?.avatarUrl" alt="Avatar" class="w-full h-full object-cover block">
+                <div class="avatar-container glass" style="width: 128px; height: 128px; border-radius: 50%; overflow: hidden; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background-color: var(--color-bg-tertiary); border: 4px solid rgba(255, 107, 157, 0.2);">
+                   <img *ngIf="currentUser?.avatarUrl" [src]="currentUser?.avatarUrl" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                    <span *ngIf="!currentUser?.avatarUrl" class="text-4xl select-none">👤</span>
                    
-                   <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                     <span class="text-white font-bold text-sm">Modifier</span>
+                   <div class="absolute inset-0 bg-black/50" style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                     <span class="text-white font-bold text-sm" style="color: white; font-weight: bold;">Modifier</span>
                    </div>
                 </div>
                 <input #fileInput type="file" class="hidden" (change)="onAvatarSelected($event)" accept="image/*">
