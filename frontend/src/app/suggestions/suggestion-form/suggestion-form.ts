@@ -172,7 +172,7 @@ import { CurrencyService } from '../../core/services/currency.service';
 
           <div class="form-actions">
             <a routerLink="/suggestions" class="btn btn-ghost">Annuler</a>
-            <button type="submit" class="btn btn-primary" [disabled]="suggestionForm.invalid || isLoading">
+            <button type="submit" class="btn btn-primary">
               {{ isLoading ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer la suggestion') }}
             </button>
           </div>
