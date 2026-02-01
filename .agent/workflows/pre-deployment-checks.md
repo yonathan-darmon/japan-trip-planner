@@ -12,6 +12,6 @@ Before committing and asking to push to production, you MUST follow this checkli
     - Is the code buildable (`ng build` or `npm build` passed)?
 3. **Commit**:
     - If all checks pass, proceed to `git add .` and `git commit -m "<type>: <description>"`.
-4. **Ask for Push**:
-    - **DO NOT** run `git push` automatically.
-    - Notify the user: "✅ All checks passed & changes committed. Ready to push to production?"
+4. **Push to Production**:
+    - If checks pass and changes are committed, you MAY run `git push` automatically.
+    - Notify the user: "✅ All checks passed, changes committed & pushed to production."
