@@ -1,5 +1,13 @@
 const process = require('process');
-process.env.CHROME_BIN = require('puppeteer').executablePath();
+
+try {
+    const puppeteer = require('puppeteer');
+    process.env.CHROME_BIN = puppeteer.executablePath();
+    console.log('Puppeteer Chrome path:', process.env.CHROME_BIN);
+} catch (error) {
+    console.warn('Failed to get Puppeteer Chrome path:', error.message);
+}
+
 
 module.exports = function (config) {
     config.set({

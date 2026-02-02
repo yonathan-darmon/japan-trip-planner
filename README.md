@@ -57,6 +57,14 @@ Ce projet permet à un groupe d'amis de proposer des activités, de voter pour l
 ### Services Externes
 - **Scaleway Object Storage** (compatible S3) pour le stockage des photos
 - **Nominatim / Photon** pour le géocodage open-source gratuit
+- **API BCE (Banque Centrale Européenne)** pour les taux de change officiels
+
+### 💶 Conversion de Devises
+- **Taux en temps réel** : Utilisation des taux de référence officiels de la Banque Centrale Européenne
+- **Mise à jour quotidienne** : Les taux sont récupérés automatiquement chaque jour
+- **Cache intelligent** : Les taux sont mis en cache localement (localStorage) pendant 24h pour optimiser les performances
+- **Fallback automatique** : En cas d'indisponibilité de l'API ECB, des taux statiques de secours sont utilisés
+- **Aucune clé API requise** : L'API ECB est publique et gratuite
 
 ## 🛠️ Installation et Démarrage
 

@@ -15,6 +15,7 @@ import { GroupsModule } from './groups/groups.module';
 import { ChangelogModule } from './changelog/changelog.module';
 import { AdminModule } from './admin/admin.module';
 import { StorageModule } from './storage/storage.module';
+import { CurrencyModule } from './currency/currency.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { StorageModule } from './storage/storage.module';
     ChangelogModule,
     AdminModule,
     StorageModule,
+    CurrencyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
