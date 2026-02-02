@@ -32,3 +32,6 @@ build/
 # Uploads
 uploads/
 temp/
+
+# Project Planning (local only)
+ROADMAP.md
