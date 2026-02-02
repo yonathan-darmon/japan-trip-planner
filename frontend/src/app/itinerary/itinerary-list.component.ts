@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ItineraryService, Itinerary } from '../core/services/itinerary';
+import { CurrencyService } from '../core/services/currency.service';
 
 @Component({
   selector: 'app-itinerary-list',
@@ -41,7 +42,7 @@ import { ItineraryService, Itinerary } from '../core/services/itinerary';
             </div>
             <div class="stat" *ngIf="getTotalCost(itinerary) > 0">
               <span class="icon">💰</span>
-              <span>{{ getTotalCost(itinerary) }}€</span>
+              <span>{{ formatPrice(getTotalCost(itinerary)) }}</span>
             </div>
           </div>
 
@@ -210,7 +211,8 @@ export class ItineraryListComponent implements OnInit {
 
   constructor(
     private itineraryService: ItineraryService,
-    private router: Router
+    private router: Router,
+    private currencyService: CurrencyService
   ) { }
 
   ngOnInit(): void {
@@ -237,6 +239,10 @@ export class ItineraryListComponent implements OnInit {
 
   createNewItinerary(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  formatPrice(amount: number): string {
+    return this.currencyService.format(amount, 'JPY');
   }
 
   getTotalActivities(itinerary: Itinerary): number {

@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Itinerary } from '../../../core/services/itinerary';
+import { CurrencyService } from '../../../core/services/currency.service';
 
 @Component({
   selector: 'app-itinerary-header',
@@ -13,7 +14,7 @@ import { Itinerary } from '../../../core/services/itinerary';
           <h1>{{ itinerary.name }}</h1>
           <div class="trip-meta">
             <span class="badge days">{{ itinerary.totalDays }} Jours</span>
-            <span class="badge cost">{{ itinerary.totalCost | currency:'EUR':'symbol':'1.0-0' }}</span>
+            <span class="badge cost">{{ formatPrice(itinerary.totalCost) }}</span>
             <span class="date-range" *ngIf="itinerary.days[0].date">
               {{ formatDate(itinerary.days[0].date) }} - 
               {{ formatDate(itinerary.days[itinerary.totalDays-1].date) }}
@@ -30,7 +31,7 @@ import { Itinerary } from '../../../core/services/itinerary';
       <div class="cost-breakdown" *ngIf="costBreakdown">
         <div class="cost-item" *ngFor="let item of costBreakdown | keyvalue">
           <span class="label">{{ item.key }}</span>
-          <span class="value">{{ item.value | currency:'EUR':'symbol':'1.0-0' }}</span>
+          <span class="value">{{ formatPrice(item.value) }}</span>
           <div class="bar" [style.width.%]="getPercent(item.value)"></div>
         </div>
       </div>
@@ -109,6 +110,8 @@ export class ItineraryHeaderComponent {
   @Input() readOnly = false;
   @Output() delete = new EventEmitter<void>();
 
+  constructor(private currencyService: CurrencyService) { }
+
   formatDate(date: string | Date | null): string {
     if (!date) return '';
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -120,5 +123,9 @@ export class ItineraryHeaderComponent {
   getPercent(amount: number): number {
     if (!this.itinerary || this.itinerary.totalCost === 0) return 0;
     return (amount / this.itinerary.totalCost) * 100;
+  }
+
+  formatPrice(amount: number): string {
+    return this.currencyService.format(amount, 'JPY');
   }
 }

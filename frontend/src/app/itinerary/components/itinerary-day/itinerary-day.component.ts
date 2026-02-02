@@ -393,19 +393,9 @@ export class ItineraryDayComponent {
   availableSuggestions: Suggestion[] = [];
 
   formatPrice(suggestion: Suggestion): string {
-    const price = suggestion.price;
-    if (price === undefined || price === null) return '';
-
-    // Prefer formatting with the country's currency if available
-    if (suggestion.country && suggestion.country.currencyCode) {
-      return this.currencyService.format(price, suggestion.country.currencyCode);
-    }
-
-    // Fallback: Check if we are in a Japanese Context?
-    // If not, use the currencySymbol if manually present (rare for Country object)
-    // Or default to '€' if really nothing else
-    const symbol = suggestion.country?.currencySymbol || '€';
-    return `${price} ${symbol}`;
+    if (!suggestion.price && suggestion.price !== 0) return '';
+    const currency = suggestion.country?.currencyCode || 'JPY';
+    return this.currencyService.format(suggestion.price, currency);
   }
 
   isActivitySelected(suggestionId: number): boolean {

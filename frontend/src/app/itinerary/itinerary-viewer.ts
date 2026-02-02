@@ -8,6 +8,7 @@ import { ItineraryStateService } from '../core/services/itinerary-state.service'
 import { ItineraryService, ItineraryDay } from '../core/services/itinerary';
 import { SuggestionsService, Suggestion, SuggestionCategory } from '../core/services/suggestions';
 import { AuthService } from '../core/services/auth';
+import { CurrencyService } from '../core/services/currency.service';
 
 // Import sub-components
 import { ItineraryMapComponent } from './components/itinerary-map/itinerary-map.component';
@@ -91,7 +92,7 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
                         <strong>{{ acc.name }}</strong>
                         <span class="item-loc">{{ acc.location }}</span>
                     </div>
-                    <span class="item-price" *ngIf="acc.price">{{ acc.price }}€</span>
+                    <span class="item-price" *ngIf="acc.price">{{ formatSuggestionPrice(acc) }}</span>
                 </div>
             </div>
         </div>
@@ -295,6 +296,7 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
   private stateService = inject(ItineraryStateService);
   private itineraryService = inject(ItineraryService);
   private suggestionsService = inject(SuggestionsService);
+  private currencyService = inject(CurrencyService);
   private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -404,6 +406,12 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  formatSuggestionPrice(suggestion: Suggestion): string {
+    if (!suggestion.price) return '';
+    return this.currencyService.format(suggestion.price, suggestion.country?.currencyCode || 'JPY');
+  }
+
 
   onDaySelected(day: ItineraryDay) {
     this.stateService.selectDay(day);
