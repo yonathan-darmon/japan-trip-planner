@@ -193,9 +193,11 @@ export class CurrencyService {
     /**
      * Format amount with currency symbol
      */
-    format(amount: number, currency: string): string {
+    format(amount: number | string, currency: string): string {
+        const value = Number(amount);
+        if (isNaN(value)) return '';
         const symbol = this.getCurrencySymbol(currency);
-        return `${symbol}${amount.toFixed(2)}`;
+        return `${symbol}${value.toFixed(2)}`;
     }
 
     /**
