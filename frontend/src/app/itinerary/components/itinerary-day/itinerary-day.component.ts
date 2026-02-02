@@ -1,11 +1,10 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ItineraryDay } from '../../../core/services/itinerary';
 import { Suggestion, SuggestionCategory } from '../../../core/services/suggestions';
 import { GeoUtils } from '../../../core/utils/geo.utils';
-
-
+import { CurrencyService } from '../../../core/services/currency.service';
 
 @Component({
   selector: 'app-itinerary-day',
@@ -69,7 +68,7 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
                 </span>
             </div>
             <div class="activity-meta" *ngIf="activity.suggestion.price">
-              <span class="price">{{ activity.suggestion.price }} {{ activity.suggestion.country?.currencySymbol || '€' }}</span>
+              <span class="price">{{ formatPrice(activity.suggestion) }}</span>
             </div>
             <div class="selection-checkbox" *ngIf="!readOnly">
                <input type="checkbox" 
@@ -360,6 +359,7 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
 export class ItineraryDayComponent {
   @Input() day!: ItineraryDay;
   @Input() index: number = 0; // Added index input
+  private currencyService = inject(CurrencyService);
 
   // Colors matching Map Component
   readonly DAY_COLORS = [
@@ -391,6 +391,22 @@ export class ItineraryDayComponent {
 
   isAdding = false;
   availableSuggestions: Suggestion[] = [];
+
+  formatPrice(suggestion: Suggestion): string {
+    const price = suggestion.price;
+    if (price === undefined || price === null) return '';
+
+    // Prefer formatting with the country's currency if available
+    if (suggestion.country && suggestion.country.currencyCode) {
+      return this.currencyService.format(price, suggestion.country.currencyCode);
+    }
+
+    // Fallback: Check if we are in a Japanese Context?
+    // If not, use the currencySymbol if manually present (rare for Country object)
+    // Or default to '€' if really nothing else
+    const symbol = suggestion.country?.currencySymbol || '€';
+    return `${price} ${symbol}`;
+  }
 
   isActivitySelected(suggestionId: number): boolean {
     return this.selectedActivities.has(suggestionId);
@@ -427,11 +443,6 @@ export class ItineraryDayComponent {
         hours += dist / 4.0;
       }
     });
-
-    // If there is a hotel, maybe consider initial travel time? 
-    // Backend logic was: only if consecutive activities. 
-    // Let's stick to simple "between activities" logic for visual feedback first
-    // to match what the backend does in optimization loop loosely.
 
     return (hours / 8) * 100; // Assuming 8h is 100% capacity
   }
