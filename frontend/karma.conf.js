@@ -1,14 +1,3 @@
-const process = require('process');
-
-// try {
-//     const puppeteer = require('puppeteer');
-//     process.env.CHROME_BIN = puppeteer.executablePath();
-//     console.log('Puppeteer Chrome path:', process.env.CHROME_BIN);
-// } catch (error) {
-//     console.warn('Failed to get Puppeteer Chrome path (using system Chrome):', error.message);
-// }
-
-
 module.exports = function (config) {
     config.set({
         basePath: '',
