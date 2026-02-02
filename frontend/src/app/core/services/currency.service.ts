@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 interface CachedRates {
     rates: Record<string, number>;
@@ -16,7 +17,7 @@ interface CachedRates {
 })
 export class CurrencyService {
     private rates: Record<string, number> = {};
-    private readonly BACKEND_API_URL = 'http://localhost:3000/api/currency/rates';
+    private readonly BACKEND_API_URL = `${environment.apiUrl}/currency/rates`;
     private readonly CACHE_KEY = 'ecb_rates_cache';
     private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
