@@ -8,6 +8,7 @@ import { SuggestionsModule } from '../suggestions/suggestions.module';
 import { PreferencesModule } from '../preferences/preferences.module';
 import { AuthModule } from '../auth/auth.module';
 import { ClusteringService } from './clustering.service';
+import { OptimizationService } from './optimization.service';
 import { RoutingService } from './routing.service';
 
 @Module({
@@ -19,7 +20,7 @@ import { RoutingService } from './routing.service';
         AuthModule,
     ],
     controllers: [ItineraryController],
-    providers: [ItineraryService, ClusteringService, RoutingService],
+    providers: [ItineraryService, ClusteringService, OptimizationService, RoutingService],
     exports: [ItineraryService],
 })
 export class ItineraryModule { }

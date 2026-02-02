@@ -19,6 +19,32 @@ Ce projet permet à un groupe d'amis de proposer des activités, de voter pour l
 - **Adaptation automatique** : Crée un planning jour par jour équilibré.
 - **Hébergement** : Suggère l'hôtel le plus proche de la zone d'activité du jour.
 
+#### Flux de l'Algorithme
+
+```mermaid
+graph TD
+    A[Activités votées] --> B[Clustering géographique<br/>Seuil: 50km]
+    B --> C[Pour chaque cluster]
+    C --> D[Tri par proximité<br/>Nearest Neighbor]
+    C --> E[Recherche hébergement<br/>Rayon: 30km]
+    E --> F{Trouvé?}
+    F -->|Oui| G[Assigner hébergement]
+    F -->|Non| H[Laisser null]
+    D --> I[Remplir les jours<br/>Max: 8h/jour]
+    G --> I
+    H --> I
+    I --> J[Optimisation finale]
+    J --> K[Regrouper par hôtel]
+    K --> L[Regrouper par proximité]
+    L --> M[Itinéraire optimisé]
+```
+
+**Paramètres de l'algorithme** :
+- **Clustering** : 50 km (activités dans la même zone géographique)
+- **Distance max entre activités** : 20 km (pour éviter les allers-retours)
+- **Rayon de recherche d'hébergement** : 30 km (si aucun hôtel proche, le jour reste sans hébergement)
+
+
 ### 🗺️ Visualisation & Carte Interactive
 - **Carte Leaflet intégrée** : Visualisez votre itinéraire jour par jour.
 - **Marqueurs dynamiques** : Codes couleurs pour les activités et l'hébergement.

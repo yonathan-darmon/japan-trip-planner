@@ -16,7 +16,7 @@ export class ClusteringService {
         if (activities.length === 0) return [];
 
         const clusters: Suggestion[][] = [];
-        const thresholdKm = 100; // Max distance to be considered "same area"
+        const thresholdKm = 50; // Max distance to be considered "same area" (reduced from 100km)
 
         for (const activity of activities) {
             let added = false;

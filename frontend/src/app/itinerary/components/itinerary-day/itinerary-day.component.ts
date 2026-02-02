@@ -27,15 +27,25 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
         </div>
       </div>
 
-      <div class="day-accommodation" [class.has-hotel]="day.accommodation">
-        <div class="hotel-icon">🌙</div>
+      <div class="day-accommodation" 
+           [class.has-hotel]="day.accommodation"
+           [class.missing-hotel]="!day.accommodation && day.activities.length > 0">
+        <div class="hotel-icon">{{ day.accommodation ? '🌙' : '⚠️' }}</div>
         <div class="hotel-info">
           <span class="label">Hébergement</span>
           <strong *ngIf="day.accommodation">{{ day.accommodation.name }}</strong>
-          <span class="placeholder" *ngIf="!day.accommodation">Aucun hébergement</span>
+          <span class="placeholder warning" *ngIf="!day.accommodation && day.activities.length > 0">
+            Non défini (zone inconnue)
+          </span>
+          <span class="placeholder" *ngIf="!day.accommodation && day.activities.length === 0">
+            Aucun hébergement
+          </span>
         </div>
-        <button class="btn-edit-hotel" *ngIf="!readOnly" (click)="editAccommodation.emit(day); $event.stopPropagation()">
-          ✏️
+        <button class="btn-edit-hotel" 
+                [class.btn-add]="!day.accommodation"
+                *ngIf="!readOnly" 
+                (click)="editAccommodation.emit(day); $event.stopPropagation()">
+          {{ day.accommodation ? '✏️' : '➕' }}
         </button>
       </div>
 
@@ -177,6 +187,10 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
         border: 1px solid #4299e1;
         background: rgba(66, 153, 225, 0.15);
     }
+    .day-accommodation.missing-hotel {
+        border: 1px dashed #ed8936; /* Orange border */
+        background: rgba(237, 137, 54, 0.1);
+    }
     .hotel-icon { font-size: 1.2rem; }
     .hotel-info { flex: 1; display: flex; flex-direction: column; }
     .hotel-info .label { 
@@ -185,12 +199,22 @@ import { GeoUtils } from '../../../core/utils/geo.utils';
     }
     .hotel-info strong { font-size: 0.95rem; color: white; }
     .hotel-info .placeholder { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; }
+    .hotel-info .placeholder.warning { color: #fbd38d; font-weight: 500; }
     
     .btn-edit-hotel {
-        background: none; border: none; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; font-size: 1.1rem;
+        background: none; border: none; cursor: pointer; opacity: 0.7; transition: all 0.2s; font-size: 1.1rem;
         filter: grayscale(100%) brightness(200%);
     }
+    .btn-edit-hotel.btn-add {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        filter: none;
+        color: white;
+    }
     .btn-edit-hotel:hover { opacity: 1; transform: scale(1.1); }
+    .btn-edit-hotel.btn-add:hover { background: rgba(255, 255, 255, 0.2); }
 
     .activities-list {
         min-height: 100px;

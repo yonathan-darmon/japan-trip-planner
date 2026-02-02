@@ -18,6 +18,7 @@ import { ReorderActivitiesDto } from './dto/reorder-activities.dto';
 import { Suggestion, SuggestionCategory } from '../suggestions/entities/suggestion.entity';
 import { TripConfig } from '../trip-config/entities/trip-config.entity';
 import { ClusteringService } from './clustering.service';
+import { OptimizationService } from './optimization.service';
 import { RoutingService } from './routing.service';
 import { GeoUtils } from './utils/geo.utils';
 
@@ -44,6 +45,7 @@ export class ItineraryService {
         private suggestionsService: SuggestionsService,
         private preferencesService: PreferencesService,
         private clusteringService: ClusteringService,
+        private optimizationService: OptimizationService,
         private routingService: RoutingService,
     ) { }
 
@@ -158,8 +160,8 @@ export class ItineraryService {
             // Sort internal activities by Routing Service
             const sortedActivities = this.routingService.nearestNeighbor(cluster);
 
-            // Find best accommodation for this cluster
-            const bestHotel = this.routingService.findBestAccommodationForCluster(cluster, accommodations);
+            // Find best accommodation for this cluster (within 30km radius)
+            const bestHotel = this.routingService.findBestAccommodationForCluster(cluster, accommodations, 30);
 
             if (bestHotel) {
                 this.logger.debug(`Cluster assigned to hotel: ${bestHotel.name} (Cluster size: ${cluster.length})`);
@@ -242,22 +244,20 @@ export class ItineraryService {
             }
         }
 
-        // 4. Fallback: Fill holes in accommodation
-        // Forward fill
-        for (let i = 1; i < totalDays; i++) {
-            if (!days[i].accommodation && days[i - 1].accommodation) {
-                days[i].accommodation = days[i - 1].accommodation;
-            }
+        // Log days without accommodation
+        const daysWithoutAccommodation = days.filter(d => !d.accommodation && d.activities.length > 0);
+        if (daysWithoutAccommodation.length > 0) {
+            this.logger.warn(
+                `⚠️  ${daysWithoutAccommodation.length} jour(s) sans hébergement (jours: ${daysWithoutAccommodation.map(d => d.dayNumber).join(', ')}). ` +
+                `L'utilisateur devra en ajouter manuellement.`
+            );
         }
 
-        // Backward fill
-        for (let i = totalDays - 2; i >= 0; i--) {
-            if (!days[i].accommodation && days[i + 1].accommodation) {
-                days[i].accommodation = days[i + 1].accommodation;
-            }
-        }
+        // 4. Final optimization: regroup days by hotel and proximity
+        this.logger.log('=== PHASE 4: FINAL OPTIMIZATION ===');
+        const optimizedDays = this.optimizationService.optimizeDayOrder(days);
 
-        return days;
+        return optimizedDays;
     }
 
     /**

@@ -46,8 +46,13 @@ export class RoutingService {
 
     /**
      * Finds the accommodation closest to the centroid of a cluster of activities.
+     * Returns null if no accommodation is within maxDistanceKm of the centroid.
      */
-    findBestAccommodationForCluster(cluster: Suggestion[], accommodations: Suggestion[]): Suggestion | null {
+    findBestAccommodationForCluster(
+        cluster: Suggestion[],
+        accommodations: Suggestion[],
+        maxDistanceKm: number = 30
+    ): Suggestion | null {
         if (accommodations.length === 0) return null;
         if (cluster.length === 0) return accommodations[0]; // Should not happen, but safe fallback
 
@@ -72,6 +77,13 @@ export class RoutingService {
             }
         }
 
-        return bestHotel;
+        // Only return the hotel if it's within the max distance
+        if (bestHotel && minDist <= maxDistanceKm) {
+            this.logger.debug(`Found accommodation "${bestHotel.name}" at ${minDist.toFixed(1)}km from cluster centroid`);
+            return bestHotel;
+        }
+
+        this.logger.warn(`No accommodation found within ${maxDistanceKm}km of cluster centroid (nearest: ${minDist.toFixed(1)}km)`);
+        return null;
     }
 }

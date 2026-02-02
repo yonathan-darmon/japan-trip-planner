@@ -9,6 +9,8 @@ import { ClusteringService } from './clustering.service';
 import { RoutingService } from './routing.service';
 import { Repository } from 'typeorm';
 
+import { OptimizationService } from './optimization.service';
+
 describe('ItineraryService', () => {
     let service: ItineraryService;
     let repository: Repository<Itinerary>;
@@ -41,6 +43,10 @@ describe('ItineraryService', () => {
         findBestAccommodationForCluster: jest.fn(),
     };
 
+    const mockOptimizationService = {
+        optimizeDayOrder: jest.fn().mockImplementation((days) => days),
+    };
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -64,6 +70,10 @@ describe('ItineraryService', () => {
                 {
                     provide: ClusteringService,
                     useValue: mockClusteringService,
+                },
+                {
+                    provide: OptimizationService,
+                    useValue: mockOptimizationService,
                 },
                 {
                     provide: RoutingService,
