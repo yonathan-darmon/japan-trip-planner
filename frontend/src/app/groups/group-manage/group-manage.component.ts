@@ -5,6 +5,7 @@ import { GroupsService, Group } from '../../core/services/groups.service';
 import { TripConfigService, TripConfig } from '../../core/services/trip-config';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
 
 @Component({
     selector: 'app-group-manage',
@@ -155,6 +156,24 @@ import { AuthService } from '../../core/services/auth';
                          }">
                         {{ message }}
                     </div>
+
+                    <!-- Invite Link Fallback -->
+                    <div *ngIf="showInviteLink" class="mt-4 p-4 border border-white/10 rounded-lg bg-white/5 fade-in">
+                        <p class="text-sm text-text-secondary mb-2">👋 Utilisateur introuvable. Envoyez-lui ce lien pour qu'il s'inscrive et rejoigne le groupe :</p>
+                        
+                        <div class="flex items-center space-x-2 mb-3">
+                            <input type="text" readonly [value]="getInviteLink()" class="form-input text-sm flex-grow bg-black/20">
+                            <button (click)="copyLink()" class="btn btn-sm btn-outline">
+                                {{ linkCopied ? 'Copié !' : 'Copier' }}
+                            </button>
+                        </div>
+
+                        <div>
+                            <a [href]="getMailtoLink()" class="btn btn-sm btn-secondary w-full text-center block">
+                                📩 Envoyer l'invitation par Email
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -208,6 +227,8 @@ export class GroupManageComponent implements OnInit {
     inviteEmail = '';
     message = '';
     isError = false;
+    showInviteLink = false;
+    linkCopied = false;
     currentGroupId: number | null = null;
 
     constructor(
@@ -270,7 +291,11 @@ export class GroupManageComponent implements OnInit {
         if (!this.currentGroupId || !this.inviteEmail) return;
         this.loading = true;
         this.message = '';
+        if (!this.currentGroupId || !this.inviteEmail) return;
+        this.loading = true;
+        this.message = '';
         this.isError = false;
+        this.showInviteLink = false;
 
         this.groupsService.inviteMember(this.currentGroupId, this.inviteEmail).subscribe({
             next: () => {
@@ -280,11 +305,35 @@ export class GroupManageComponent implements OnInit {
                 this.loadGroup();
             },
             error: (err) => {
-                this.message = err.error?.message || 'Échec de l\'invitation. Vérifiez l\'adresse email.';
+                this.message = err.error?.message || 'Échec de l\'invitation.';
                 this.isError = true;
                 this.loading = false;
+
+                // Show invite link if user not found (404)
+                if (err.status === 404 || this.message.toLowerCase().includes('not found')) {
+                    this.showInviteLink = true;
+                    this.message = 'Utilisateur introuvable. Utilisez le lien ci-dessous.';
+                }
             }
         });
+    }
+
+    getInviteLink(): string {
+        const baseUrl = environment.appUrl || window.location.origin;
+        return `${baseUrl}/auth/signup?inviteGroup=${this.currentGroupId}`;
+    }
+
+    copyLink() {
+        navigator.clipboard.writeText(this.getInviteLink()).then(() => {
+            this.linkCopied = true;
+            setTimeout(() => this.linkCopied = false, 2000);
+        });
+    }
+
+    getMailtoLink(): string {
+        const subject = encodeURIComponent("Rejoins mon groupe de voyage au Japon !");
+        const body = encodeURIComponent(`Salut,\n\nJe t'invite à rejoindre mon groupe de voyage sur Japan Trip Planner.\n\nClique sur ce lien pour t'inscrire et rejoindre le groupe :\n${this.getInviteLink()}\n\nA très vite !`);
+        return `mailto:${this.inviteEmail}?subject=${subject}&body=${body}`;
     }
 
     removeMember(userId: number) {
@@ -340,12 +389,6 @@ export class GroupManageComponent implements OnInit {
 
         // Find member with loose equality to match string/number
         const member = this.group.members?.find(m => m.user.id == currentUserId);
-
-        console.log('isAdmin Check:', {
-            currentUserId,
-            foundMemberRole: member?.role,
-            isSuperAdmin: this.authService.currentUserValue.role === 'super_admin'
-        });
 
         return member?.role === 'admin' || this.authService.currentUserValue.role === 'super_admin';
     }
