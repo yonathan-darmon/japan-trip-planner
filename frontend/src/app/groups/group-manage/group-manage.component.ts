@@ -337,7 +337,16 @@ export class GroupManageComponent implements OnInit {
     isAdmin(): boolean {
         if (!this.group || !this.authService.currentUserValue) return false;
         const currentUserId = this.authService.currentUserValue.id;
-        const member = this.group.members?.find(m => m.user.id === currentUserId);
+
+        // Find member with loose equality to match string/number
+        const member = this.group.members?.find(m => m.user.id == currentUserId);
+
+        console.log('isAdmin Check:', {
+            currentUserId,
+            foundMemberRole: member?.role,
+            isSuperAdmin: this.authService.currentUserValue.role === 'super_admin'
+        });
+
         return member?.role === 'admin' || this.authService.currentUserValue.role === 'super_admin';
     }
 }

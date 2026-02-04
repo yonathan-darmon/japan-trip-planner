@@ -62,9 +62,9 @@ import { FormsModule } from '@angular/forms';
       </div>
       
       <div class="card glass stat-card" routerLink="/groups">
-        <div class="stat-icon">👥</div>
-        <div class="stat-value">{{ participantCount }}</div>
-        <div class="stat-label">Participants</div>
+        <div class="stat-icon">✈️</div>
+        <div class="stat-value">{{ groupCount }}</div>
+        <div class="stat-label">Vos voyages</div>
       </div>
     </div>
 
@@ -428,6 +428,7 @@ export class DashboardComponent implements OnInit {
   config: TripConfig | null = null;
   suggestionCount = 0;
   participantCount = 0;
+  groupCount = 0;
   generatingItinerary = false;
   itineraries: Itinerary[] = [];
   currentGroup: Group | null = null;
@@ -467,6 +468,7 @@ export class DashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (groups) => {
+          this.groupCount = groups.length;
           if (groups.length === 0) {
             console.warn('⚠️ User has no groups');
             return;
