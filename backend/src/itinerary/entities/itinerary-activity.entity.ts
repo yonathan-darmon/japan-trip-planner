@@ -23,7 +23,7 @@ export class ItineraryActivity {
     @Column({ name: 'order_in_day' })
     orderInDay: number;
 
-    @ManyToOne(() => Suggestion, { eager: true })
+    @ManyToOne(() => Suggestion, { eager: true, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'suggestion_id' })
     suggestion: Suggestion;
 }

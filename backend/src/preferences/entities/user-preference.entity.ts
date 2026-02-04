@@ -22,11 +22,11 @@ export class UserPreference {
     @PrimaryColumn({ name: 'suggestion_id' })
     suggestionId: number;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })
     user: User;
 
-    @ManyToOne(() => Suggestion)
+    @ManyToOne(() => Suggestion, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'suggestion_id' })
     suggestion: Suggestion;
 

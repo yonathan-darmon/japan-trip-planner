@@ -12,14 +12,14 @@ export class GroupMember {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => User, (user) => user.groups)
+    @ManyToOne(() => User, (user) => user.groups, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })
     user: User;
 
     @Column({ name: 'user_id' })
     userId: number;
 
-    @ManyToOne(() => Group, (group) => group.members)
+    @ManyToOne(() => Group, (group) => group.members, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'group_id' })
     group: Group;
 

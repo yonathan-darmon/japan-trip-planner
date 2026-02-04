@@ -66,7 +66,7 @@ export class Suggestion {
     })
     durationHours: number;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'created_by' })
     createdBy: User;
 
