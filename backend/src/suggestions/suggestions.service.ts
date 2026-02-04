@@ -255,6 +255,10 @@ export class SuggestionsService {
             relations: ['createdBy', 'country', 'preferences', 'preferences.user'],
         });
 
+        const counts = await this.suggestionsRepository.query('SELECT created_by, COUNT(*) as count FROM suggestions GROUP BY created_by');
+        console.log(`🔍 [AUDIT] NODE_ENV=${process.env.NODE_ENV} | Total Suggs=${results.length}`);
+        console.log(`🔍 [AUDIT] Raw counts in DB:`, JSON.stringify(counts));
+
         if (results.length > 0) {
             const s = results[0];
             console.log(`🔍 Debug Suggestion #${s.id}: createdById=${s.createdById}, createdBy=${s.createdById ? (s.createdBy ? s.createdBy.username : 'NULL_RELATION') : 'NULL_ID'}`);
