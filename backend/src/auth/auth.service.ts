@@ -9,6 +9,8 @@ import { RegisterDto } from './dto/register.dto';
 import { Country } from '../countries/entities/country.entity';
 import { Group } from '../groups/entities/group.entity';
 import { GroupMember, GroupRole } from '../groups/entities/group-member.entity';
+import { TripConfig } from '../trip-config/entities/trip-config.entity';
+
 
 @Injectable()
 export class AuthService {
@@ -21,8 +23,11 @@ export class AuthService {
         private groupsRepository: Repository<Group>,
         @InjectRepository(GroupMember)
         private groupMembersRepository: Repository<GroupMember>,
+        @InjectRepository(TripConfig)
+        private tripConfigRepository: Repository<TripConfig>,
         private jwtService: JwtService,
     ) { }
+
 
     async validateUser(username: string, password: string): Promise<any> {
         const user = await this.usersRepository.findOne({ where: { username } });
@@ -112,6 +117,19 @@ export class AuthService {
         group.country = country;
         const savedGroup = await this.groupsRepository.save(group);
 
+        // 4.5. Create TripConfig for the group
+        const tripConfig = new TripConfig();
+        tripConfig.durationDays = 21;
+        tripConfig.startDate = null;
+        tripConfig.endDate = null;
+        const savedConfig = await this.tripConfigRepository.save(tripConfig);
+
+        // Link TripConfig to Group
+        savedGroup.tripConfigId = savedConfig.id;
+        await this.groupsRepository.save(savedGroup);
+
+        console.log(`✅ Created Group #${savedGroup.id} with TripConfig #${savedConfig.id} for user ${savedUser.username}`);
+
         // 5. Assign User as Admin
         const member = new GroupMember();
         member.user = savedUser;
@@ -120,6 +138,7 @@ export class AuthService {
         await this.groupMembersRepository.save(member);
 
         return this.login({ username: savedUser.username, password: registerDto.password });
+
     }
 
     async hashPassword(password: string): Promise<string> {

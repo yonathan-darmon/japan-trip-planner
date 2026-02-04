@@ -10,10 +10,11 @@ import { User } from '../users/entities/user.entity';
 import { Country } from '../countries/entities/country.entity';
 import { Group } from '../groups/entities/group.entity';
 import { GroupMember } from '../groups/entities/group-member.entity';
+import { TripConfig } from '../trip-config/entities/trip-config.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, Country, Group, GroupMember]),
+        TypeOrmModule.forFeature([User, Country, Group, GroupMember, TripConfig]),
         PassportModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],
@@ -31,3 +32,4 @@ import { GroupMember } from '../groups/entities/group-member.entity';
     exports: [AuthService],
 })
 export class AuthModule { }
+

@@ -15,6 +15,11 @@ export class GroupsController {
         return this.groupsService.findByUser(req.user.id);
     }
 
+    @Get('my-groups')
+    async getMyGroupsAlias(@Request() req: any) {
+        return this.groupsService.findByUser(req.user.id);
+    }
+
     @Get()
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPER_ADMIN)

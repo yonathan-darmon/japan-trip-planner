@@ -21,11 +21,12 @@ export class TripConfigService {
 
     constructor(private http: HttpClient) { }
 
-    getConfig(): Observable<TripConfig> {
-        return this.http.get<TripConfig>(this.apiUrl);
+    getConfig(groupId: number): Observable<TripConfig> {
+        return this.http.get<TripConfig>(`${this.apiUrl}?groupId=${groupId}`);
     }
 
-    updateConfig(data: Partial<TripConfig>): Observable<TripConfig> {
-        return this.http.patch<TripConfig>(this.apiUrl, data);
+    updateConfig(groupId: number, data: Partial<TripConfig>): Observable<TripConfig> {
+        return this.http.patch<TripConfig>(`${this.apiUrl}/${groupId}`, data);
     }
 }
+

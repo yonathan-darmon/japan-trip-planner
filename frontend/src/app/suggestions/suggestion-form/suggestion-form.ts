@@ -3,6 +3,7 @@ import { CommonModule, NgIf, NgFor, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
 import * as L from 'leaflet';
 import { SuggestionsService, SuggestionCategory } from '../../core/services/suggestions';
 import { GroupsService } from '../../core/services/groups.service';
@@ -719,11 +720,13 @@ export class SuggestionFormComponent implements OnInit, AfterViewInit {
   }
 
   private loadContext() {
-    this.tripConfigService.getConfig()
+    this.groupsService.getMyGroups()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (config) => {
-          this.contextGroup = config.group;
+        next: (groups) => {
+          if (groups.length > 0) {
+            this.contextGroup = groups[0];
+          }
         },
         error: (err) => console.warn('Could not load trip context', err)
       });

@@ -10,8 +10,8 @@ import { RouterLink } from '@angular/router';
       <div class="hero-section">
         <h1>Comment ça marche ?</h1>
         <p>
-          Organiser votre voyage au Japon n'a jamais été aussi simple. 
-          Suivez ces 4 étapes pour créer l'itinéraire parfait.
+          Organiser votre voyage n'a jamais été aussi simple. 
+          Suivez ces étapes pour créer l'itinéraire parfait.
         </p>
       </div>
 
@@ -19,55 +19,55 @@ import { RouterLink } from '@angular/router';
         <!-- Step 1 -->
         <div class="step-card">
           <div class="step-number">1</div>
-          <div class="icon-wrapper">🍯</div>
-          <h3>Suggérer</h3>
+          <div class="icon-wrapper">👥</div>
+          <h3>Groupe</h3>
           <p>
-            Tout part du <span class="highlight">Pot Commun</span>. Ajoutez toutes vos envies : temples, restaurants, parcs d'attractions... 
-            Ne vous souciez pas encore du planning, jetez juste vos idées !
+            Tout commence par un <span class="highlight">Groupe</span>. 
+            Rejoignez-en un ou créez-le pour définir votre destination. Chaque groupe est isolé et sécurisé.
           </p>
         </div>
 
         <!-- Step 2 -->
         <div class="step-card">
           <div class="step-number">2</div>
-          <div class="icon-wrapper">❤️</div>
-          <h3>Voter</h3>
+          <div class="icon-wrapper">⚙️</div>
+          <h3>Configurer</h3>
           <p>
-            En groupe ou en solo, votez pour vos activités préférées. 
-            L'algorithme priorisera les activités avec le plus de votes (<span class="highlight">Cœurs</span>).
+            L'administrateur du groupe définit la <span class="highlight">durée</span> et les dates du voyage via le Dashboard.
+            C'est la base de votre itinéraire.
           </p>
         </div>
 
         <!-- Step 3 -->
         <div class="step-card">
           <div class="step-number">3</div>
-          <div class="icon-wrapper">✨</div>
-          <h3>Générer</h3>
+          <div class="icon-wrapper">🍯</div>
+          <h3>Suggérer</h3>
           <p>
-            C'est là que la magie opère. Notre algorithme analyse la géographie, les horaires et la durée pour créer un 
-            <span class="highlight">planning optimisé</span> jour par jour.
+            Remplissez le <span class="highlight">Pot Commun</span> de votre groupe.
+            Ajoutez toutes vos envies : temples, restaurants, parcs... Elles ne seront visibles que par vous.
           </p>
         </div>
 
         <!-- Step 4 -->
         <div class="step-card">
           <div class="step-number">4</div>
-          <div class="icon-wrapper">🛠️</div>
-          <h3>Ajuster</h3>
+          <div class="icon-wrapper">❤️</div>
+          <h3>Voter</h3>
           <p>
-            Le résultat ne vous convient pas à 100% ? Pas de problème. 
-            Utilisez le <span class="highlight">Drag & Drop</span> pour déplacer des activités ou changer d'hôtel.
+            Votez pour vos activités préférées. 
+            L'algorithme priorisera les activités les plus populaires au sein du groupe.
           </p>
         </div>
 
         <!-- Step 5 -->
         <div class="step-card">
           <div class="step-number">5</div>
-          <div class="icon-wrapper">👥</div>
-          <h3>Collaborer</h3>
+          <div class="icon-wrapper">✨</div>
+          <h3>Générer & Ajuster</h3>
           <p>
-            Invitez vos amis dans votre <span class="highlight">Groupe</span>. 
-            Chaque groupe a son propre voyage et ses propres votes. Partagez l'expérience !
+            Générez un planning optimisé jour par jour, puis ajustez-le par <span class="highlight">Drag & Drop</span>
+            pour qu'il soit parfait.
           </p>
         </div>
       </div>

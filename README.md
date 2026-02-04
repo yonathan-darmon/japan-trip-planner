@@ -4,8 +4,6 @@ Application collaborative et intelligente pour planifier votre voyage de rêve a
 
 Ce projet permet à un groupe d'amis de proposer des activités, de voter pour leurs préférées, et de générer automatiquement un itinéraire optimisé géographiquement.
 
-![Japan Trip Planner Banner](frontend/src/assets/banner-placeholder.png) 
-*(Ajoutez une capture d'écran ici)*
 
 ## ✨ Fonctionnalités Principales
 
@@ -60,7 +58,7 @@ graph TD
 - **Items Logistiques** : Ajoutez des cartes de transport ou des eSIMs pour suivre votre budget sans impacter le clustering géographique.
 - **Édition Rapide** : Changez l'hébergement ou l'ordre des visites en un clic.
 - **Sécurité & Confidentialité** : 
-  - **Groupes** : Créez des groupes de voyage distincts (ex: "Voyage 2024", "Japon avec les parents").
+  - **Groupes** : Créez des groupes de voyage distincts avec leur propre configuration (durée, dates) et données isolées (ex: "Voyage 2024", "Japon avec les parents").
   - **Internationalisation** : Gestion automatique des devises (¥ pour Japon, € pour Europe) et des spécificités locales.
   - **Visibilité** : Choisissez de rendre vos suggestions publiques (pour la communauté) ou privées (pour votre groupe uniquement).
   - Mode **lecture seule** pour consulter les plannings sans risque.

@@ -9,6 +9,8 @@ import { PreferencesService, UserPreference } from '../../core/services/preferen
 import { PreferenceSelectorComponent } from '../preference-selector/preference-selector';
 import { WebSocketService } from '../../core/services/websocket.service';
 import { CurrencyService } from '../../core/services/currency.service';
+import { GroupsService } from '../../core/services/groups.service';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-suggestion-list',
@@ -452,6 +454,7 @@ export class SuggestionListComponent implements OnInit {
   searchQuery = signal('');
   selectedCategory = signal('');
   sortOrder = signal('recent');
+  currentGroupId = signal<number | null>(null);
 
   categories = Object.values(SuggestionCategory);
 
@@ -463,13 +466,13 @@ export class SuggestionListComponent implements OnInit {
     const category = this.selectedCategory();
     const sort = this.sortOrder();
 
-    const currentGroupId = localStorage.getItem('currentGroupId');
+    const currentGroupId = this.currentGroupId();
 
     // 0. Filter by Tab
     if (tab === 'official') {
       list = list.filter(s => s.isGlobal);
     } else {
-      list = list.filter(s => s.groupId && String(s.groupId) === currentGroupId);
+      list = list.filter(s => s.groupId && s.groupId === currentGroupId);
     }
 
     // 1. Filter by Search Query
@@ -508,7 +511,8 @@ export class SuggestionListComponent implements OnInit {
     private preferencesService: PreferencesService,
     private authService: AuthService,
     private wsService: WebSocketService,
-    private currencyService: CurrencyService
+    private currencyService: CurrencyService,
+    private groupsService: GroupsService
   ) {
     this.authService.currentUser$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -523,13 +527,18 @@ export class SuggestionListComponent implements OnInit {
   }
 
   loadSuggestions() {
-    const groupId = localStorage.getItem('currentGroupId');
-    this.suggestionsService.getAll({ groupId: groupId ? +groupId : undefined })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (data) => this.suggestions.set(data),
-        error: (err) => console.error(err)
-      });
+    this.groupsService.getMyGroups().pipe(take(1)).subscribe(groups => {
+      if (groups.length > 0) {
+        const group = groups[0];
+        this.currentGroupId.set(group.id);
+        this.suggestionsService.getAll({ groupId: group.id })
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (data) => this.suggestions.set(data),
+            error: (err) => console.error(err)
+          });
+      }
+    });
   }
 
   setupRealtimeSync() {

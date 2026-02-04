@@ -53,10 +53,14 @@ export class ItineraryService {
      * PHASE 1: Collect trip configuration and voted suggestions
      */
     private async collectData(groupId?: number): Promise<{ config: TripConfig; votedSuggestions: Suggestion[] }> {
-        const config = await this.tripConfigService.getConfig();
+        if (!groupId) {
+            throw new BadRequestException('groupId is required for itinerary generation');
+        }
+
+        const config = await this.tripConfigService.getConfig(groupId);
         const allSuggestions = await this.suggestionsService.findAll({ groupId });
 
-        this.logger.log(`=== PHASE 1: COLLECT DATA (Group: ${groupId || 'None'}) ===`);
+        this.logger.log(`=== PHASE 1: COLLECT DATA (Group: ${groupId}) ===`);
         this.logger.debug(`Total suggestions visible: ${allSuggestions.length}`);
 
         // 1. Activities MUST be voted (and not deleted, but findAll handles that)

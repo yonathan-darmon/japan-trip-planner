@@ -36,6 +36,7 @@ export interface Itinerary {
 export interface GenerateItineraryRequest {
     name?: string;
     maxActivitiesPerDay?: number;
+    groupId?: number;
 }
 
 export interface ReorderRequest {
@@ -52,9 +53,7 @@ export class ItineraryService {
     constructor(private http: HttpClient) { }
 
     generate(data: GenerateItineraryRequest): Observable<Itinerary> {
-        const groupId = localStorage.getItem('currentGroupId');
-        const payload = { ...data, groupId: groupId ? +groupId : undefined };
-        return this.http.post<Itinerary>(`${this.apiUrl}/generate`, payload);
+        return this.http.post<Itinerary>(`${this.apiUrl}/generate`, data);
     }
 
     getAll(groupId?: number): Observable<Itinerary[]> {

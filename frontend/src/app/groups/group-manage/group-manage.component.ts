@@ -254,7 +254,7 @@ export class GroupManageComponent implements OnInit {
         this.groupsService.getGroup(this.currentGroupId).subscribe({
             next: (group) => {
                 this.group = group;
-                this.tripConfigService.getConfig().subscribe(config => {
+                this.tripConfigService.getConfig(this.currentGroupId!).subscribe(config => {
                     this.config = config;
                     this.loading = false;
                 });
@@ -304,7 +304,7 @@ export class GroupManageComponent implements OnInit {
         this.message = '';
         this.isError = false;
 
-        this.tripConfigService.updateConfig({
+        this.tripConfigService.updateConfig(this.currentGroupId!, {
             durationDays: this.config.durationDays,
             startDate: this.config.startDate,
             endDate: this.config.endDate

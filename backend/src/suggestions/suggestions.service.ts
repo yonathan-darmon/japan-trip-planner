@@ -30,7 +30,6 @@ export class SuggestionsService {
         private syncGateway: SyncGateway,
         @Inject(forwardRef(() => ItineraryService))
         private itineraryService: ItineraryService,
-        @Inject(forwardRef(() => GroupsService))
         private groupsService: GroupsService,
     ) { }
 
@@ -209,19 +208,42 @@ export class SuggestionsService {
             if (options.isGlobal !== undefined) where.isGlobal = options.isGlobal;
             if (options.groupId) where.groupId = options.groupId;
         } else {
-            // Standard/Classic View: (isGlobal: true OR groupId: X)
+            // Standard View: STRICT filtering by country
+            // If groupId is provided, get the country from the group
+            let effectiveCountryId = options.countryId;
+
+            if (options.groupId && !effectiveCountryId) {
+                try {
+                    const group = await this.groupsService.findOne(options.groupId);
+                    if (group && group.countryId) {
+                        effectiveCountryId = group.countryId;
+                        console.log(`🔍 Filtering suggestions for Group #${options.groupId}, Country #${effectiveCountryId}`);
+                    }
+                } catch (err) {
+                    console.warn(`Failed to fetch group ${options.groupId}:`, err.message);
+                }
+            }
+
+            // Build conditions: ONLY show suggestions from the same country
             const conditions: any[] = [];
 
-            // 1. Always show global suggestions matching country (if given)
-            const globalCond: any = { isGlobal: true };
-            if (options.countryId) globalCond.countryId = options.countryId;
-            conditions.push(globalCond);
+            if (effectiveCountryId) {
+                // 1. Global suggestions from this country
+                conditions.push({ isGlobal: true, countryId: effectiveCountryId });
 
-            // 2. If a group context is provided, also show its private suggestions
-            if (options.groupId) {
-                const groupCond: any = { groupId: options.groupId };
-                if (options.countryId) groupCond.countryId = options.countryId;
-                conditions.push(groupCond);
+                // 2. Private suggestions from this group (same country)
+                if (options.groupId) {
+                    conditions.push({ groupId: options.groupId, countryId: effectiveCountryId });
+                }
+            } else {
+                // Fallback: if no country context, show only group-specific suggestions
+                if (options.groupId) {
+                    conditions.push({ groupId: options.groupId });
+                } else {
+                    // No context at all, return empty
+                    console.warn('⚠️ No country or group context provided, returning empty suggestions');
+                    return [];
+                }
             }
 
             where = conditions;

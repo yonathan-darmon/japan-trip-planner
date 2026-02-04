@@ -3,7 +3,7 @@ import { SuggestionsService } from './suggestions.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Suggestion } from './entities/suggestion.entity';
 import { Country } from '../countries/entities/country.entity';
-import { S3Service } from './s3.service';
+import { S3Service } from '../storage/s3.service';
 import { GeocodingService } from './geocoding.service';
 import { SyncGateway } from '../sync/sync.gateway';
 import { ItineraryService } from '../itinerary/itinerary.service';

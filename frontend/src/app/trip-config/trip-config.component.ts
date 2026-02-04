@@ -16,7 +16,11 @@ import { Router, RouterLink } from '@angular/router';
           <p>Définissez les paramètres globaux du projet</p>
         </div>
 
-        <form (ngSubmit)="onSubmit()" #configForm="ngForm" *ngIf="config">
+        <div *ngIf="!groupId" class="message error">
+          Aucun groupe sélectionné. Veuillez sélectionner un groupe d'abord.
+        </div>
+
+        <form (ngSubmit)="onSubmit()" #configForm="ngForm" *ngIf="config && groupId">
           
           <div class="form-group">
             <label>Durée du voyage (jours)</label>
@@ -167,15 +171,21 @@ export class TripConfigComponent implements OnInit {
   loading = false;
   message = '';
   isError = false;
+  groupId: number | null = null;
 
   constructor(private tripConfigService: TripConfigService) { }
 
   ngOnInit() {
-    this.loadConfig();
+    const stored = localStorage.getItem('currentGroupId');
+    if (stored) {
+      this.groupId = +stored;
+      this.loadConfig();
+    }
   }
 
   loadConfig() {
-    this.tripConfigService.getConfig().subscribe({
+    if (!this.groupId) return;
+    this.tripConfigService.getConfig(this.groupId).subscribe({
       next: (data: TripConfig) => {
         this.config = data;
       },
@@ -184,14 +194,14 @@ export class TripConfigComponent implements OnInit {
   }
 
   onSubmit() {
-    if (!this.config) return;
+    if (!this.config || !this.groupId) return;
 
     this.loading = true;
     this.message = '';
     this.isError = false;
 
     // Call API with partial update
-    this.tripConfigService.updateConfig({
+    this.tripConfigService.updateConfig(this.groupId, {
       durationDays: this.config.durationDays,
       startDate: this.config.startDate,
       endDate: this.config.endDate
