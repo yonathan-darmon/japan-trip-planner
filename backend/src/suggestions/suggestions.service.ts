@@ -255,9 +255,11 @@ export class SuggestionsService {
             relations: ['createdBy', 'country', 'preferences', 'preferences.user'],
         });
 
+        // Audit schema and data
+        const columns = await this.suggestionsRepository.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'suggestions'");
         const counts = await this.suggestionsRepository.query('SELECT created_by, COUNT(*) as count FROM suggestions GROUP BY created_by');
-        console.log(`🔍 [AUDIT] NODE_ENV=${process.env.NODE_ENV} | Total Suggs=${results.length}`);
-        console.log(`🔍 [AUDIT] Raw counts in DB:`, JSON.stringify(counts));
+        console.log(`🔍 [SCHEMA AUDIT] Columns:`, columns.map(c => c.column_name).join(', '));
+        console.log(`🔍 [DATA AUDIT] Raw counts in DB:`, JSON.stringify(counts));
 
         if (results.length > 0) {
             const s = results[0];
