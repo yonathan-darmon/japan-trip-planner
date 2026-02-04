@@ -249,11 +249,17 @@ export class SuggestionsService {
             where = conditions;
         }
 
-        return this.suggestionsRepository.find({
+        const results = await this.suggestionsRepository.find({
             where,
             order: { createdAt: 'DESC' },
             relations: ['createdBy', 'country', 'preferences', 'preferences.user'],
         });
+
+        if (results.length > 0) {
+            const s = results[0];
+            console.log(`🔍 Debug Suggestion #${s.id}: createdById=${s.createdById}, createdBy=${s.createdById ? (s.createdBy ? s.createdBy.username : 'NULL_RELATION') : 'NULL_ID'}`);
+        }
+        return results;
     }
 
     async findOne(id: number): Promise<Suggestion> {
