@@ -222,6 +222,7 @@ export class SuggestionModerationComponent implements OnInit {
     ) { }
 
     ngOnInit() {
+        console.log('DEBUG: isSuperAdmin=', this.isSuperAdmin, 'Role=', this.authService.currentUserValue?.role);
         this.loadCountries();
         this.loadGroups();
         this.loadSuggestions();
