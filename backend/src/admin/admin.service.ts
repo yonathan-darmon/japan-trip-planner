@@ -77,4 +77,12 @@ export class AdminService {
         user.tokenVersion = (user.tokenVersion || 1) + 1;
         return this.usersRepository.save(user);
     }
+
+    async reattributeSuggestion(suggestionId: number, userId: number | null) {
+        // We use query builder or raw update for simplicity if Suggesion repo is not injected
+        return this.usersRepository.query(
+            'UPDATE suggestions SET created_by = $1 WHERE id = $2',
+            [userId, suggestionId]
+        );
+    }
 }

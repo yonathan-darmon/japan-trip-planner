@@ -38,7 +38,7 @@ import { CurrencyModule } from './currency/currency.module';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsRun: true, // Run migrations automatically on startup
-        synchronize: process.env.NODE_ENV !== 'production', // Disable in production
+        synchronize: false, // Disabled to prevent accidental data loss. Use migrations instead.
         logging: true,
         ssl: process.env.DATABASE_HOST !== 'localhost' ? { rejectUnauthorized: false } : false,
       }),

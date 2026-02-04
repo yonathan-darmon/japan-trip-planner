@@ -65,4 +65,8 @@ export class UsersService {
     addUserToGroup(userId: number, groupId: number, role: string): Observable<any> {
         return this.http.post<any>(`${environment.apiUrl}/admin/users/${userId}/groups`, { groupId, role });
     }
+
+    reattributeSuggestion(suggestionId: number, userId: number | null): Observable<any> {
+        return this.http.patch<any>(`${environment.apiUrl}/admin/suggestions/${suggestionId}/attribute`, { userId });
+    }
 }

@@ -249,23 +249,11 @@ export class SuggestionsService {
             where = conditions;
         }
 
-        const results = await this.suggestionsRepository.find({
+        return this.suggestionsRepository.find({
             where,
             order: { createdAt: 'DESC' },
             relations: ['createdBy', 'country', 'preferences', 'preferences.user'],
         });
-
-        // Audit schema and data
-        const columns = await this.suggestionsRepository.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'suggestions'");
-        const counts = await this.suggestionsRepository.query('SELECT created_by, COUNT(*) as count FROM suggestions GROUP BY created_by');
-        console.log(`🔍 [SCHEMA AUDIT] Columns:`, columns.map(c => c.column_name).join(', '));
-        console.log(`🔍 [DATA AUDIT] Raw counts in DB:`, JSON.stringify(counts));
-
-        if (results.length > 0) {
-            const s = results[0];
-            console.log(`🔍 Debug Suggestion #${s.id}: createdById=${s.createdById}, createdBy=${s.createdById ? (s.createdBy ? s.createdBy.username : 'NULL_RELATION') : 'NULL_ID'}`);
-        }
-        return results;
     }
 
     async findOne(id: number): Promise<Suggestion> {

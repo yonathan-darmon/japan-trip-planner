@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { SuggestionsService, Suggestion, SuggestionCategory } from '../../core/services/suggestions';
 import { CountriesService, Country } from '../../core/services/countries.service';
 import { GroupsService, Group } from '../../core/services/groups.service';
+import { UsersService } from '../../core/services/users';
+import { AuthService } from '../../core/services/auth';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 
@@ -97,7 +99,16 @@ import { RouterLink } from '@angular/router';
                             </select>
                         </td>
                         <td>
-                            <div class="text-sm">{{ s.createdBy?.username || 'Anonyme' }}</div>
+                            <div class="flex items-center gap-2">
+                                <div class="text-sm">{{ s.createdBy?.username || 'Anonyme' }}</div>
+                                <div *ngIf="isSuperAdmin && !s.createdBy" class="flex items-center gap-1">
+                                    <select #userSelect class="admin-select-xs">
+                                        <option value="">-- Attribuer à --</option>
+                                        <option *ngFor="let u of allUsers" [value]="u.id">{{ u.username }}</option>
+                                    </select>
+                                    <button (click)="attributeTo(s, userSelect.value)" class="btn btn-icon-xs" title="Attribuer">✅</button>
+                                </div>
+                            </div>
                         </td>
                         <td>
                             <div class="flex gap-2">
@@ -175,6 +186,10 @@ import { RouterLink } from '@angular/router';
     .tab-btn-sm:hover { background: rgba(255, 255, 255, 0.1); color: white; }
     .tab-btn-sm.active { background: var(--color-primary); color: white; box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3); }
 
+    .admin-select-xs { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 4px; padding: 0.2rem 0.4rem; font-size: 0.75rem; outline: none; }
+    .btn-icon-xs { background: rgba(255, 255, 255, 0.1); border: none; cursor: pointer; border-radius: 4px; padding: 0.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .btn-icon-xs:hover { background: rgba(107, 207, 127, 0.3); }
+
     @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
   `]
 })
@@ -189,18 +204,34 @@ export class SuggestionModerationComponent implements OnInit {
     filterCountryId: number | null = null;
     searchQuery = '';
 
+    allUsers: any[] = [];
+
+    get isSuperAdmin(): boolean {
+        const user = this.authService.currentUserValue;
+        return user?.role === 'super_admin' || user?.role === 'admin';
+    }
+
     private destroyRef = inject(DestroyRef);
 
     constructor(
         private suggestionsService: SuggestionsService,
         private countriesService: CountriesService,
-        private groupsService: GroupsService
+        private groupsService: GroupsService,
+        private usersService: UsersService,
+        private authService: AuthService
     ) { }
 
     ngOnInit() {
         this.loadCountries();
         this.loadGroups();
         this.loadSuggestions();
+        if (this.isSuperAdmin) {
+            this.loadUsers();
+        }
+    }
+
+    loadUsers() {
+        this.usersService.getAll().subscribe(data => this.allUsers = data);
     }
 
     loadCountries() {
@@ -296,5 +327,17 @@ export class SuggestionModerationComponent implements OnInit {
                 }
             });
         }
+    }
+
+    attributeTo(s: Suggestion, userIdString: string) {
+        if (!userIdString) return;
+        const userId = parseInt(userIdString);
+        this.usersService.reattributeSuggestion(s.id, userId).subscribe({
+            next: () => {
+                alert('Suggestion ré-attribuée avec succès');
+                this.loadSuggestions();
+            },
+            error: (err) => alert("Erreur lors de l'attribution")
+        });
     }
 }

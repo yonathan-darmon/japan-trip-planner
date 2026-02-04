@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -46,5 +46,13 @@ export class AdminController {
     @Post('users/:userId/force-logout')
     async forceLogout(@Param('userId', ParseIntPipe) userId: number) {
         return this.adminService.forceLogout(userId);
+    }
+
+    @Patch('suggestions/:id/attribute')
+    async reattributeSuggestion(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { userId: number | null },
+    ) {
+        return this.adminService.reattributeSuggestion(id, body.userId);
     }
 }
