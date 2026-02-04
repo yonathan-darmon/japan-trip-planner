@@ -92,50 +92,67 @@ export class AuthService {
         const savedUser = await this.usersRepository.save(user);
 
         // 3. Handle Country
-        let country: Country | null = null;
-        if (registerDto.countryId) {
-            country = await this.countriesRepository.findOneBy({ id: registerDto.countryId });
-            if (!country) throw new BadRequestException('Invalid Country ID');
-        } else if (registerDto.newCountryName) {
-            // Check if exists by name
-            country = await this.countriesRepository.findOneBy({ name: registerDto.newCountryName });
-            if (!country) {
-                const newCountry = new Country();
-                newCountry.name = registerDto.newCountryName;
-                newCountry.code = registerDto.newCountryName.substring(0, 3).toUpperCase(); // Simple code generation
-                country = await this.countriesRepository.save(newCountry);
-            }
+        // 3. Handle Group Logic (Invite or New)
+        if (registerDto.inviteGroupId) {
+            // A. Join Existing Group
+            const group = await this.groupsRepository.findOneBy({ id: registerDto.inviteGroupId });
+            if (!group) throw new BadRequestException('Le groupe d\'invitation est introuvable');
+
+            const member = new GroupMember();
+            member.user = savedUser;
+            member.group = group;
+            member.role = GroupRole.MEMBER; // Join as regular user
+            await this.groupMembersRepository.save(member);
+
+            console.log(`✅ User ${savedUser.username} joined Group #${group.id} via invite`);
+
         } else {
-            // Fallback to Japan
-            country = await this.countriesRepository.findOneBy({ name: 'Japan' });
-            if (!country) throw new BadRequestException('Default country "Japan" not found. Please select a country.');
+            // B. Create New Group (Default Flow)
+            let country: Country | null = null;
+            if (registerDto.countryId) {
+                country = await this.countriesRepository.findOneBy({ id: registerDto.countryId });
+                if (!country) throw new BadRequestException('Invalid Country ID');
+            } else if (registerDto.newCountryName) {
+                // Check if exists by name
+                country = await this.countriesRepository.findOneBy({ name: registerDto.newCountryName });
+                if (!country) {
+                    const newCountry = new Country();
+                    newCountry.name = registerDto.newCountryName;
+                    newCountry.code = registerDto.newCountryName.substring(0, 3).toUpperCase(); // Simple code generation
+                    country = await this.countriesRepository.save(newCountry);
+                }
+            } else {
+                // Fallback to Japan
+                country = await this.countriesRepository.findOneBy({ name: 'Japan' });
+                if (!country) throw new BadRequestException('Default country "Japan" not found. Please select a country.');
+            }
+
+            // Create Group
+            const group = new Group();
+            group.name = `Voyage ${country.name}`;
+            group.country = country;
+            const savedGroup = await this.groupsRepository.save(group);
+
+            // Create TripConfig for the group
+            const tripConfig = new TripConfig();
+            tripConfig.durationDays = 21;
+            tripConfig.startDate = null;
+            tripConfig.endDate = null;
+            const savedConfig = await this.tripConfigRepository.save(tripConfig);
+
+            // Link TripConfig to Group
+            savedGroup.tripConfigId = savedConfig.id;
+            await this.groupsRepository.save(savedGroup);
+
+            console.log(`✅ Created Group #${savedGroup.id} with TripConfig #${savedConfig.id} for user ${savedUser.username}`);
+
+            // Assign User as Admin
+            const member = new GroupMember();
+            member.user = savedUser;
+            member.group = savedGroup;
+            member.role = GroupRole.ADMIN;
+            await this.groupMembersRepository.save(member);
         }
-
-        // 4. Create Group
-        const group = new Group();
-        group.name = `Voyage ${country.name}`;
-        group.country = country;
-        const savedGroup = await this.groupsRepository.save(group);
-
-        // 4.5. Create TripConfig for the group
-        const tripConfig = new TripConfig();
-        tripConfig.durationDays = 21;
-        tripConfig.startDate = null;
-        tripConfig.endDate = null;
-        const savedConfig = await this.tripConfigRepository.save(tripConfig);
-
-        // Link TripConfig to Group
-        savedGroup.tripConfigId = savedConfig.id;
-        await this.groupsRepository.save(savedGroup);
-
-        console.log(`✅ Created Group #${savedGroup.id} with TripConfig #${savedConfig.id} for user ${savedUser.username}`);
-
-        // 5. Assign User as Admin
-        const member = new GroupMember();
-        member.user = savedUser;
-        member.group = savedGroup;
-        member.role = GroupRole.ADMIN;
-        await this.groupMembersRepository.save(member);
 
         return this.login({ username: savedUser.username, password: registerDto.password });
 

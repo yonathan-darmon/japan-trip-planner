@@ -20,4 +20,8 @@ export class RegisterDto {
     @IsString()
     @IsOptional()
     newCountryName?: string;
+
+    @IsNumber()
+    @IsOptional()
+    inviteGroupId?: number;
 }

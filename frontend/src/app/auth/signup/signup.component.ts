@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -14,8 +14,10 @@ import { environment } from '../../../environments/environment';
     <div class="signup-container">
       <div class="card glass signup-card">
         <div class="signup-header">
-          <h1>✨ Rejoignez l'aventure</h1>
-          <p>Créez votre compte et votre groupe de voyage</p>
+          <h1 *ngIf="!inviteGroupId">✨ Rejoignez l'aventure</h1>
+          <h1 *ngIf="inviteGroupId">👋 Rejoindre le voyage</h1>
+          <p *ngIf="!inviteGroupId">Créez votre compte et votre groupe de voyage</p>
+          <p *ngIf="inviteGroupId">Créez votre compte pour rejoindre le groupe</p>
         </div>
 
         <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
@@ -34,7 +36,7 @@ import { environment } from '../../../environments/environment';
             <input id="password" type="password" formControlName="password" class="form-input" placeholder="6 caractères minimum">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" *ngIf="!inviteGroupId">
             <label class="form-label" for="countryId">Destination</label>
             <select formControlName="countryId" id="countryId" class="form-input select-field">
               <option [ngValue]="null" disabled>Sélectionnez un pays</option>
@@ -145,11 +147,13 @@ export class SignupComponent {
   countries: any[] = [];
   loading = false;
   error = '';
+  inviteGroupId: number | null = null;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private http: HttpClient
   ) {
     this.signupForm = this.fb.group({
@@ -161,6 +165,16 @@ export class SignupComponent {
     });
 
     this.fetchCountries();
+
+    // Check for invite
+    this.route.queryParams.subscribe(params => {
+      if (params['inviteGroup']) {
+        this.inviteGroupId = +params['inviteGroup'];
+        // Remove validators for country as we skip it
+        this.signupForm.get('countryId')?.clearValidators();
+        this.signupForm.get('countryId')?.updateValueAndValidity();
+      }
+    });
   }
 
   fetchCountries() {
@@ -187,8 +201,9 @@ export class SignupComponent {
       username: val.username,
       email: val.email,
       password: val.password,
-      countryId: val.countryId === 'new' ? null : val.countryId,
-      newCountryName: val.countryId === 'new' ? val.newCountryName : null
+      countryId: this.inviteGroupId ? null : (val.countryId === 'new' ? null : val.countryId),
+      newCountryName: this.inviteGroupId ? null : (val.countryId === 'new' ? val.newCountryName : null),
+      inviteGroupId: this.inviteGroupId
     };
 
     this.authService.register(payload).subscribe({
