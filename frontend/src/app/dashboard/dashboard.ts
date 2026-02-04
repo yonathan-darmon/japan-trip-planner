@@ -18,7 +18,7 @@ import { FormsModule } from '@angular/forms';
   imports: [AsyncPipe, RouterLink, CommonModule, FormsModule],
   template: `
     <div class="dashboard-header fade-in">
-      <h1>👋 Konnichiwa, {{ (currentUser$ | async)?.username }} !</h1>
+      <h1>👋 {{ getGreeting(currentGroup?.country?.code) }}, {{ (currentUser$ | async)?.username }} !</h1>
       <div class="subtitle-container">
         <p>Prêt à planifier votre voyage <span *ngIf="currentGroup?.country">en {{ currentGroup?.country?.name }}</span> ?</p>
         <div *ngIf="currentGroup" class="group-badge">
@@ -33,7 +33,10 @@ import { FormsModule } from '@angular/forms';
       <div class="card glass admin-card">
         <div class="card-header">
           <h3>⚙️ Administration du Groupe</h3>
-          <button class="btn btn-sm btn-outline" (click)="showConfigModal = true">Modifier configuration</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-sm btn-secondary" routerLink="/groups/manage">👥 Membres / Inviter</button>
+            <button class="btn btn-sm btn-outline" (click)="showConfigModal = true">Modifier configuration</button>
+          </div>
         </div>
         <div class="admin-stats">
           <div class="stat-item">
@@ -612,5 +615,22 @@ export class DashboardComponent implements OnInit {
         },
         error: (err) => alert('Erreur lors de la suppression')
       });
+  }
+
+  getGreeting(code?: string): string {
+    if (!code) return 'Bonjour';
+    const greetings: Record<string, string> = {
+      'JP': 'Konnichiwa',
+      'FR': 'Bonjour',
+      'US': 'Hello',
+      'GB': 'Hello',
+      'CA': 'Hello',
+      'ES': 'Hola',
+      'IT': 'Ciao',
+      'DE': 'Guten Tag',
+      'CN': 'Ni hao',
+      'KR': 'Annyeonghaseyo'
+    };
+    return greetings[code.toUpperCase()] || 'Bonjour';
   }
 }
