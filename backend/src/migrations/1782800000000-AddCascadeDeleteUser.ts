@@ -41,6 +41,8 @@ export class AddCascadeDeleteUser1782800000000 implements MigrationInterface {
         onDelete: string
     ) {
         const table = await queryRunner.getTable(tableName);
+        if (!table) return;
+
         const foreignKey = table.foreignKeys.find(fk => fk.columnNames.indexOf(columnName) !== -1);
 
         if (foreignKey) {

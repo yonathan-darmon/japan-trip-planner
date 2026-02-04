@@ -12,6 +12,7 @@ export class SetNullOnUserDelete1782800000001 implements MigrationInterface {
 
         // 2. Change FK to SET NULL
         const table = await queryRunner.getTable("suggestions");
+        if (!table) return;
         const foreignKey = table.foreignKeys.find(fk => fk.columnNames.indexOf("created_by") !== -1);
 
         if (foreignKey) {
@@ -29,6 +30,7 @@ export class SetNullOnUserDelete1782800000001 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         // 1. Revert FK to CASCADE (or whatever it was)
         const table = await queryRunner.getTable("suggestions");
+        if (!table) return;
         const foreignKey = table.foreignKeys.find(fk => fk.columnNames.indexOf("created_by") !== -1);
         if (foreignKey) {
             await queryRunner.dropForeignKey("suggestions", foreignKey);
