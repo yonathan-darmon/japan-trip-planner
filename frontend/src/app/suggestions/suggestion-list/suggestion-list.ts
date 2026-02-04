@@ -123,7 +123,7 @@ import { take } from 'rxjs';
           <p class="description">{{ suggestion.description | slice:0:100 }}{{ suggestion.description.length > 100 ? '...' : '' }}</p>
           
           <div class="card-footer">
-            <span class="author">Par {{ suggestion.createdBy.username }}</span>
+            <span class="author">Par {{ suggestion.createdBy?.username || 'Anonyme' }}</span>
             <div class="footer-actions">
               <a [routerLink]="['/suggestions', suggestion.id]" class="btn-detail">
                 ℹ️ Détails

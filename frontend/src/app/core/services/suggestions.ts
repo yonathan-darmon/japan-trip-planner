@@ -28,8 +28,8 @@ export interface Suggestion {
   latitude: number;
   longitude: number;
   durationHours: number;
-  createdBy: User;
-  createdById: number;
+  createdBy: User | null;
+  createdById: number | null;
   createdAt: string;
   preferences?: UserPreference[];
   countryId?: number;

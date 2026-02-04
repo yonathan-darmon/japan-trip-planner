@@ -97,7 +97,7 @@ import { RouterLink } from '@angular/router';
                             </select>
                         </td>
                         <td>
-                            <div class="text-sm">{{ s.createdBy.username }}</div>
+                            <div class="text-sm">{{ s.createdBy?.username || 'Anonyme' }}</div>
                         </td>
                         <td>
                             <div class="flex gap-2">
@@ -249,7 +249,7 @@ export class SuggestionModerationComponent implements OnInit {
             list = list.filter(s =>
                 s.name.toLowerCase().includes(query) ||
                 s.location.toLowerCase().includes(query) ||
-                s.createdBy.username.toLowerCase().includes(query)
+                (s.createdBy?.username || '').toLowerCase().includes(query)
             );
         }
 
