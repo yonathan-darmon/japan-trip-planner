@@ -66,12 +66,12 @@ export class Suggestion {
     })
     durationHours: number;
 
-    @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'created_by' })
-    createdBy: User;
+    createdBy: User | null;
 
-    @Column({ name: 'created_by' })
-    createdById: number;
+    @Column({ name: 'created_by', nullable: true })
+    createdById: number | null;
 
     @Column({ name: 'group_id', type: 'int', nullable: true })
     groupId: number | null;
