@@ -8,6 +8,7 @@ import { PreferencesService } from '../preferences/preferences.service';
 import { ClusteringService } from './clustering.service';
 import { RoutingService } from './routing.service';
 import { Repository } from 'typeorm';
+import { CurrencyService } from '../currency/currency.service';
 
 import { OptimizationService } from './optimization.service';
 
@@ -47,6 +48,10 @@ describe('ItineraryService', () => {
         optimizeDayOrder: jest.fn().mockImplementation((days) => days),
     };
 
+    const mockCurrencyService = {
+        convert: jest.fn().mockImplementation((amount) => Promise.resolve(amount)),
+    };
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -78,6 +83,10 @@ describe('ItineraryService', () => {
                 {
                     provide: RoutingService,
                     useValue: mockRoutingService,
+                },
+                {
+                    provide: CurrencyService,
+                    useValue: mockCurrencyService,
                 },
             ],
         }).compile();
