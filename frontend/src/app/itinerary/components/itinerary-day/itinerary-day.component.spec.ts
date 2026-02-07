@@ -11,6 +11,10 @@ class MockCurrencyService {
         const symbol = symbols[currency] || currency;
         return `${symbol}${val.toFixed(2)}`;
     }
+
+    convert(amount: number, from: string, to: string): number {
+        return amount; // Mock conversion 1:1
+    }
 }
 
 describe('ItineraryDayComponent', () => {

@@ -9,6 +9,13 @@ import { WebSocketService } from '../../core/services/websocket.service';
 import { CurrencyService } from '../../core/services/currency.service';
 import { of } from 'rxjs';
 
+class MockCurrencyService {
+    convert(amount: number, from: string, to: string) {
+        if (from === 'JPY' && to === 'EUR') return amount / 162.5;
+        return amount;
+    }
+}
+
 describe('SuggestionListComponent', () => {
     let component: SuggestionListComponent;
     let fixture: ComponentFixture<SuggestionListComponent>;
@@ -37,7 +44,7 @@ describe('SuggestionListComponent', () => {
                 { provide: SuggestionsService, useValue: mockSuggestionsService },
                 { provide: AuthService, useValue: mockAuthService },
                 { provide: WebSocketService, useValue: mockWsService },
-                CurrencyService
+                { provide: CurrencyService, useClass: MockCurrencyService }
             ]
         })
             .compileComponents();

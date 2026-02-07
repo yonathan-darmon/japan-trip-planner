@@ -26,7 +26,8 @@ describe('SuggestionFormComponent', () => {
         };
 
         const mockGroupsService = {
-            getGroup: jasmine.createSpy('getGroup').and.returnValue(of({ name: 'Test Group', country: { name: 'Japan', currencySymbol: '¥' } }))
+            getGroup: jasmine.createSpy('getGroup').and.returnValue(of({ name: 'Test Group', country: { name: 'Japan', currencySymbol: '¥' } })),
+            getMyGroups: jasmine.createSpy('getMyGroups').and.returnValue(of([{ id: 1, name: 'Test Group', country: { name: 'Japan' } }]))
         };
 
         const mockCurrencyService = {
