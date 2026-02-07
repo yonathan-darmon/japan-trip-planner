@@ -11,6 +11,8 @@ import { ClusteringService } from './clustering.service';
 import { OptimizationService } from './optimization.service';
 import { RoutingService } from './routing.service';
 
+import { CurrencyModule } from '../currency/currency.module';
+
 @Module({
     imports: [
         TypeOrmModule.forFeature([Itinerary]),
@@ -18,6 +20,7 @@ import { RoutingService } from './routing.service';
         forwardRef(() => SuggestionsModule),
         PreferencesModule,
         AuthModule,
+        CurrencyModule,
     ],
     controllers: [ItineraryController],
     providers: [ItineraryService, ClusteringService, OptimizationService, RoutingService],
