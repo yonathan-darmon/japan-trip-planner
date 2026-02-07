@@ -21,6 +21,7 @@ import { ClusteringService } from './clustering.service';
 import { OptimizationService } from './optimization.service';
 import { RoutingService } from './routing.service';
 import { GeoUtils } from './utils/geo.utils';
+import { CurrencyService } from '../currency/currency.service';
 
 interface DayPlan {
     dayNumber: number;
@@ -47,6 +48,7 @@ export class ItineraryService {
         private clusteringService: ClusteringService,
         private optimizationService: OptimizationService,
         private routingService: RoutingService,
+        private currencyService: CurrencyService, // Injected
     ) { }
 
     /**
@@ -675,16 +677,18 @@ export class ItineraryService {
         for (const day of itinerary.days) {
             let dayTotal = 0;
 
-            // Sum activity prices (already in local currency)
+            // Sum activity prices and convert to EUR
             for (const activity of day.activities) {
                 const price = parseFloat(activity.suggestion.price as any) || 0;
-                dayTotal += price;
+                const currency = activity.suggestion.country?.currencyCode || 'JPY';
+                dayTotal += await this.currencyService.convert(price, currency, 'EUR');
             }
 
             // Add accommodation price if any
             if (day.accommodation) {
                 const price = parseFloat(day.accommodation.price as any) || 0;
-                dayTotal += price;
+                const currency = day.accommodation.country?.currencyCode || 'JPY';
+                dayTotal += await this.currencyService.convert(price, currency, 'EUR');
             }
 
             dailyTotals.push({

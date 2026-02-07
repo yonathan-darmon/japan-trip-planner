@@ -90,6 +90,11 @@ graph TD
 - **Fallback automatique** : En cas d'indisponibilité de l'API ECB, des taux statiques de secours sont utilisés
 - **Aucune clé API requise** : L'API ECB est publique et gratuite
 
+### 💰 Suivi Budgétaire
+- **Estimation Automatique** : Calcul du coût total du voyage en temps réel basé sur les activités et l'hébergement.
+- **Graphiques Interactifs** : Visualisez la répartition des dépenses jour par jour.
+- **Multi-devises** : Conversion automatique de tous les prix en votre devise de référence (Euros).
+
 ## 🛠️ Installation et Démarrage
 
 ### Prérequis

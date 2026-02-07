@@ -136,4 +136,20 @@ export class CurrencyService {
         this.cachedRates = null;
         this.logger.log('🗑️ Cache cleared');
     }
+    async convert(amount: number, from: string, to: string): Promise<number> {
+        const { rates } = await this.getRates();
+        const fromRate = rates[from];
+        const toRate = rates[to];
+
+        if (!fromRate || !toRate) {
+            this.logger.warn(`Currency conversion failed: ${from} to ${to} (Rates not found)`);
+            return amount; // Return original amount as fallback
+        }
+
+        // rates are EUR based.
+        // from -> EUR: amount / rates[from]
+        // EUR -> to: amountInEur * rates[to]
+        const amountInEur = amount / fromRate;
+        return amountInEur * toRate;
+    }
 }
