@@ -86,4 +86,16 @@ export class ItineraryService {
     addActivity(id: number, dayNumber: number, suggestionId: number): Observable<Itinerary> {
         return this.http.post<Itinerary>(`${this.apiUrl}/${id}/days/${dayNumber}/activities`, { suggestionId });
     }
+
+    getBudgetSummary(id: number): Observable<{
+        dailyTotals: { dayNumber: number; date: Date | null; totalEur: number }[];
+        totalEur: number;
+        currencySymbol: string;
+    }> {
+        return this.http.get<{
+            dailyTotals: { dayNumber: number; date: Date | null; totalEur: number }[];
+            totalEur: number;
+            currencySymbol: string;
+        }>(`${this.apiUrl}/${id}/budget`);
+    }
 }

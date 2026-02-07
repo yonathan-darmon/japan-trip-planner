@@ -5,9 +5,10 @@ description: Mandatory checks before any deployment (commit/push)
 
 Before committing and asking to push to production, you MUST follow this checklist:
 
-1. **Review Rules**: Re-read all active workflows (e.g., `/unit-test-rule`, `/changelog-rule`, `/planning-rule`) to ensure no requirement was missed during implementation.
+1. **Review Rules**: Re-read all active workflows (e.g., `/unit-test-rule`, `/regression-test-rule`, `/changelog-rule`, `/planning-rule`) to ensure no requirement was missed during implementation.
 2. **Verify Compliance**:
     - Are all unit tests present and passing for modified files?
+    - Have regression tests been executed and passed (all test suites green)?
     - Is the changelog updated (with emojis and French description)?
     - Is the `README.md` updated if this feature impacts installation, configuration, or features list?
     - Is the code buildable (`ng build` or `npm build` passed)?

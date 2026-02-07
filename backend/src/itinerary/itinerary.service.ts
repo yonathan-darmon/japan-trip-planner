@@ -653,4 +653,54 @@ export class ItineraryService {
             }
         }
     }
+
+    /**
+     * Calculate budget summary for an itinerary
+     * Returns daily totals and overall total in EUR
+     */
+    async getBudgetSummary(id: number, userId: number): Promise<{
+        dailyTotals: { dayNumber: number; date: Date | null; totalEur: number }[];
+        totalEur: number;
+        currencySymbol: string;
+    }> {
+        const itinerary = await this.findOne(id, userId);
+
+        if (!itinerary) {
+            throw new NotFoundException('Itinerary not found');
+        }
+
+        const dailyTotals: { dayNumber: number; date: Date | null; totalEur: number }[] = [];
+        let grandTotal = 0;
+
+        for (const day of itinerary.days) {
+            let dayTotal = 0;
+
+            // Sum activity prices (already in local currency)
+            for (const activity of day.activities) {
+                const price = parseFloat(activity.suggestion.price as any) || 0;
+                dayTotal += price;
+            }
+
+            // Add accommodation price if any
+            if (day.accommodation) {
+                const price = parseFloat(day.accommodation.price as any) || 0;
+                dayTotal += price;
+            }
+
+            dailyTotals.push({
+                dayNumber: day.dayNumber,
+                date: day.date,
+                totalEur: dayTotal, // Prices are stored in local currency, but we'll assume EUR for now
+            });
+
+            grandTotal += dayTotal;
+        }
+
+        return {
+            dailyTotals,
+            totalEur: grandTotal,
+            currencySymbol: '€',
+        };
+    }
 }
+

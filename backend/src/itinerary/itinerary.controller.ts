@@ -98,4 +98,10 @@ export class ItineraryController {
             req.user.id
         );
     }
+
+    @Get(':id/budget')
+    async getBudgetSummary(@Param('id', ParseIntPipe) id: number, @Request() req) {
+        console.log('💰 [GET /itinerary/:id/budget] Called with id:', id, 'by user:', req.user.id);
+        return this.itineraryService.getBudgetSummary(id, req.user.id);
+    }
 }

@@ -173,4 +173,84 @@ describe('ItineraryService', () => {
             ]));
         });
     });
+
+    describe('getBudgetSummary', () => {
+        it('should calculate daily totals and grand total correctly', async () => {
+            const itineraryId = 1;
+            const userId = 1;
+
+            const mockItinerary = {
+                id: itineraryId,
+                createdById: userId,
+                days: [
+                    {
+                        dayNumber: 1,
+                        date: new Date('2026-04-01'),
+                        activities: [
+                            { suggestion: { price: 1000 } }, // 1000 whatever currency
+                            { suggestion: { price: 500 } }
+                        ],
+                        accommodation: { price: 10000 }
+                    },
+                    {
+                        dayNumber: 2,
+                        date: new Date('2026-04-02'),
+                        activities: [],
+                        accommodation: null // No accommodation cost
+                    }
+                ]
+            };
+
+            mockItineraryRepository.findOne.mockResolvedValue(mockItinerary);
+
+            const result = await service.getBudgetSummary(itineraryId, userId);
+
+            expect(mockItineraryRepository.findOne).toHaveBeenCalledWith({
+                where: { id: itineraryId },
+                relations: ['createdBy']
+            });
+
+            // Day 1: 1000 + 500 + 10000 = 11500
+            // Day 2: 0
+            // Grand Total: 11500
+            expect(result.totalEur).toBe(11500);
+            expect(result.dailyTotals).toHaveLength(2);
+            expect(result.dailyTotals[0].totalEur).toBe(11500);
+            expect(result.dailyTotals[1].totalEur).toBe(0);
+            expect(result.currencySymbol).toBe('€');
+        });
+
+        it('should return 0 if no prices are set', async () => {
+            const itineraryId = 1;
+            const userId = 1;
+
+            const mockItinerary = {
+                id: itineraryId,
+                createdById: userId,
+                days: [
+                    {
+                        dayNumber: 1,
+                        activities: [
+                            { suggestion: {} }, // No price
+                        ],
+                        accommodation: null
+                    }
+                ]
+            };
+
+            mockItineraryRepository.findOne.mockResolvedValue(mockItinerary);
+
+            const result = await service.getBudgetSummary(itineraryId, userId);
+
+            expect(result.totalEur).toBe(0);
+        });
+
+        it('should throw NotFoundException if itinerary not found', async () => {
+            mockItineraryRepository.findOne.mockResolvedValue(null);
+
+            await expect(service.getBudgetSummary(999, 1))
+                .rejects
+                .toThrow('Itinerary not found');
+        });
+    });
 });

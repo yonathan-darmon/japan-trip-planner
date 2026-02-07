@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { switchMap, of, Observable } from 'rxjs';
 
 import { ItineraryStateService } from '../core/services/itinerary-state.service';
 import { ItineraryService, ItineraryDay } from '../core/services/itinerary';
@@ -14,6 +15,7 @@ import { CurrencyService } from '../core/services/currency.service';
 import { ItineraryMapComponent } from './components/itinerary-map/itinerary-map.component';
 import { ItineraryHeaderComponent } from './components/itinerary-header/itinerary-header.component';
 import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.component';
+import { BudgetChartComponent, BudgetData } from './components/budget-chart/budget-chart.component';
 
 @Component({
   selector: 'app-itinerary-viewer',
@@ -23,7 +25,8 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
     DragDropModule,
     ItineraryMapComponent,
     ItineraryHeaderComponent,
-    ItineraryDayComponent
+    ItineraryDayComponent,
+    BudgetChartComponent
   ],
   template: `
     <div class="viewer-layout" *ngIf="itinerary$ | async as itinerary">
@@ -46,6 +49,11 @@ import { ItineraryDayComponent } from './components/itinerary-day/itinerary-day.
           [readOnly]="!canEdit(itinerary)"
           (delete)="deleteItinerary()">
         </app-itinerary-header>
+
+        <!-- BUDGET CHART -->
+        <app-budget-chart 
+            [budgetData]="budgetData$ | async">
+        </app-budget-chart>
 
         <div class="days-container" cdkDropListGroup>
           <app-itinerary-day
@@ -308,6 +316,9 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
   selectedDay$ = this.stateService.selectedDay$;
   costBreakdown$ = this.stateService.costBreakdown$;
 
+  // Budget Data
+  budgetData$: Observable<BudgetData | null> = of(null);
+
   // Permissions
   canEdit(itinerary: any): boolean {
     const user = this.authService.currentUserValue;
@@ -338,6 +349,14 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
           this.loadItinerary(Number(params['id']));
         }
       });
+
+    // Create reactive budget stream
+    this.budgetData$ = this.itinerary$.pipe(
+      switchMap(itinerary => {
+        if (!itinerary) return of(null);
+        return this.itineraryService.getBudgetSummary(itinerary.id);
+      })
+    );
 
     // Subscribe to itinerary to update IDs and used suggestions
     this.itinerary$.subscribe(itinerary => {

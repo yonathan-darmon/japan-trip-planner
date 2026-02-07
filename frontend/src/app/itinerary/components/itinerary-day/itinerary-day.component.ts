@@ -24,6 +24,9 @@ import { CurrencyService } from '../../../core/services/currency.service';
           <div class="load-bar" [style.width.%]="Math.min(loadPercent, 100)"></div>
           <span class="load-text">{{ loadPercent | number:'1.0-0' }}%</span>
         </div>
+        <div class="day-cost" *ngIf="dayTotal > 0">
+           {{ dayTotal | number:'1.0-0' }} €
+        </div>
       </div>
 
       <div class="day-accommodation" 
@@ -169,6 +172,16 @@ import { CurrencyService } from '../../../core/services/currency.service';
         top: -7px;
         font-size: 0.75rem;
         color: var(--text-secondary);
+    }
+
+    .day-cost {
+        font-size: 0.85rem;
+        color: #68d391; /* Success color */
+        font-weight: 600;
+        background: rgba(104, 211, 145, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 12px;
     }
 
     /* Accommodation Styling - Dark Mode */
@@ -435,6 +448,29 @@ export class ItineraryDayComponent {
     });
 
     return (hours / 8) * 100; // Assuming 8h is 100% capacity
+  }
+
+  get dayTotal(): number {
+    let total = 0;
+    if (this.day.activities) {
+      this.day.activities.forEach(act => {
+        // Price is usually in local currency, but let's just sum it raw for now or assume converted?
+        // The backend sends 'price' on suggestion. 
+        // In activity list we show `formatPrice` which uses currency service.
+        // If we want EUR total, we need conversion.
+        // Let's use the CurrencyService to convert everything to EUR for consistency with the Global Chart.
+
+        if (act.suggestion.price && act.suggestion.country?.currencyCode) {
+          const priceEur = this.currencyService.convert(act.suggestion.price, act.suggestion.country.currencyCode, 'EUR');
+          total += priceEur || 0;
+        }
+      });
+    }
+    if (this.day.accommodation && this.day.accommodation.price && this.day.accommodation.country?.currencyCode) {
+      const priceEur = this.currencyService.convert(this.day.accommodation.price, this.day.accommodation.country.currencyCode, 'EUR');
+      total += priceEur || 0;
+    }
+    return total;
   }
 
   selectDay() {
