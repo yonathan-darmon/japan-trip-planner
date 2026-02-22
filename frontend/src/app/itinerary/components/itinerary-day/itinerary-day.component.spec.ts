@@ -17,43 +17,43 @@ class MockCurrencyService {
     }
 }
 
+const makeMockDay = (): ItineraryDay => ({
+    dayNumber: 1,
+    date: '2026-04-01',
+    activities: [
+        {
+            suggestionId: 101,
+            orderInDay: 1,
+            suggestion: {
+                id: 101,
+                name: 'Sushi Restaurant',
+                category: SuggestionCategory.RESTAURANT,
+                location: 'Tokyo',
+                description: 'Best sushi',
+                latitude: 35.0,
+                longitude: 139.0,
+                price: 3000,
+                durationHours: 1.5,
+                createdById: 1,
+                isGlobal: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                country: {
+                    id: 1,
+                    name: 'Japan',
+                    code: 'JPN',
+                    currencySymbol: '¥',
+                    currencyCode: 'JPY'
+                }
+            } as any
+        }
+    ],
+    accommodation: null
+});
+
 describe('ItineraryDayComponent', () => {
     let component: ItineraryDayComponent;
     let fixture: ComponentFixture<ItineraryDayComponent>;
-
-    const mockDay: ItineraryDay = {
-        dayNumber: 1,
-        date: '2026-04-01',
-        activities: [
-            {
-                suggestionId: 101,
-                orderInDay: 1,
-                suggestion: {
-                    id: 101,
-                    name: 'Sushi Restaurant',
-                    category: SuggestionCategory.RESTAURANT,
-                    location: 'Tokyo',
-                    description: 'Best sushi',
-                    latitude: 35.0,
-                    longitude: 139.0,
-                    price: 3000,
-                    durationHours: 1.5,
-                    createdById: 1,
-                    isGlobal: true,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                    country: {
-                        id: 1,
-                        name: 'Japan',
-                        code: 'JPN',
-                        currencySymbol: '¥',
-                        currencyCode: 'JPY'
-                    }
-                } as any
-            }
-        ],
-        accommodation: null
-    };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -66,7 +66,7 @@ describe('ItineraryDayComponent', () => {
 
         fixture = TestBed.createComponent(ItineraryDayComponent);
         component = fixture.componentInstance;
-        component.day = mockDay;
+        component.day = makeMockDay();
         fixture.detectChanges();
     });
 
@@ -87,16 +87,50 @@ describe('ItineraryDayComponent', () => {
     });
 
     it('should default to JPY/EUR if currency is missing (fallback logic)', () => {
-        // Modify mock for this test
+        // Ce test mute la suggestion, mais le `makeMockDay()` dans beforeEach isole cela
         component.day.activities[0].suggestion.country = undefined;
-        // If country undefined, our component code might default to 'JPY' or 'EUR'.
-        // Assuming implementation handles it. Let's check expectation.
-        // If the code defaults to JPY: '¥3000.00'
         fixture.detectChanges();
         const compiled = fixture.nativeElement as HTMLElement;
-        // This test might be fragile if we don't know exact default.
-        // But assuming we want it to NOT crash is key.
+        // La clé est de ne pas crasher ; le prix doit tout de même s'afficher
         const priceElement = compiled.querySelector('.price');
         expect(priceElement).toBeTruthy();
+    });
+
+    it('should calculate dayTotal from activity prices (converted to EUR)', () => {
+        // MockCurrencyService.convert is 1:1, so 3000 JPY => 3000 EUR in mock
+        expect(component.dayTotal).toBe(3000);
+    });
+
+    it('should include accommodation price in dayTotal', () => {
+        const base = makeMockDay();
+        component.day = {
+            ...base,
+            activities: [...base.activities],
+            accommodation: {
+                id: 200,
+                name: 'Tokyo Hotel',
+                category: SuggestionCategory.HEBERGEMENT,
+                price: 500,
+                location: 'Tokyo',
+                description: 'Nice hotel',
+                latitude: 35.0,
+                longitude: 139.0,
+                durationHours: 0,
+                createdById: 1,
+                isGlobal: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                country: {
+                    id: 1,
+                    name: 'Japan',
+                    code: 'JPN',
+                    currencySymbol: '¥',
+                    currencyCode: 'JPY'
+                }
+            } as any
+        };
+        fixture.detectChanges();
+        // 3000 (activity) + 500 (accommodation) = 3500
+        expect(component.dayTotal).toBe(3500);
     });
 });
