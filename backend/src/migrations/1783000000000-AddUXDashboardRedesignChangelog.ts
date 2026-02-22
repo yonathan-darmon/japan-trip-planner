@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddUXDashboardRedesignChangelog1783000000000 implements MigrationInterface {
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
-      INSERT INTO "changelogs" ("version", "content", "publishedAt")
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
+      INSERT INTO "changelogs" ("version", "content", "published_at")
       VALUES (
         'v1.7.0',
         '🎨 Refonte de l''accueil & du guide
@@ -23,11 +23,11 @@ export class AddUXDashboardRedesignChangelog1783000000000 implements MigrationIn
         NOW()
       )
     `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
       DELETE FROM "changelogs" WHERE "version" = 'v1.7.0'
     `);
-    }
+  }
 }
