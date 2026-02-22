@@ -17,6 +17,22 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [AsyncPipe, RouterLink, CommonModule, FormsModule],
   template: `
+    <!-- ONBOARDING BANNER – shown when user has no group -->
+    <div class="onboarding-banner fade-in" *ngIf="dataLoaded && groupCount === 0">
+      <div class="onboarding-inner">
+        <div class="onboarding-icon">🎌</div>
+        <div class="onboarding-text">
+          <h2>Bienvenue ! Par où commencer ?</h2>
+          <p>Pour utiliser le planificateur, vous devez d'abord rejoindre ou créer un <strong>groupe de voyage</strong>.</p>
+        </div>
+        <div class="onboarding-actions">
+          <a routerLink="/groups" class="btn btn-primary">Rejoindre / Créer un groupe →</a>
+          <a routerLink="/help" class="btn btn-ghost">Voir le guide</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEADER -->
     <div class="dashboard-header fade-in">
       <h1>👋 {{ getGreeting(currentGroup?.country?.code) }}, {{ (currentUser$ | async)?.username }} !</h1>
       <div class="subtitle-container">
@@ -26,6 +42,11 @@ import { FormsModule } from '@angular/forms';
           <span *ngIf="isGroupAdmin" class="badge badge-primary">Admin</span>
         </div>
       </div>
+
+      <!-- Guide shortcut pill -->
+      <a routerLink="/help" class="guide-pill" *ngIf="groupCount > 0">
+        ❓ Nouveau ici ? Consultez le guide
+      </a>
     </div>
 
     <!-- ADMIN SECTION -->
@@ -51,7 +72,8 @@ import { FormsModule } from '@angular/forms';
       </div>
     </div>
 
-    <div class="grid-stats fade-in" style="animation-delay: 100ms;">
+    <!-- STATS ROW -->
+    <div class="grid-stats fade-in" style="animation-delay: 100ms;" *ngIf="groupCount > 0">
       <div class="card glass stat-card">
         <div class="stat-icon">📅</div>
         <div class="stat-value">{{ config?.durationDays || 21 }}</div>
@@ -71,36 +93,103 @@ import { FormsModule } from '@angular/forms';
       </div>
     </div>
 
-    <!-- NORMAL ACTIONS SECTION -->
+    <!-- WORKFLOW PROGRESS SECTION -->
+    <div class="workflow-section fade-in" style="animation-delay: 180ms;" *ngIf="dataLoaded && groupCount > 0">
+      <h2 class="workflow-title">🗺️ Votre avancement</h2>
+      <p class="workflow-subtitle">Suivez ces étapes pour générer votre itinéraire parfait.</p>
 
-    <div class="dashboard-actions fade-in" style="animation-delay: 200ms;">
-      <div class="card glass action-card">
-        <h3>📍 Explorer</h3>
-        <p>Découvrez des lieux incroyables à visiter.</p>
-        <button class="btn btn-secondary full-width" routerLink="/suggestions">Voir les suggestions</button>
-      </div>
-      
-      <div class="card glass action-card">
-        <h3>✨ Vos Préférences</h3>
-        <p>Votez pour ce que vous voulez faire.</p>
-        <button class="btn btn-outline full-width" routerLink="/suggestions">Mes votes</button>
-      </div>
+      <div class="workflow-steps">
 
-      <div class="card glass action-card highlight">
-        <h3>🗺️ Nouveau Plan</h3>
-        <p>Générez un plan de voyage optimisé.</p>
-        <button 
-          class="btn btn-primary full-width" 
-          (click)="generateItinerary()"
-          [disabled]="generatingItinerary">
-          {{ generatingItinerary ? 'Génération...' : 'Planifier' }}
-        </button>
+        <!-- Step 1: Groupe -->
+        <div class="workflow-step" [class.completed]="groupCount > 0" [class.active]="groupCount === 0">
+          <div class="step-status-icon">
+            <span *ngIf="groupCount > 0">✅</span>
+            <span *ngIf="groupCount === 0">1</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <h4>Rejoindre un groupe</h4>
+              <span class="step-badge done" *ngIf="groupCount > 0">Fait</span>
+              <span class="step-badge todo" *ngIf="groupCount === 0">À faire</span>
+            </div>
+            <p>Créez ou rejoignez un groupe pour commencer à planifier ensemble.</p>
+            <a routerLink="/groups" class="btn btn-sm btn-outline step-btn" *ngIf="groupCount === 0">→ Rejoindre un groupe</a>
+          </div>
+        </div>
+
+        <!-- Step 2: Suggestions -->
+        <div class="workflow-step" [class.completed]="suggestionCount > 0" [class.active]="groupCount > 0 && suggestionCount === 0">
+          <div class="step-status-icon">
+            <span *ngIf="suggestionCount > 0">✅</span>
+            <span *ngIf="suggestionCount === 0">2</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <h4>Ajouter des suggestions</h4>
+              <span class="step-badge done" *ngIf="suggestionCount > 0">{{ suggestionCount }} ajoutée(s)</span>
+              <span class="step-badge active" *ngIf="groupCount > 0 && suggestionCount === 0">À faire maintenant</span>
+              <span class="step-badge todo" *ngIf="groupCount === 0">En attente</span>
+            </div>
+            <p>Proposez des temples, restaurants, parcs… tout ce que vous voulez voir.</p>
+            <a routerLink="/suggestions/new" class="btn btn-sm btn-primary step-btn" *ngIf="groupCount > 0 && suggestionCount === 0">+ Ajouter une suggestion</a>
+            <a routerLink="/suggestions" class="btn btn-sm btn-outline step-btn" *ngIf="suggestionCount > 0">Voir les suggestions</a>
+          </div>
+        </div>
+
+        <!-- Step 3: Voter -->
+        <div class="workflow-step" [class.completed]="itineraries.length > 0 || (suggestionCount > 0 && groupCount > 0)" [class.active]="suggestionCount > 0 && itineraries.length === 0">
+          <div class="step-status-icon">
+            <span *ngIf="suggestionCount > 0">{{ itineraries.length > 0 ? '✅' : '⭐' }}</span>
+            <span *ngIf="suggestionCount === 0">3</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <h4>Voter pour vos favoris</h4>
+              <span class="step-badge active" *ngIf="suggestionCount > 0 && itineraries.length === 0">En cours</span>
+              <span class="step-badge done" *ngIf="itineraries.length > 0">Fait</span>
+              <span class="step-badge todo" *ngIf="suggestionCount === 0">En attente</span>
+            </div>
+            <p>Mettez un ❤️ sur les activités que vous voulez absolument faire. L'algorithme les priorisera.</p>
+            <a routerLink="/suggestions" class="btn btn-sm btn-secondary step-btn" *ngIf="suggestionCount > 0">Voter maintenant</a>
+          </div>
+        </div>
+
+        <!-- Step 4: Generate -->
+        <div class="workflow-step highlight-step" [class.completed]="itineraries.length > 0" [class.active]="suggestionCount > 0">
+          <div class="step-status-icon">
+            <span *ngIf="itineraries.length > 0">✅</span>
+            <span *ngIf="itineraries.length === 0">4</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <h4>Générer l'itinéraire</h4>
+              <span class="step-badge done" *ngIf="itineraries.length > 0">{{ itineraries.length }} généré(s)</span>
+              <span class="step-badge active" *ngIf="suggestionCount > 0 && itineraries.length === 0">Prêt !</span>
+              <span class="step-badge todo" *ngIf="suggestionCount === 0">En attente</span>
+            </div>
+            <p>L'algorithme crée un planning optimisé jour par jour. Vous pouvez ensuite tout personnaliser.</p>
+            <button
+              class="btn btn-sm btn-primary step-btn"
+              (click)="generateItinerary()"
+              [disabled]="generatingItinerary || suggestionCount === 0"
+              *ngIf="itineraries.length === 0">
+              {{ generatingItinerary ? '⏳ Génération...' : '✨ Planifier maintenant' }}
+            </button>
+            <a [routerLink]="['/itinerary', itineraries[0]?.id]" class="btn btn-sm btn-primary step-btn" *ngIf="itineraries.length > 0">Voir mon itinéraire</a>
+          </div>
+        </div>
+
       </div>
     </div>
 
     <!-- ITINERARY LIST SECTION -->
     <div class="itineraries-section fade-in" style="animation-delay: 300ms;" *ngIf="itineraries.length > 0">
-      <h2>🎒 Vos Voyages ({{ itineraries.length }})</h2>
+      <div class="section-header">
+        <h2>🎒 Vos Itinéraires ({{ itineraries.length }})</h2>
+        <button class="btn btn-sm btn-primary" (click)="generateItinerary()" [disabled]="generatingItinerary">
+          {{ generatingItinerary ? '⏳...' : '+ Nouveau' }}
+        </button>
+      </div>
       <div class="grid-itineraries">
         <div class="card glass itinerary-card" *ngFor="let item of itineraries">
           <div class="itinerary-info">
@@ -159,6 +248,70 @@ import { FormsModule } from '@angular/forms';
     </div>
   `,
   styles: [`
+    /* --------- ONBOARDING BANNER --------- */
+    .onboarding-banner {
+      background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.15), rgba(var(--color-accent-rgb), 0.1));
+      border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .onboarding-inner {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .onboarding-icon {
+      font-size: 3rem;
+      flex-shrink: 0;
+    }
+
+    .onboarding-text {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .onboarding-text h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.3rem;
+    }
+
+    .onboarding-text p {
+      margin: 0;
+      color: var(--color-text-secondary);
+    }
+
+    .onboarding-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* --------- GUIDE PILL --------- */
+    .guide-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.75rem;
+      padding: 0.3rem 1rem;
+      background: rgba(var(--color-accent-rgb), 0.1);
+      border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      color: var(--color-accent);
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .guide-pill:hover {
+      background: rgba(var(--color-accent-rgb), 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* --------- DASHBOARD HEADER --------- */
     .dashboard-header {
       text-align: center;
       margin-bottom: 2rem;
@@ -195,6 +348,7 @@ import { FormsModule } from '@angular/forms';
       color: white;
     }
 
+    /* --------- ADMIN --------- */
     .admin-section {
       max-width: 800px;
       margin: 0 auto 2rem;
@@ -238,6 +392,7 @@ import { FormsModule } from '@angular/forms';
       font-weight: bold;
     }
 
+    /* --------- STATS GRID --------- */
     .grid-stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -272,52 +427,157 @@ import { FormsModule } from '@angular/forms';
       color: var(--color-text-secondary);
       font-size: 0.9rem;
     }
-    
-    .dashboard-actions {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      margin-bottom: 4rem;
-    }
-    
-    .action-card {
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      height: 100%;
-    }
-    
-    .action-card.highlight {
-      border: 1px solid rgba(var(--color-primary-rgb), 0.3);
-      background: rgba(var(--color-primary-rgb), 0.05);
-    }
-    
-    .action-card h3 {
-      margin-top: 0;
-      font-size: 1.4rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .action-card p {
-      color: var(--color-text-secondary);
-      margin-bottom: 2rem;
-      flex-grow: 1;
-    }
-    
-    .full-width {
-      width: 100%;
+
+    /* --------- WORKFLOW STEPS --------- */
+    .workflow-section {
+      margin-bottom: 3rem;
     }
 
+    .workflow-title {
+      font-size: 1.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .workflow-subtitle {
+      color: var(--color-text-secondary);
+      margin-bottom: 1.75rem;
+      font-size: 0.95rem;
+    }
+
+    .workflow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .workflow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1.25rem 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .workflow-step.completed {
+      background: rgba(var(--color-primary-rgb), 0.04);
+      border-color: rgba(var(--color-primary-rgb), 0.15);
+    }
+
+    .workflow-step.active {
+      background: rgba(var(--color-primary-rgb), 0.08);
+      border-color: rgba(var(--color-primary-rgb), 0.35);
+      box-shadow: 0 0 20px -8px rgba(var(--color-primary-rgb), 0.4);
+    }
+
+    .workflow-step.highlight-step.active {
+      background: rgba(var(--color-accent-rgb), 0.08);
+      border-color: rgba(var(--color-accent-rgb), 0.35);
+      box-shadow: 0 0 20px -8px rgba(var(--color-accent-rgb), 0.4);
+    }
+
+    .step-status-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+    }
+
+    .workflow-step.completed .step-status-icon {
+      background: rgba(var(--color-primary-rgb), 0.15);
+      border-color: rgba(var(--color-primary-rgb), 0.3);
+    }
+
+    .workflow-step.active .step-status-icon {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+      box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.5);
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .step-header h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .step-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .step-badge.done {
+      background: rgba(var(--color-primary-rgb), 0.15);
+      color: var(--color-primary);
+    }
+
+    .step-badge.active {
+      background: rgba(var(--color-accent-rgb), 0.2);
+      color: var(--color-accent);
+    }
+
+    .step-badge.todo {
+      background: rgba(255,255,255,0.05);
+      color: var(--color-text-secondary);
+    }
+
+    .step-content p {
+      margin: 0 0 0.75rem;
+      color: var(--color-text-secondary);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .step-btn {
+      margin-top: 0.25rem;
+    }
+
+    /* --------- ITINERARIES --------- */
     .itineraries-section {
-      margin-top: 3rem;
+      margin-top: 1rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-header h2 {
+      margin: 0;
     }
 
     .grid-itineraries {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.5rem;
-      margin-top: 1.5rem;
     }
 
     .itinerary-card {
@@ -345,7 +605,7 @@ import { FormsModule } from '@angular/forms';
       gap: 0.5rem;
     }
 
-    /* Modal Styles */
+    /* --------- MODALS --------- */
     .modal-backdrop {
       position: fixed;
       top: 0;
@@ -381,6 +641,7 @@ import { FormsModule } from '@angular/forms';
         background: rgba(255, 255, 255, 0.05);
         color: var(--color-text);
         margin-top: 0.5rem;
+        box-sizing: border-box;
     }
 
     .modal-actions {
@@ -424,6 +685,24 @@ import { FormsModule } from '@angular/forms';
       line-height: 1.6;
       text-align: left;
     }
+
+    .full-width {
+      width: 100%;
+    }
+
+    /* --------- RESPONSIVE --------- */
+    @media (max-width: 640px) {
+      .onboarding-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+      .onboarding-actions {
+        justify-content: center;
+      }
+      .workflow-step {
+        padding: 1rem;
+      }
+    }
   `]
 })
 export class DashboardComponent implements OnInit {
@@ -438,6 +717,7 @@ export class DashboardComponent implements OnInit {
   isGroupAdmin = false;
   showConfigModal = false;
   configDuration = 21;
+  dataLoaded = false;
 
   // Changelog
   showChangelog = false;
@@ -466,25 +746,24 @@ export class DashboardComponent implements OnInit {
   loadData() {
     console.log('Loading dashboard data...');
 
-    // 1. First, get user's groups
     this.groupsService.getMyGroups()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (groups) => {
           this.groupCount = groups.length;
+          this.dataLoaded = true;
+
           if (groups.length === 0) {
             console.warn('⚠️ User has no groups');
             return;
           }
 
-          // Use first group (or could let user select)
           this.currentGroup = groups[0];
           this.isGroupAdmin = this.currentGroup.role === GroupRole.ADMIN || this.currentGroup.role === 'admin';
           const groupId = this.currentGroup.id;
 
           console.log(`✅ Loaded group #${groupId}: ${this.currentGroup.name}`, { isAdmin: this.isGroupAdmin });
 
-          // 2. Load config for this group
           this.tripConfigService.getConfig(groupId)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
@@ -493,9 +772,6 @@ export class DashboardComponent implements OnInit {
                 this.configDuration = config.durationDays;
                 const countryId = this.currentGroup?.country?.id;
 
-                console.log(`✅ Loaded config for group #${groupId}:`, config);
-
-                // 3. Load suggestions for this group
                 this.suggestionsService.getAll({ groupId, countryId })
                   .pipe(takeUntilDestroyed(this.destroyRef))
                   .subscribe({
@@ -503,24 +779,24 @@ export class DashboardComponent implements OnInit {
                     error: (err) => console.error('Error loading suggestions:', err)
                   });
 
-                // 4. Load itineraries for this group
                 this.itineraryService.getAll(groupId)
                   .pipe(takeUntilDestroyed(this.destroyRef))
                   .subscribe({
                     next: (itineraries) => {
-                      console.log('Loaded itineraries:', itineraries);
                       this.itineraries = itineraries;
                     },
                     error: (err) => console.error('Error loading itineraries:', err)
                   });
 
-                // 5. Update participant count
                 this.participantCount = this.currentGroup?.members?.length || 1;
               },
               error: (err) => console.error('Error loading config:', err)
             });
         },
-        error: (err) => console.error('Error loading groups:', err)
+        error: (err) => {
+          console.error('Error loading groups:', err);
+          this.dataLoaded = true;
+        }
       });
   }
 
@@ -532,7 +808,6 @@ export class DashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updatedConfig) => {
-          console.log('✅ Config updated:', updatedConfig);
           this.config = updatedConfig;
           this.showConfigModal = false;
         },
@@ -545,18 +820,17 @@ export class DashboardComponent implements OnInit {
 
   checkChangelog() {
     forkJoin({
-      user: this.authService.currentUser$.pipe(take(1)), // Get current value once
+      user: this.authService.currentUser$.pipe(take(1)),
       changelogs: this.changelogService.getLatest()
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ user, changelogs }) => {
         if (changelogs && changelogs.length > 0) {
-          const latest = changelogs[0]; // Assuming sorted by Backend.
+          const latest = changelogs[0];
           this.latestChangelog = latest;
 
           const lastViewedTime = user?.lastViewedChangelogAt ? new Date(user.lastViewedChangelogAt).getTime() : 0;
           const publishedTime = new Date(latest.publishedAt).getTime();
 
-          // Buffer of 2 seconds to avoid precision issues between server/db
           if (lastViewedTime < (publishedTime - 2000)) {
             this.showChangelog = true;
           }
@@ -591,7 +865,6 @@ export class DashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (itinerary) => {
-          console.log('Itinerary generated:', itinerary);
           this.generatingItinerary = false;
           this.router.navigate(['/itinerary', itinerary.id]);
         },
@@ -604,7 +877,7 @@ export class DashboardComponent implements OnInit {
   }
 
   deleteItinerary(id: number, event: Event) {
-    event.stopPropagation(); // Prevent clicking card if we wrap it in link
+    event.stopPropagation();
     if (!confirm('Voulez-vous vraiment supprimer cet itinéraire ?')) return;
 
     this.itineraryService.delete(id)

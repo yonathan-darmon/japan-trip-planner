@@ -29,7 +29,7 @@ import { AsyncPipe, NgIf } from '@angular/common';
           <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Accueil</a>
           <a routerLink="/suggestions" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Suggestions</a>
           <a routerLink="/itineraries" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Itinéraires</a>
-          <a routerLink="/help" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Guide</a>
+          <a routerLink="/help" routerLinkActive="active" class="nav-link help-link" (click)="closeMenu()">❓ Guide</a>
           
           <ng-container *ngIf="currentUser$ | async as user">
              <!-- Profile Link with Avatar -->
@@ -129,6 +129,25 @@ import { AsyncPipe, NgIf } from '@angular/common';
     
     .admin-link {
       color: var(--color-accent);
+    }
+
+    .help-link {
+      color: var(--color-text-secondary);
+      background: rgba(var(--color-primary-rgb), 0.08);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+
+    .help-link:hover, .help-link.active {
+      background: rgba(var(--color-primary-rgb), 0.15);
+      border-color: rgba(var(--color-primary-rgb), 0.4);
+      color: var(--color-primary);
+    }
+
+    .help-link.active::after {
+      display: none; /* inhibit the underline bar since we use a pill style */
     }
     
     .hamburger {
