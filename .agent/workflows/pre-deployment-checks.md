@@ -11,7 +11,7 @@ Before committing and asking to push to production, you MUST follow this checkli
     - Have regression tests been executed and passed (all test suites green)?
     - Is the changelog updated (with emojis and French description)?
     - Is the `README.md` updated if this feature impacts installation, configuration, or features list?
-    - Is the code buildable (`ng build` or `npm build` passed)?
+    - Is the code buildable (`npm run build` for frontend AND backend passed)?
 3. **Commit**:
     - If all checks pass, proceed to `git add .` and `git commit -m "<type>: <description>"`.
 4. **Push to Production**:

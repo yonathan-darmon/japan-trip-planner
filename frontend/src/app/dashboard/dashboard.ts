@@ -93,8 +93,46 @@ import { FormsModule } from '@angular/forms';
       </div>
     </div>
 
+    <!-- PRIMARY ACTION (GENERATE) -->
+    <div class="primary-action-container fade-in" style="animation-delay: 150ms;" *ngIf="groupCount > 0">
+      <button
+        class="btn btn-lg btn-primary generate-btn"
+        (click)="generateItinerary()"
+        [disabled]="generatingItinerary || suggestionCount === 0"
+        title="{{ suggestionCount === 0 ? 'Ajoutez d\'abord des suggestions pour pouvoir générer' : 'Lancer l\'algorithme d\'optimisation' }}">
+        <span class="btn-icon">✨</span>
+        <span class="btn-text">{{ generatingItinerary ? 'Génération en cours...' : 'Générer un itinéraire optimisé' }}</span>
+      </button>
+      <p class="generate-hint" *ngIf="suggestionCount === 0">
+        💡 Veuillez ajouter des suggestions avant de générer.
+      </p>
+    </div>
+
+    <!-- ITINERARY LIST SECTION -->
+    <div class="itineraries-section fade-in" style="animation-delay: 200ms;" *ngIf="itineraries.length > 0">
+      <div class="section-header">
+        <h2>🎒 Vos Itinéraires ({{ itineraries.length }})</h2>
+      </div>
+      <div class="grid-itineraries">
+        <div class="card glass itinerary-card" *ngFor="let item of itineraries">
+          <div class="itinerary-info">
+            <h3>{{ item.name }}</h3>
+            <div class="itinerary-meta">
+              <span>🗓️ {{ item.totalDays }} jours</span>
+              <span>💰 {{ item.totalCost | number:'1.0-0' }}€</span>
+            </div>
+            <div class="itinerary-date">Créé le {{ item.generatedAt | date:'dd/MM/yyyy' }}</div>
+          </div>
+          <div class="itinerary-actions">
+            <a [routerLink]="['/itinerary', item.id]" class="btn btn-sm btn-outline">Voir</a>
+            <button class="btn btn-sm btn-ghost" (click)="deleteItinerary(item.id, $event)">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- WORKFLOW PROGRESS SECTION -->
-    <div class="workflow-section fade-in" style="animation-delay: 180ms;" *ngIf="dataLoaded && groupCount > 0">
+    <div class="workflow-section fade-in" style="animation-delay: 250ms;" *ngIf="dataLoaded && groupCount > 0">
       <h2 class="workflow-title">🗺️ Votre avancement</h2>
       <p class="workflow-subtitle">Suivez ces étapes pour générer votre itinéraire parfait.</p>
 
@@ -168,43 +206,10 @@ import { FormsModule } from '@angular/forms';
               <span class="step-badge todo" *ngIf="suggestionCount === 0">En attente</span>
             </div>
             <p>L'algorithme crée un planning optimisé jour par jour. Vous pouvez ensuite tout personnaliser.</p>
-            <button
-              class="btn btn-sm btn-primary step-btn"
-              (click)="generateItinerary()"
-              [disabled]="generatingItinerary || suggestionCount === 0"
-              *ngIf="itineraries.length === 0">
-              {{ generatingItinerary ? '⏳ Génération...' : '✨ Planifier maintenant' }}
-            </button>
             <a [routerLink]="['/itinerary', itineraries[0]?.id]" class="btn btn-sm btn-primary step-btn" *ngIf="itineraries.length > 0">Voir mon itinéraire</a>
           </div>
         </div>
 
-      </div>
-    </div>
-
-    <!-- ITINERARY LIST SECTION -->
-    <div class="itineraries-section fade-in" style="animation-delay: 300ms;" *ngIf="itineraries.length > 0">
-      <div class="section-header">
-        <h2>🎒 Vos Itinéraires ({{ itineraries.length }})</h2>
-        <button class="btn btn-sm btn-primary" (click)="generateItinerary()" [disabled]="generatingItinerary">
-          {{ generatingItinerary ? '⏳...' : '+ Nouveau' }}
-        </button>
-      </div>
-      <div class="grid-itineraries">
-        <div class="card glass itinerary-card" *ngFor="let item of itineraries">
-          <div class="itinerary-info">
-            <h3>{{ item.name }}</h3>
-            <div class="itinerary-meta">
-              <span>🗓️ {{ item.totalDays }} jours</span>
-              <span>💰 {{ item.totalCost | number:'1.0-0' }}€</span>
-            </div>
-            <div class="itinerary-date">Créé le {{ item.generatedAt | date:'dd/MM/yyyy' }}</div>
-          </div>
-          <div class="itinerary-actions">
-            <a [routerLink]="['/itinerary', item.id]" class="btn btn-sm btn-outline">Voir</a>
-            <button class="btn btn-sm btn-ghost" (click)="deleteItinerary(item.id, $event)">🗑️</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -298,14 +303,24 @@ import { FormsModule } from '@angular/forms';
     /* --------- DASHBOARD HEADER --------- */
     .dashboard-header {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.25rem;
+    }
+    
+    .dashboard-header h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.8rem;
     }
     
     .subtitle-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.25rem;
+    }
+
+    .subtitle-container p {
+      margin: 0;
+      font-size: 0.95rem;
     }
 
     .group-badge {
@@ -335,11 +350,11 @@ import { FormsModule } from '@angular/forms';
     /* --------- ADMIN --------- */
     .admin-section {
       max-width: 800px;
-      margin: 0 auto 2rem;
+      margin: 0 auto 1.5rem;
     }
 
     .admin-card {
-      padding: 1.5rem;
+      padding: 1rem 1.5rem;
       border: 1px solid rgba(var(--color-primary-rgb), 0.3);
       background: rgba(var(--color-primary-rgb), 0.05);
     }
@@ -379,16 +394,16 @@ import { FormsModule } from '@angular/forms';
     /* --------- STATS GRID --------- */
     .grid-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 3rem;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
     
     .stat-card {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1.5rem;
+      padding: 1rem;
       transition: transform 0.2s;
     }
     
@@ -397,19 +412,54 @@ import { FormsModule } from '@angular/forms';
     }
     
     .stat-icon {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
     }
     
     .stat-value {
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: var(--color-primary);
     }
     
     .stat-label {
       color: var(--color-text-secondary);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+    }
+
+    /* --------- PRIMARY ACTION --------- */
+    .primary-action-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      text-align: center;
+    }
+
+    .generate-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1.8rem;
+      font-size: 1.15rem;
+      border-radius: 999px;
+      box-shadow: 0 4px 15px rgba(var(--color-primary-rgb), 0.3);
+      transition: all 0.3s;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.4);
+      transform: translateY(-2px);
+    }
+
+    .generate-btn .btn-icon {
+      font-size: 1.4rem;
+    }
+
+    .generate-hint {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
     }
 
     /* --------- WORKFLOW STEPS --------- */
