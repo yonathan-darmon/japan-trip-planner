@@ -56,7 +56,7 @@ import { FormsModule } from '@angular/forms';
           <h3>⚙️ Administration du Groupe</h3>
           <div style="display: flex; gap: 0.5rem;">
             <button class="btn btn-sm btn-secondary" routerLink="/groups/manage">👥 Membres / Inviter</button>
-            <button class="btn btn-sm btn-outline" (click)="showConfigModal = true">Modifier configuration</button>
+            <button class="btn btn-sm btn-outline" routerLink="/groups/manage">Modifier configuration</button>
           </div>
         </div>
         <div class="admin-stats">
@@ -208,23 +208,7 @@ import { FormsModule } from '@angular/forms';
       </div>
     </div>
 
-    <!-- CONFIG MODAL -->
-    <div *ngIf="showConfigModal" class="modal-backdrop fade-in">
-      <div class="card glass modal-card">
-        <h3>Configurer le voyage</h3>
-        <p class="modal-subtitle">Paramètres pour {{ currentGroup?.name }}</p>
-        
-        <div class="form-group">
-          <label>Durée du voyage (jours)</label>
-          <input type="number" [(ngModel)]="configDuration" min="1" max="90" class="input">
-        </div>
 
-        <div class="modal-actions">
-          <button class="btn btn-ghost" (click)="showConfigModal = false">Annuler</button>
-          <button class="btn btn-primary" (click)="saveConfig()">Enregistrer</button>
-        </div>
-      </div>
-    </div>
 
     <!-- CHANGELOG MODAL -->
     <div *ngIf="showChangelog && latestChangelog" class="modal-backdrop fade-in">
@@ -715,8 +699,6 @@ export class DashboardComponent implements OnInit {
   itineraries: Itinerary[] = [];
   currentGroup: Group | null = null;
   isGroupAdmin = false;
-  showConfigModal = false;
-  configDuration = 21;
   dataLoaded = false;
 
   // Changelog
@@ -769,7 +751,6 @@ export class DashboardComponent implements OnInit {
             .subscribe({
               next: (config) => {
                 this.config = config;
-                this.configDuration = config.durationDays;
                 const countryId = this.currentGroup?.country?.id;
 
                 this.suggestionsService.getAll({ groupId, countryId })
@@ -796,24 +777,6 @@ export class DashboardComponent implements OnInit {
         error: (err) => {
           console.error('Error loading groups:', err);
           this.dataLoaded = true;
-        }
-      });
-  }
-
-  saveConfig() {
-    if (!this.currentGroup || !this.configDuration) return;
-
-    const groupId = this.currentGroup.id;
-    this.tripConfigService.updateConfig(groupId, { durationDays: this.configDuration })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (updatedConfig) => {
-          this.config = updatedConfig;
-          this.showConfigModal = false;
-        },
-        error: (err) => {
-          console.error('Error updating config:', err);
-          alert('Erreur lors de la mise à jour');
         }
       });
   }

@@ -3,6 +3,8 @@ import { ItineraryDayComponent } from './itinerary-day.component';
 import { ItineraryDay } from '../../../core/services/itinerary';
 import { SuggestionCategory } from '../../../core/services/suggestions';
 import { CurrencyService } from '../../../core/services/currency.service';
+import { WeatherService } from '../../../core/services/weather.service';
+import { of } from 'rxjs';
 
 class MockCurrencyService {
     format(amount: number | string, currency: string): string {
@@ -14,6 +16,15 @@ class MockCurrencyService {
 
     convert(amount: number, from: string, to: string): number {
         return amount; // Mock conversion 1:1
+    }
+}
+
+class MockWeatherService {
+    getWeatherForDate() {
+        return of(null);
+    }
+    getWeatherEmoji() {
+        return '☀️';
     }
 }
 
@@ -59,7 +70,8 @@ describe('ItineraryDayComponent', () => {
         await TestBed.configureTestingModule({
             imports: [ItineraryDayComponent],
             providers: [
-                { provide: CurrencyService, useClass: MockCurrencyService }
+                { provide: CurrencyService, useClass: MockCurrencyService },
+                { provide: WeatherService, useClass: MockWeatherService }
             ]
         })
             .compileComponents();

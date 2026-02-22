@@ -372,9 +372,12 @@ export class GroupManageComponent implements OnInit {
         });
     }
 
-    formatDate(dateStr: string | null | undefined): string {
-        if (!dateStr) return '';
-        return dateStr.split('T')[0];
+    formatDate(dateVal: any): string {
+        if (!dateVal) return '';
+        if (dateVal instanceof Date) {
+            return dateVal.toISOString().split('T')[0];
+        }
+        return String(dateVal).split('T')[0];
     }
 
     canRemoveInfo(member: any): boolean {

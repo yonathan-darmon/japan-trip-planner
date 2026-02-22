@@ -16,6 +16,7 @@ import { ChangelogModule } from './changelog/changelog.module';
 import { AdminModule } from './admin/admin.module';
 import { StorageModule } from './storage/storage.module';
 import { CurrencyModule } from './currency/currency.module';
+import { WeatherModule } from './weather/weather.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { CurrencyModule } from './currency/currency.module';
     AdminModule,
     StorageModule,
     CurrencyModule,
+    WeatherModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -5,6 +5,7 @@ import { ItineraryDay } from '../../../core/services/itinerary';
 import { Suggestion, SuggestionCategory } from '../../../core/services/suggestions';
 import { GeoUtils } from '../../../core/utils/geo.utils';
 import { CurrencyService } from '../../../core/services/currency.service';
+import { WeatherService, WeatherData } from '../../../core/services/weather.service';
 
 @Component({
   selector: 'app-itinerary-day',
@@ -19,6 +20,13 @@ import { CurrencyService } from '../../../core/services/currency.service';
         <div class="day-info">
           <h3 [style.color]="dayColor">Jour {{ day.dayNumber }}</h3>
           <span class="date" *ngIf="day.date">{{ formatDate(day.date) }}</span>
+          
+          <!-- Weather Widget -->
+          <div class="weather-widget fade-in" *ngIf="weatherData" [title]="weatherData.isHistorical ? 'Moyenne saisonnière (prévision indisponible pour cette date lointaine)' : 'Prévision météo'">
+             <span class="weather-icon">{{ weatherService.getWeatherEmoji(weatherData.weatherCode) }}</span>
+             <span class="weather-temp">{{ weatherData.temperature }}°C</span>
+             <span class="weather-hist-badge" *ngIf="weatherData.isHistorical" title="Moyenne historique">⏳</span>
+          </div>
         </div>
         <div class="day-load" [class.overload]="loadPercent > 100">
           <div class="load-bar" [style.width.%]="Math.min(loadPercent, 100)"></div>
@@ -149,8 +157,25 @@ import { CurrencyService } from '../../../core/services/currency.service';
         padding-bottom: 8px;
         border-bottom: 4px solid var(--border-color); /* Thicker border to show color */
     }
+    .day-info { display: flex; flex-direction: column; gap: 4px; }
     .day-info h3 { margin: 0; font-size: 1.25rem; color: var(--text-primary); font-weight: 700; }
     .day-info .date { font-size: 0.85rem; color: var(--text-secondary); }
+
+    .weather-widget {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 4px;
+        align-self: flex-start;
+    }
+    .weather-icon { font-size: 1rem; }
+    .weather-temp { font-weight: 600; color: #90cdf4; }
+    .weather-hist-badge { font-size: 0.7rem; opacity: 0.7; cursor: help; }
 
     .day-load {
         width: 60px;
@@ -373,6 +398,10 @@ export class ItineraryDayComponent {
   @Input() day!: ItineraryDay;
   @Input() index: number = 0; // Added index input
   private currencyService = inject(CurrencyService);
+  weatherService = inject(WeatherService);
+
+  weatherData: WeatherData | null = null;
+  private weatherLoadedForLatLon = '';
 
   // Colors matching Map Component
   readonly DAY_COLORS = [
@@ -404,6 +433,56 @@ export class ItineraryDayComponent {
 
   isAdding = false;
   availableSuggestions: Suggestion[] = [];
+
+  ngOnInit() {
+    this.loadWeather();
+  }
+
+  ngOnChanges(changes: any) {
+    if (changes['day']) {
+      this.loadWeather();
+    }
+  }
+
+  loadWeather() {
+    if (!this.day || !this.day.date) return;
+
+    // Find location (Accommodation first, then first activity)
+    let lat: number | undefined;
+    let lon: number | undefined;
+
+    if (this.day.accommodation && this.day.accommodation.latitude && this.day.accommodation.longitude) {
+      lat = Number(this.day.accommodation.latitude);
+      lon = Number(this.day.accommodation.longitude);
+    } else if (this.day.activities.length > 0) {
+      const firstAct = this.day.activities[0].suggestion;
+      if (firstAct.latitude && firstAct.longitude) {
+        lat = Number(firstAct.latitude);
+        lon = Number(firstAct.longitude);
+      }
+    }
+
+    if (lat !== undefined && lon !== undefined) {
+      const dateStr = new Date(this.day.date).toISOString().split('T')[0];
+      const locationKey = `${lat.toFixed(2)},${lon.toFixed(2)},${dateStr}`;
+
+      // Avoid re-fetching for the exact same inputs
+      if (this.weatherLoadedForLatLon !== locationKey) {
+        this.weatherService.getWeatherForDate(lat, lon, dateStr).subscribe({
+          next: (data) => {
+            this.weatherData = data;
+            this.weatherLoadedForLatLon = locationKey;
+          },
+          error: (err) => {
+            this.weatherData = null;
+            console.error('Weather load error:', err);
+          }
+        });
+      }
+    } else {
+      this.weatherData = null; // Reset if location removed
+    }
+  }
 
   formatPrice(suggestion: Suggestion): string {
     if (!suggestion.price && suggestion.price !== 0) return '';

@@ -52,6 +52,7 @@ graph TD
 ### ⏱️ Planification Réaliste
 - **Temps de trajet** : Prise en compte automatique du temps de marche (~4km/h) entre chaque activité pour estimer la fin de journée.
 - **Calcul de charge en temps réel** : La jauge de remplissage de la journée s'adapte instantanément lorsque vous déplacez des activités.
+- **Météo & Saisons** : Affichage automatique de la prévision météo (pour les 14 prochains jours) ou de la tendance saisonnière basée sur l'historique (pour les dates plus lointaines) directement sur l'itinéraire.
 
 ### 📅 Gestion Flexible de l'Itinéraire
 - **Drag & Drop** : Déplacez facilement une activité d'un jour à l'autre.
@@ -82,6 +83,7 @@ graph TD
 - **Scaleway Object Storage** (compatible S3) pour le stockage des photos
 - **Nominatim / Photon** pour le géocodage open-source gratuit
 - **API BCE (Banque Centrale Européenne)** pour les taux de change officiels
+- **Open-Meteo** pour les prévisions météorologiques et l'historique climatique (sans clé API)
 
 ### 💶 Conversion de Devises
 - **Taux en temps réel** : Utilisation des taux de référence officiels de la Banque Centrale Européenne
