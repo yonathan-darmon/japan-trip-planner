@@ -49,6 +49,8 @@ import { CurrencyService } from '../../../core/services/currency.service';
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
       margin-bottom: 24px;
     }
     .header-title h1 {

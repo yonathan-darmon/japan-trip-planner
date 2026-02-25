@@ -153,6 +153,8 @@ import { WeatherService, WeatherData } from '../../../core/services/weather.serv
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
         margin-bottom: 16px;
         padding-bottom: 8px;
         border-bottom: 4px solid var(--border-color); /* Thicker border to show color */
@@ -184,6 +186,7 @@ import { WeatherService, WeatherData } from '../../../core/services/weather.serv
         border-radius: 3px;
         position: relative;
         margin-top: 6px;
+        margin-right: 32px;
     }
     .day-load .load-bar {
         height: 100%;
