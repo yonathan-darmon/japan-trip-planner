@@ -691,10 +691,14 @@ import { FormsModule } from '@angular/forms';
       padding: 2rem;
       text-align: center;
       border: 1px solid var(--color-glass-border);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
     }
 
     .changelog-header {
       margin-bottom: 1.5rem;
+      flex-shrink: 0;
     }
 
     .changelog-icon {
@@ -718,6 +722,11 @@ import { FormsModule } from '@angular/forms';
       color: var(--color-text-secondary);
       line-height: 1.6;
       text-align: left;
+      overflow-y: auto;
+    }
+
+    .changelog-footer {
+      flex-shrink: 0;
     }
 
     .full-width {
