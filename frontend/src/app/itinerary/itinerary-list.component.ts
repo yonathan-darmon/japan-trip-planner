@@ -116,6 +116,11 @@ import { CurrencyService } from '../core/services/currency.service';
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
+    
+    .btn-create {
+      display: inline-block;
+      text-align: center;
+    }
 
     .itinerary-grid {
       display: grid;
@@ -195,8 +200,19 @@ import { CurrencyService } from '../core/services/currency.service';
         padding: 1rem;
       }
 
+      .header-content {
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: stretch;
+      }
+
       .header h1 {
         font-size: 2rem;
+        text-align: center;
+      }
+      
+      .subtitle {
+        text-align: center;
       }
 
       .itinerary-grid {

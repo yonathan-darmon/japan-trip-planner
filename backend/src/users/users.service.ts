@@ -57,6 +57,9 @@ export class UsersService {
     }
 
     async remove(id: number): Promise<void> {
+        if (id === 1) {
+            throw new BadRequestException('Cannot delete the primary super admin account');
+        }
         await this.usersRepository.delete(id);
     }
 

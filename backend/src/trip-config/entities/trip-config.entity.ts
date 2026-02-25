@@ -28,7 +28,7 @@ export class TripConfig {
     @Column({ name: 'end_date', type: 'date', nullable: true })
     endDate: Date | null;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'updated_by' })
     updatedBy: User;
 

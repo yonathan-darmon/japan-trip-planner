@@ -63,6 +63,7 @@ graph TD
   - **Internationalisation** : Gestion automatique des devises (¥ pour Japon, € pour Europe) et des spécificités locales.
   - **Visibilité** : Choisissez de rendre vos suggestions publiques (pour la communauté) ou privées (pour votre groupe uniquement).
   - Mode **lecture seule** pour consulter les plannings sans risque.
+  - **Super Administration** : Gestion centralisée des utilisateurs (incluant la suppression sécurisée avec cascade dynamique) accessible par le rôle `super_admin`.
 
 ## 🚀 Stack Technologique
 

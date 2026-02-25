@@ -13,6 +13,7 @@ describe('UsersService', () => {
         findOneBy: jest.fn(),
         update: jest.fn(),
         save: jest.fn(),
+        delete: jest.fn(),
     };
 
     const mockAuthService = {
@@ -71,6 +72,18 @@ describe('UsersService', () => {
             mockS3Service.uploadFile.mockResolvedValue('');
 
             await expect(service.uploadAvatar(1, {} as any)).rejects.toThrow('Image upload failed');
+        });
+    });
+
+    describe('remove', () => {
+        it('should delete a user for id != 1', async () => {
+            mockUserRepository.delete = jest.fn().mockResolvedValue({ affected: 1 });
+            await service.remove(2);
+            expect(mockUserRepository.delete).toHaveBeenCalledWith(2);
+        });
+
+        it('should block deleting the primary super admin account (id: 1)', async () => {
+            await expect(service.remove(1)).rejects.toThrow('Cannot delete the primary super admin account');
         });
     });
 });

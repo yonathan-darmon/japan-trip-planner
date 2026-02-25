@@ -32,12 +32,12 @@ export class Itinerary {
     })
     totalCost: number;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'created_by' })
     createdBy: User;
 
-    @Column({ name: 'created_by' })
-    createdById: number;
+    @Column({ name: 'created_by', nullable: true })
+    createdById: number | null;
 
     @CreateDateColumn({ name: 'generated_at' })
     generatedAt: Date;

@@ -9,9 +9,10 @@ Avant toute implémentation, tu DOIS lire et appliquer **tous** les fichiers dan
 | Workflow | Quand l'appliquer |
 |---|---|
 | [`/planning-rule`](.agent/workflows/planning-rule.md) | Avant tout code — plan + validation USER obligatoires |
-| [`/unit-test-rule`](.agent/workflows/unit-test-rule.md) | Après chaque fichier modifié — créer/mettre à jour son `.spec.ts` |
+| [`/unit-test-rule`](.agent/workflows/unit-test-rule.md) | Après chaque fichier modifié — créer/mettre à jour son `.spec.ts` (Backend et Frontend) |
 | [`/regression-test-rule`](.agent/workflows/regression-test-rule.md) | Avant de terminer — lancer tous les tests, documenter dans le walkthrough |
 | [`/changelog-rule`](.agent/workflows/changelog-rule.md) | Pour toute feature/refacto visible — migration de changelog obligatoire |
+| [`/mobile-responsive-rule`](.agent/workflows/mobile-responsive-rule.md) | Pour tout changement UI — vérifier et garantir l'adaptabilité sur écrans mobiles (<= 768px) |
 | [`/pre-deployment-checks`](.agent/workflows/pre-deployment-checks.md) | Avant tout `git commit` / `git push` |
 
 ## 📋 Checklist de départ (à chaque tâche)

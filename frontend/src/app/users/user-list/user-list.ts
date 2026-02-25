@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { UsersService } from '../../core/services/users';
-import { User, UserRole } from '../../core/services/auth';
+import { AuthService, User, UserRole } from '../../core/services/auth';
 import { GroupRole, GroupsService } from '../../core/services/groups.service';
 import { FormsModule } from '@angular/forms';
 
@@ -18,10 +18,15 @@ export class UserListComponent implements OnInit {
   loading = false;
   error = '';
 
+  currentUser: User | null = null;
+
   constructor(
     private usersService: UsersService,
-    private groupsService: GroupsService
-  ) { }
+    private groupsService: GroupsService,
+    private authService: AuthService
+  ) {
+    this.authService.currentUser$.subscribe(user => this.currentUser = user);
+  }
 
   ngOnInit() {
     this.loadUsers();
@@ -44,7 +49,15 @@ export class UserListComponent implements OnInit {
   }
 
   deleteUser(id: number) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+    if (id === 1) {
+      alert('Impossible de supprimer le compte Super Admin principal.');
+      return;
+    }
+    if (this.currentUser && this.currentUser.id === id) {
+      alert('Vous ne pouvez pas supprimer votre propre compte depuis cette interface.');
+      return;
+    }
+    if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement cet utilisateur ? Toutes ses données liées seront effacées ou anonymisées.')) return;
 
     this.usersService.delete(id).subscribe({
       next: () => {

@@ -216,7 +216,7 @@ import { AsyncPipe, NgIf } from '@angular/common';
         padding: 5rem 2rem 2rem;
         transition: right 0.3s ease;
         box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
+        z-index: 9999; /* Higher than Map containers */
         align-items: flex-start;
         overflow-y: auto; /* Required if the menu has many items on small screens */
       }
