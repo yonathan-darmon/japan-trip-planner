@@ -44,6 +44,10 @@ export class UsersService {
         return this.http.patch<User>(`${this.apiUrl}/me`, data);
     }
 
+    updatePassword(data: { oldPassword?: string; newPassword?: string }): Observable<void> {
+        return this.http.patch<void>(`${this.apiUrl}/me/password`, data);
+    }
+
     uploadAvatar(file: File): Observable<User> {
         const formData = new FormData();
         formData.append('file', file);

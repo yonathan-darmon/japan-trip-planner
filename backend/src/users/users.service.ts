@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import * as bcrypt from 'bcrypt';
 
 import { S3Service } from '../storage/s3.service';
 
@@ -67,12 +69,34 @@ export class UsersService {
         await this.checkUserAvailability(updateDto.username, updateDto.email, id);
 
         const user = await this.findOne(id);
-        if (!user) throw new Error('User not found');
+        if (!user) throw new BadRequestException('Utilisateur introuvable.');
 
         if (updateDto.username) user.username = updateDto.username;
         if (updateDto.email) user.email = updateDto.email;
 
         return this.usersRepository.save(user);
+    }
+
+    async updatePassword(id: number, updatePasswordDto: UpdatePasswordDto): Promise<void> {
+        const user = await this.findOne(id);
+        if (!user) {
+            throw new BadRequestException('Utilisateur introuvable.');
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+            updatePasswordDto.oldPassword,
+            user.passwordHash,
+        );
+
+        if (!isPasswordValid) {
+            throw new BadRequestException('L\'ancien mot de passe est incorrect.');
+        }
+
+        const newPasswordHash = await this.authService.hashPassword(
+            updatePasswordDto.newPassword,
+        );
+
+        await this.usersRepository.update(id, { passwordHash: newPasswordHash });
     }
 
     private async checkUserAvailability(username?: string, email?: string, excludeUserId?: number): Promise<void> {

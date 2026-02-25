@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from './entities/user.entity';
@@ -64,6 +65,11 @@ export class UsersController {
     @Patch('me')
     updateProfile(@Request() req: any, @Body() updateDto: { username?: string; email?: string }) {
         return this.usersService.update(req.user.id, updateDto);
+    }
+
+    @Patch('me/password')
+    updatePassword(@Request() req: any, @Body() updatePasswordDto: UpdatePasswordDto) {
+        return this.usersService.updatePassword(req.user.id, updatePasswordDto);
     }
 
     @Post('me/avatar')

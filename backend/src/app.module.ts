@@ -17,6 +17,8 @@ import { AdminModule } from './admin/admin.module';
 import { StorageModule } from './storage/storage.module';
 import { CurrencyModule } from './currency/currency.module';
 import { WeatherModule } from './weather/weather.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -62,8 +64,19 @@ import { WeatherModule } from './weather/weather.module';
     StorageModule,
     CurrencyModule,
     WeatherModule,
+    // Rate Limiting (100 requests per 60 seconds per IP, as discussed in the plan)
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    }
+  ],
 })
 export class AppModule { }

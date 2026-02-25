@@ -10,7 +10,8 @@ import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
     cors: {
-        origin: '*', // Allow all origins for dev simplicity
+        origin: process.env.FRONTEND_URL || 'http://localhost:4200',
+        credentials: true,
     },
     namespace: 'sync',
 })

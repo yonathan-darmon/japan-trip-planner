@@ -22,11 +22,15 @@ Avant toute implémentation, tu DOIS lire et appliquer **tous** les fichiers dan
 - [ ] Créer `implementation_plan.md` en **français** et attendre validation
 - [ ] Ne toucher aucun code avant approbation explicite du USER
 
+## 🛠️ Règles de développement métier
+- **Erreurs Backend** : Les messages d'erreur (`Exceptions`, `Validators`) **doivent être détaillés et explicites** (ex: "Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial, et faire 8 caractères minimum") pour faciliter le débogage et l'expérience utilisateur.
+
 ## 📋 Checklist de fin (avant de clore une tâche)
 
 - [ ] Tests unitaires créés/mis à jour pour chaque fichier modifié
 - [ ] `ng test` (frontend) et/ou `npm run test` (backend) passent à 100%
 - [ ] Migration de changelog créée si feature visible
+- [ ] `README.md` / Documentation globale mis à jour en fonction des nouveaux développements AVANT le `git push` !
 - [ ] `walkthrough.md` mis à jour avec section "🧪 Regression Testing"
 
 ## 🌐 Stack technique

@@ -33,7 +33,8 @@ import { environment } from '../../../environments/environment';
 
           <div class="form-group">
             <label class="form-label" for="password">Mot de passe</label>
-            <input id="password" type="password" formControlName="password" class="form-input" placeholder="6 caractères minimum">
+            <input id="password" type="password" formControlName="password" class="form-input" placeholder="8 caractères, majuscule, chiffre, spécial">
+            <small class="text-text-tertiary" style="display:block; margin-top:0.25rem;">Min. 8 car., 1 Maj., 1 Min., 1 chiffre, 1 car. spécial (@$!%*?&)</small>
           </div>
 
           <div class="form-group" *ngIf="!inviteGroupId">
@@ -158,8 +159,8 @@ export class SignupComponent {
   ) {
     this.signupForm = this.fb.group({
       username: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      email: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]],
+      password: ['', [Validators.required, Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)]],
       countryId: [null, Validators.required],
       newCountryName: ['']
     });

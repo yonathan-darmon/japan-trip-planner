@@ -1,15 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
+import * as bcrypt from 'bcrypt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { S3Service } from '../storage/s3.service';
+
+jest.mock('bcrypt', () => ({
+    compare: jest.fn(),
+}));
 
 describe('UsersService', () => {
     let service: UsersService;
     let s3Service: S3Service;
 
     const mockUserRepository = {
+        findOne: jest.fn(),
         findOneBy: jest.fn(),
         update: jest.fn(),
         save: jest.fn(),
@@ -84,6 +90,38 @@ describe('UsersService', () => {
 
         it('should block deleting the primary super admin account (id: 1)', async () => {
             await expect(service.remove(1)).rejects.toThrow('Cannot delete the primary super admin account');
+        });
+    });
+
+    describe('updatePassword', () => {
+        const updatePasswordDto = { oldPassword: 'old', newPassword: 'new' };
+
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        it('should throw if user not found', async () => {
+            mockUserRepository.findOneBy.mockResolvedValue(null);
+            await expect(service.updatePassword(99, updatePasswordDto)).rejects.toThrow('Utilisateur introuvable.');
+        });
+
+        it('should throw if old password does not match', async () => {
+            mockUserRepository.findOneBy.mockResolvedValue({ id: 1, passwordHash: 'hashedOld' });
+            (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+            await expect(service.updatePassword(1, updatePasswordDto)).rejects.toThrow('L\'ancien mot de passe est incorrect.');
+        });
+
+        it('should update password and hash the new one', async () => {
+            mockUserRepository.findOneBy.mockResolvedValue({ id: 1, passwordHash: 'hashedOld' });
+            (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+            mockAuthService.hashPassword.mockResolvedValue('hashedNew');
+            mockUserRepository.update.mockResolvedValue({ affected: 1 });
+
+            await service.updatePassword(1, updatePasswordDto);
+
+            expect(mockAuthService.hashPassword).toHaveBeenCalledWith('new');
+            expect(mockUserRepository.update).toHaveBeenCalledWith(1, { passwordHash: 'hashedNew' });
         });
     });
 });

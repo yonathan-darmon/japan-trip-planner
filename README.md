@@ -98,6 +98,13 @@ graph TD
 - **Graphiques Interactifs** : Visualisez la répartition des dépenses jour par jour.
 - **Multi-devises** : Conversion automatique de tous les prix en votre devise de référence (Euros).
 
+### 🛡️ Sécurité & Protection
+- **Throttling (Rate Limiting)** : Protection intégrée contre les attaques par force brute (ex: 100 requêtes / minute maximum) via `@nestjs/throttler`.
+- **En-têtes Sécurisés (Helmet)** : Sécurisation globale contre les failles Web courantes (XSS, Clickjacking, MIME type sniffing, etc.).
+- **Protection CORS WebSockets** : Restriction stricte des requêtes Socket.io/WebSocket à l'URL du frontend autorisé (`sync.gateway.ts`).
+- **Validation Renforcée** : Règles strictes Regex pour les e-mails et les mots de passe (minimum 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial).
+- **Modification de Mots de Passe** : Interface de modification de mot de passe exigeant systématiquement l'ancien mot de passe.
+
 ## 🛠️ Installation et Démarrage
 
 ### Prérequis

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthService, User } from '../../core/services/auth';
 import { UsersService } from '../../core/services/users';
 import { Router } from '@angular/router';
@@ -56,6 +56,42 @@ import { Router } from '@angular/router';
                  </button>
                  <span *ngIf="successMessage" class="text-success text-sm fade-in">✅ {{ successMessage }}</span>
                  <span *ngIf="errorMessage" class="text-error text-sm fade-in">❌ {{ errorMessage }}</span>
+               </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- PASSWORD CARD -->
+        <div class="card glass mb-8">
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+              <span class="text-primary">🔒</span> Sécurité & Mot de passe
+            </h3>
+            
+            <form [formGroup]="passwordForm" (ngSubmit)="onUpdatePassword()" class="space-y-6">
+               <div class="form-group">
+                 <label for="oldPassword" class="form-label">Mot de passe actuel</label>
+                 <input type="password" formControlName="oldPassword" id="oldPassword" class="form-input" placeholder="Votre mot de passe actuel">
+               </div>
+
+               <div class="form-group">
+                 <label for="newPassword" class="form-label">Nouveau mot de passe</label>
+                 <input type="password" formControlName="newPassword" id="newPassword" class="form-input" placeholder="8 caractères, majuscule, chiffre, spécial">
+                 <small class="text-text-tertiary block mt-1">Min. 8 car., 1 Maj., 1 Min., 1 chiffre, 1 car. spécial (@$!%*?&)</small>
+               </div>
+
+               <div class="form-group">
+                 <label for="confirmPassword" class="form-label">Confirmer le nouveau mot de passe</label>
+                 <input type="password" formControlName="confirmPassword" id="confirmPassword" class="form-input" placeholder="Répéter le nouveau mot de passe">
+                 <small *ngIf="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched" class="text-error block mt-1">Les mots de passe ne correspondent pas.</small>
+               </div>
+
+               <div class="flex items-center gap-4 pt-2">
+                 <button type="submit" [disabled]="passwordForm.invalid || loadingPassword" class="btn btn-primary">
+                   {{ loadingPassword ? 'Modification...' : 'Changer le mot de passe' }}
+                 </button>
+                 <span *ngIf="passwordSuccessMessage" class="text-success text-sm fade-in">✅ {{ passwordSuccessMessage }}</span>
+                 <span *ngIf="passwordErrorMessage" class="text-error text-sm fade-in">❌ {{ passwordErrorMessage }}</span>
                </div>
             </form>
           </div>
@@ -119,9 +155,13 @@ import { Router } from '@angular/router';
 })
 export class UserSettingsComponent implements OnInit {
   profileForm: FormGroup;
+  passwordForm: FormGroup;
   loading = false;
+  loadingPassword = false;
   successMessage = '';
   errorMessage = '';
+  passwordSuccessMessage = '';
+  passwordErrorMessage = '';
   currentUser: User | null = null;
 
   constructor(
@@ -134,6 +174,21 @@ export class UserSettingsComponent implements OnInit {
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]]
     });
+
+    this.passwordForm = this.fb.group({
+      oldPassword: ['', Validators.required],
+      newPassword: ['', [
+        Validators.required,
+        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+      ]],
+      confirmPassword: ['', Validators.required]
+    }, { validators: this.passwordMatchValidator });
+  }
+
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const newPassword = control.get('newPassword')?.value;
+    const confirmPassword = control.get('confirmPassword')?.value;
+    return newPassword === confirmPassword ? null : { passwordMismatch: true };
   }
 
   ngOnInit() {
@@ -161,6 +216,30 @@ export class UserSettingsComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.errorMessage = 'Erreur lors de la mise à jour : ' + (err.error?.message || err.message);
+      }
+    });
+  }
+
+  onUpdatePassword() {
+    if (this.passwordForm.invalid) return;
+    this.loadingPassword = true;
+    this.passwordSuccessMessage = '';
+    this.passwordErrorMessage = '';
+
+    const payload = {
+      oldPassword: this.passwordForm.value.oldPassword,
+      newPassword: this.passwordForm.value.newPassword
+    };
+
+    this.usersService.updatePassword(payload).subscribe({
+      next: () => {
+        this.loadingPassword = false;
+        this.passwordSuccessMessage = 'Mot de passe modifié avec succès !';
+        this.passwordForm.reset();
+      },
+      error: (err: any) => {
+        this.loadingPassword = false;
+        this.passwordErrorMessage = 'Erreur : ' + (err.error?.message || err.message);
       }
     });
   }
