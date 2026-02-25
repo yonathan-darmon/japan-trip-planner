@@ -160,16 +160,38 @@
         padding: 2rem 1rem;
     }
 
+    .detail-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+    }
+
     .detail-header h1 {
         font-size: 2rem;
+        word-wrap: break-word;
+        /* Ensure long words break */
     }
 
     .detail-meta {
         flex-direction: column;
         gap: 1rem;
+        align-items: center;
+        /* Center meta tags on mobile */
     }
 
     .detail-content {
         padding: 1.5rem;
+    }
+
+    .price-box {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .detail-photo {
+        max-height: 300px;
+    }
+
+    .detail-map {
+        height: 300px;
     }
 }

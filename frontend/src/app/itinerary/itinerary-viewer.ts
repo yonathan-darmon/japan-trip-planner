@@ -195,7 +195,8 @@ import { BudgetChartComponent, BudgetData } from './components/budget-chart/budg
         display: flex;
         align-items: center;
         gap: 24px;
-        white-space: nowrap;
+        flex-wrap: wrap; /* Ensure tools wrap on narrow screens */
+        justify-content: center;
     }
     .selection-status { display: flex; align-items: center; gap: 8px; font-weight: 500; }
     .selection-status .count {
@@ -249,8 +250,8 @@ import { BudgetChartComponent, BudgetData } from './components/budget-chart/budg
     .modal-content {
         background: #2d3748;
         color: white;
-        width: 500px;
-        max-width: 90%;
+        width: 95%; /* Better width allocation for mobile */
+        max-width: 500px;
         max-height: 80vh;
         border-radius: 12px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.5);
@@ -296,6 +297,21 @@ import { BudgetChartComponent, BudgetData } from './components/budget-chart/budg
       .viewer-layout { grid-template-columns: 1fr; height: auto; }
       .viewer-map { height: 400px; order: -1; }
       .map-sticky { position: relative; }
+    }
+
+    @media (max-width: 640px) {
+      .selection-footer {
+          width: 90%;
+          bottom: 12px;
+          padding: 8px 16px;
+      }
+      .selection-container {
+          gap: 12px;
+      }
+      .day-selector {
+          flex-wrap: wrap;
+          justify-content: center;
+      }
     }
   `]
 })

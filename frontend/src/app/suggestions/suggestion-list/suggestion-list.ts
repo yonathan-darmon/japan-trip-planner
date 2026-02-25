@@ -158,6 +158,8 @@ import { take } from 'rxjs';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
+      flex-wrap: wrap; /* Ensure the button moves to next line if necessary */
+      gap: 1rem;
     }
     .filter-bar {
       display: flex;
@@ -175,8 +177,7 @@ import { take } from 'rxjs';
       padding: 0.5rem 1rem;
       border-radius: var(--radius-md);
       border: 1px solid var(--color-glass-border);
-      flex: 1;
-      min-width: 200px;
+      flex: 1 1 200px; /* Allow shrinking below min-width by using flex-basis */
     }
     .filter-input, .filter-select {
       background: transparent;
@@ -198,6 +199,7 @@ import { take } from 'rxjs';
       display: flex;
       gap: 1rem;
       margin-bottom: 1.5rem;
+      flex-wrap: wrap; /* Wrap tabs on very small screens */
     }
     .tab-btn {
       flex: 1;
@@ -440,6 +442,22 @@ import { take } from 'rxjs';
       opacity: 0.8;
       font-size: 0.9em;
       margin-left: 0.3rem;
+    }
+    
+    @media (max-width: 640px) {
+        .tabs-container {
+            flex-direction: column;
+        }
+        .filter-group {
+            flex: 1 1 100%; /* Force full width for filters on mobile */
+        }
+        .header-actions {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .suggestion-card {
+            margin-bottom: 1rem;
+        }
     }
   `]
 })

@@ -276,7 +276,7 @@ import { FormsModule } from '@angular/forms';
     .onboarding-actions {
       display: flex;
       gap: 0.75rem;
-      flex-wrap: wrap;
+      flex-wrap: wrap; /* Ensure buttons wrap if there is no space */
     }
 
     /* --------- GUIDE PILL --------- */
@@ -564,6 +564,7 @@ import { FormsModule } from '@angular/forms';
       border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      white-space: nowrap; /* Prevent badge text from breaking */
     }
 
     .step-badge.done {
@@ -744,6 +745,24 @@ import { FormsModule } from '@angular/forms';
       }
       .workflow-step {
         padding: 1rem;
+        flex-direction: column; /* Stack icon and content vertically on very small screens if necessary, though wrap is usually enough. Let's keep row but allow content to take full width */
+        gap: 0.75rem;
+      }
+      .step-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+      .step-btn {
+        width: 100%; /* Full width buttons on mobile inside workflow steps */
+        justify-content: center;
+      }
+      .grid-stats {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile instead of auto-fit squishing */
+      }
+      .admin-stats {
+        flex-direction: column;
+        gap: 1rem;
       }
     }
   `]

@@ -218,6 +218,7 @@ import { AsyncPipe, NgIf } from '@angular/common';
         box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
         z-index: 1000;
         align-items: flex-start;
+        overflow-y: auto; /* Required if the menu has many items on small screens */
       }
       
       .nav-links.open {
