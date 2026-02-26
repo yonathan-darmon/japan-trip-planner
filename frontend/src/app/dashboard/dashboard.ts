@@ -52,9 +52,9 @@ import { FormsModule } from '@angular/forms';
     <!-- ADMIN SECTION -->
     <div class="admin-section fade-in" *ngIf="isGroupAdmin" style="animation-delay: 50ms;">
       <div class="card glass admin-card">
-        <div class="card-header">
+        <div class="card-header admin-card-header">
           <h3>⚙️ Administration du Groupe</h3>
-          <div style="display: flex; gap: 0.5rem;">
+          <div class="admin-actions">
             <button class="btn btn-sm btn-secondary" routerLink="/groups/manage">👥 Membres / Inviter</button>
             <button class="btn btn-sm btn-outline" routerLink="/groups/manage">Modifier configuration</button>
           </div>
@@ -364,6 +364,16 @@ import { FormsModule } from '@angular/forms';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
+    }
+
+    .admin-card-header {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 0.5rem;
     }
 
     .card-header h3 {
@@ -763,6 +773,19 @@ import { FormsModule } from '@angular/forms';
       .admin-stats {
         flex-direction: column;
         gap: 1rem;
+      }
+      .admin-card-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .admin-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.5rem;
+      }
+      .admin-actions .btn {
+        width: 100%;
+        justify-content: center;
       }
     }
   `]
