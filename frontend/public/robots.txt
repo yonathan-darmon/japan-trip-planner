@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /auth/
+Disallow: /trip-config/
+Disallow: /admin/
+Disallow: /settings/
+Allow: /
+
+Sitemap: https://mqxq.onrender.com/sitemap.xml
