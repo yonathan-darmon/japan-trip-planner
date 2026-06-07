@@ -624,6 +624,44 @@ export class ItineraryService {
         return this.itineraryRepository.save(itinerary);
     }
 
+    async removeActivity(
+        id: number,
+        dayNumber: number,
+        suggestionId: number,
+        userId: number
+    ): Promise<Itinerary> {
+        const itinerary = await this.findOne(id, userId);
+
+        // Check permissions
+        if (itinerary.createdById !== userId) {
+            throw new BadRequestException('You can only modify your own itineraries');
+        }
+
+        if (dayNumber < 1 || dayNumber > itinerary.days.length) {
+            throw new BadRequestException('Day number out of range');
+        }
+
+        const day = itinerary.days[dayNumber - 1];
+
+        const exists = day.activities.some(a => a.suggestionId === suggestionId);
+        if (!exists) {
+            throw new NotFoundException('Activity not found in this day');
+        }
+
+        // Detach the activity from this itinerary only (the suggestion itself is kept)
+        day.activities = day.activities.filter(a => a.suggestionId !== suggestionId);
+
+        // Reindex remaining activities
+        day.activities.forEach((act, idx) => {
+            act.orderInDay = idx + 1;
+        });
+
+        // Recalculate cost
+        itinerary.totalCost = this.calculateCost(itinerary.days);
+
+        return this.itineraryRepository.save(itinerary);
+    }
+
     async updateSuggestionInItineraries(suggestion: Suggestion): Promise<void> {
         // Fetch all itineraries because they store snapshots in JSON
         const itineraries = await this.itineraryRepository.find();

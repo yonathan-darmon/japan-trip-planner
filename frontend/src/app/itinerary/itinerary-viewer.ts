@@ -70,6 +70,7 @@ import { BudgetChartComponent, BudgetData } from './components/budget-chart/budg
             (viewDetails)="viewActivityDetails($event)"
             (toggleSelection)="toggleSelection($event.suggestionId)"
             (addActivity)="onAddActivity($event)"
+            (removeActivity)="onRemoveActivity($event)"
             (drop)="onDrop($event, day)">
           </app-itinerary-day>
         </div>
@@ -379,17 +380,30 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
       if (itinerary) {
         this.allDayIds = itinerary.days.map(d => `day-list-${d.dayNumber}`);
         this.updateUsedSuggestions(itinerary);
+
+        // Load suggestions in the itinerary's group context
+        // (the backend returns [] when no group/country context is provided)
+        if (isPlatformBrowser(this.platformId)) {
+          this.loadAllSuggestions(itinerary.groupId);
+        }
       }
     });
-
-    // Load available suggestions once
-    if (isPlatformBrowser(this.platformId)) {
-      this.loadAllSuggestions();
-    }
   }
 
-  loadAllSuggestions() {
-    this.suggestionsService.getAll().subscribe(suggestions => {
+  private suggestionsLoadedForGroupId: number | null | undefined = undefined;
+
+  loadAllSuggestions(groupId?: number | null) {
+    // Fallback to the locally stored group (same pattern as the itinerary list)
+    if (!groupId) {
+      const stored = localStorage.getItem('currentGroupId');
+      groupId = stored ? +stored : null;
+    }
+
+    // Avoid re-fetching on every state update (reorder, add activity...)
+    if (this.suggestionsLoadedForGroupId === groupId) return;
+    this.suggestionsLoadedForGroupId = groupId;
+
+    this.suggestionsService.getAll(groupId ? { groupId } : {}).subscribe(suggestions => {
       this.allSuggestions = suggestions;
       this.accommodations = suggestions.filter(s => s.category === SuggestionCategory.HEBERGEMENT);
       this.filteredAccommodations = this.accommodations;
@@ -409,6 +423,18 @@ export class ItineraryViewerComponent implements OnInit, OnDestroy {
     if (!itinerary) return;
 
     this.itineraryService.addActivity(itinerary.id, event.day.dayNumber, event.suggestionId)
+      .subscribe(updatedItinerary => {
+        this.stateService.setItinerary(updatedItinerary);
+      });
+  }
+
+  onRemoveActivity(event: { day: ItineraryDay, suggestionId: number }) {
+    const itinerary = this.stateService.getItinerary();
+    if (!itinerary) return;
+
+    if (!confirm('Retirer cette activité de l\'itinéraire ? (la suggestion ne sera pas supprimée)')) return;
+
+    this.itineraryService.removeActivity(itinerary.id, event.day.dayNumber, event.suggestionId)
       .subscribe(updatedItinerary => {
         this.stateService.setItinerary(updatedItinerary);
       });

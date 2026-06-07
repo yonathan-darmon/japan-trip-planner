@@ -28,9 +28,22 @@ import { WeatherService, WeatherData } from '../../../core/services/weather.serv
              <span class="weather-hist-badge" *ngIf="weatherData.isHistorical" title="Moyenne historique">⏳</span>
           </div>
         </div>
-        <div class="day-load" [class.overload]="loadPercent > 100">
-          <div class="load-bar" [style.width.%]="Math.min(loadPercent, 100)"></div>
-          <span class="load-text">{{ loadPercent | number:'1.0-0' }}%</span>
+        <div class="day-gauges">
+          <div class="gauge" [class.overload]="dayLoadPercent > 100" title="Occupation journée (7h - 17h)">
+            <span class="gauge-icon">☀️</span>
+            <div class="gauge-track">
+              <div class="gauge-fill" [style.width.%]="Math.min(dayLoadPercent, 100)"></div>
+            </div>
+            <span class="gauge-text">{{ dayLoadPercent | number:'1.0-0' }}%</span>
+          </div>
+          <div class="gauge evening" *ngIf="eveningLoadPercent > 0"
+               [class.overload]="eveningLoadPercent > 100" title="Occupation soirée (18h - 23h)">
+            <span class="gauge-icon">🌙</span>
+            <div class="gauge-track">
+              <div class="gauge-fill" [style.width.%]="Math.min(eveningLoadPercent, 100)"></div>
+            </div>
+            <span class="gauge-text">{{ eveningLoadPercent | number:'1.0-0' }}%</span>
+          </div>
         </div>
         <div class="day-cost" *ngIf="dayTotal > 0">
            {{ dayTotal | number:'1.0-0' }} €
@@ -90,6 +103,9 @@ import { WeatherService, WeatherData } from '../../../core/services/weather.serv
           
           <div class="activity-actions">
              <button class="btn-detail" (click)="viewDetails.emit(activity.suggestion); $event.stopPropagation()">ℹ️</button>
+             <button class="btn-remove" *ngIf="!readOnly"
+                     title="Retirer de l'itinéraire"
+                     (click)="removeActivity.emit({ day: day, suggestionId: activity.suggestionId }); $event.stopPropagation()">🗑️</button>
           </div>
         </div>
         
@@ -179,27 +195,39 @@ import { WeatherService, WeatherData } from '../../../core/services/weather.serv
     .weather-temp { font-weight: 600; color: #90cdf4; }
     .weather-hist-badge { font-size: 0.7rem; opacity: 0.7; cursor: help; }
 
-    .day-load {
+    .day-gauges {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
+    .gauge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: help;
+    }
+    .gauge-icon { font-size: 0.8rem; line-height: 1; }
+    .gauge-track {
         width: 60px;
         height: 6px;
         background: #4a5568;
         border-radius: 3px;
-        position: relative;
-        margin-top: 6px;
-        margin-right: 32px;
+        overflow: hidden;
     }
-    .day-load .load-bar {
+    .gauge-fill {
         height: 100%;
         background: var(--success-color);
         border-radius: 3px;
+        transition: width 0.3s ease;
     }
-    .day-load.overload .load-bar { background: #fc8181; }
-    .load-text {
-        position: absolute;
-        right: -28px;
-        top: -7px;
+    .gauge.evening .gauge-fill { background: #8b5cf6; }
+    .gauge.overload .gauge-fill { background: #fc8181; }
+    .gauge-text {
         font-size: 0.75rem;
         color: var(--text-secondary);
+        min-width: 32px;
+        text-align: right;
     }
 
     .day-cost {
@@ -329,10 +357,16 @@ import { WeatherService, WeatherData } from '../../../core/services/weather.serv
     }
     .selection-checkbox input:checked { opacity: 1; accent-color: var(--accent-color); }
     
-    .btn-detail { 
+    .btn-detail {
         background: none; border: none; cursor: pointer; font-size: 1.2rem; opacity: 0.6; color: white;
     }
     .btn-detail:hover { opacity: 1; color: var(--accent-color); }
+
+    .activity-actions { display: flex; flex-direction: column; gap: 4px; }
+    .btn-remove {
+        background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.5;
+    }
+    .btn-remove:hover { opacity: 1; transform: scale(1.1); }
 
     .empty-state {
         text-align: center;
@@ -433,6 +467,7 @@ export class ItineraryDayComponent {
   @Output() viewDetails = new EventEmitter<Suggestion>();
   @Output() editAccommodation = new EventEmitter<ItineraryDay>();
   @Output() addActivity = new EventEmitter<{ day: ItineraryDay, suggestionId: number }>();
+  @Output() removeActivity = new EventEmitter<{ day: ItineraryDay, suggestionId: number }>();
 
   isAdding = false;
   availableSuggestions: Suggestion[] = [];
@@ -504,18 +539,49 @@ export class ItineraryDayComponent {
   }
 
 
-  get loadPercent(): number {
-    let hours = 0;
+  // Schedule windows (hours of day)
+  private static readonly DAY_START = 7;
+  private static readonly DAY_END = 17;
+  private static readonly EVENING_START = 18;
+  private static readonly EVENING_END = 23;
+
+  /**
+   * Simulates the day chronologically from 7:00 following activity order
+   * (duration + walking travel time) and measures how much of the
+   * day window (7h-17h) and evening window (18h-23h) is occupied.
+   * The 17h-18h slot is a neutral transition (dinner/commute).
+   */
+  private computeSchedule(): { dayHours: number; eveningHours: number } {
+    const DAY_START = ItineraryDayComponent.DAY_START;
+    const DAY_END = ItineraryDayComponent.DAY_END;
+    const EVENING_START = ItineraryDayComponent.EVENING_START;
 
     // Sort activities by order (should be sorted by drag drop, but to be sure)
     const activities = [...this.day.activities].sort((a, b) => a.orderInDay - b.orderInDay);
 
+    let t = DAY_START;
+    let dayHours = 0;
+    let eveningHours = 0;
+
+    const occupy = (duration: number) => {
+      const start = t;
+      const end = t + duration;
+      // Overlap with the day window
+      dayHours += Math.max(0, Math.min(end, DAY_END) - Math.max(start, DAY_START));
+      // Overlap with the evening window (open-ended so overload past 23h shows up)
+      eveningHours += Math.max(0, end - Math.max(start, EVENING_START));
+      t = end;
+    };
+
     activities.forEach((act, index) => {
+      // If the previous activity ended in the 17h-18h transition, start this one at 18h
+      if (t >= DAY_END && t < EVENING_START) t = EVENING_START;
+
       // 1. Duration of activity itself
       const duration = act.suggestion.durationHours;
-      hours += (duration !== undefined && duration !== null) ? Number(duration) : 2;
+      occupy((duration !== undefined && duration !== null) ? Number(duration) : 2);
 
-      // 2. Travel time to next activity
+      // 2. Travel time to next activity (walking speed 4km/h)
       if (index < activities.length - 1) {
         const nextAct = activities[index + 1];
         const dist = GeoUtils.distance(
@@ -524,12 +590,21 @@ export class ItineraryDayComponent {
           Number(nextAct.suggestion.latitude),
           Number(nextAct.suggestion.longitude)
         );
-        // Walking speed 4km/h
-        hours += dist / 4.0;
+        occupy(isFinite(dist) ? dist / 4.0 : 0);
       }
     });
 
-    return (hours / 8) * 100; // Assuming 8h is 100% capacity
+    return { dayHours, eveningHours };
+  }
+
+  get dayLoadPercent(): number {
+    const capacity = ItineraryDayComponent.DAY_END - ItineraryDayComponent.DAY_START; // 10h
+    return (this.computeSchedule().dayHours / capacity) * 100;
+  }
+
+  get eveningLoadPercent(): number {
+    const capacity = ItineraryDayComponent.EVENING_END - ItineraryDayComponent.EVENING_START; // 5h
+    return (this.computeSchedule().eveningHours / capacity) * 100;
   }
 
   get dayTotal(): number {

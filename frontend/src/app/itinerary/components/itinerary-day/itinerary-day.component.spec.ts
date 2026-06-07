@@ -113,6 +113,62 @@ describe('ItineraryDayComponent', () => {
         expect(component.dayTotal).toBe(3000);
     });
 
+    describe('day/evening load gauges', () => {
+        // Helper: activities at the same location (no travel time), explicit durations
+        const makeDayWithDurations = (durations: number[]): ItineraryDay => ({
+            dayNumber: 1,
+            date: '2026-04-01',
+            accommodation: null,
+            activities: durations.map((durationHours, i) => ({
+                suggestionId: 200 + i,
+                orderInDay: i + 1,
+                suggestion: {
+                    id: 200 + i,
+                    name: `Activity ${i}`,
+                    category: SuggestionCategory.ACTIVITE,
+                    latitude: 35.0,
+                    longitude: 139.0,
+                    durationHours,
+                    price: 0
+                } as any
+            }))
+        });
+
+        it('should report 0% on both gauges for an empty day', () => {
+            component.day = makeDayWithDurations([]);
+            expect(component.dayLoadPercent).toBe(0);
+            expect(component.eveningLoadPercent).toBe(0);
+        });
+
+        it('should fill only the day gauge when activities fit before 17h', () => {
+            // 2h starting at 7:00 → occupies 7:00-9:00 → 2/10 = 20% day, 0% evening
+            component.day = makeDayWithDurations([2]);
+            expect(component.dayLoadPercent).toBe(20);
+            expect(component.eveningLoadPercent).toBe(0);
+        });
+
+        it('should overflow into the evening gauge past 18h', () => {
+            // 12h starting at 7:00 → occupies 7:00-19:00
+            // Day window 7-17 → 10h/10h = 100%; evening window 18-23 → 1h/5h = 20%
+            component.day = makeDayWithDurations([12]);
+            expect(component.dayLoadPercent).toBe(100);
+            expect(component.eveningLoadPercent).toBe(20);
+        });
+
+        it('should start the next activity at 18h when the previous ends between 17h and 18h', () => {
+            // 10.5h → ends 17:30 (day: 10h = 100%), next 2h pushed to 18:00-20:00 → 2/5 = 40%
+            component.day = makeDayWithDurations([10.5, 2]);
+            expect(component.dayLoadPercent).toBe(100);
+            expect(component.eveningLoadPercent).toBe(40);
+        });
+
+        it('should report evening overload beyond 23h', () => {
+            // 18h from 7:00 → ends 25:00 → evening occupied 18h→25h = 7h / 5h = 140%
+            component.day = makeDayWithDurations([18]);
+            expect(component.eveningLoadPercent).toBeGreaterThan(100);
+        });
+    });
+
     it('should include accommodation price in dayTotal', () => {
         const base = makeMockDay();
         component.day = {

@@ -99,6 +99,21 @@ export class ItineraryController {
         );
     }
 
+    @Delete(':id/days/:dayNumber/activities/:suggestionId')
+    async removeActivity(
+        @Param('id', ParseIntPipe) id: number,
+        @Param('dayNumber', ParseIntPipe) dayNumber: number,
+        @Param('suggestionId', ParseIntPipe) suggestionId: number,
+        @Request() req
+    ) {
+        return this.itineraryService.removeActivity(
+            id,
+            dayNumber,
+            suggestionId,
+            req.user.id
+        );
+    }
+
     @Get(':id/budget')
     async getBudgetSummary(@Param('id', ParseIntPipe) id: number, @Request() req) {
         console.log('💰 [GET /itinerary/:id/budget] Called with id:', id, 'by user:', req.user.id);

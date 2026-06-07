@@ -24,6 +24,7 @@ export interface Itinerary {
     totalCost: number;
     createdById: number;
     generatedAt: string;
+    groupId?: number | null;
     days: ItineraryDay[];
     createdBy?: {
         id: number;
@@ -85,6 +86,10 @@ export class ItineraryService {
 
     addActivity(id: number, dayNumber: number, suggestionId: number): Observable<Itinerary> {
         return this.http.post<Itinerary>(`${this.apiUrl}/${id}/days/${dayNumber}/activities`, { suggestionId });
+    }
+
+    removeActivity(id: number, dayNumber: number, suggestionId: number): Observable<Itinerary> {
+        return this.http.delete<Itinerary>(`${this.apiUrl}/${id}/days/${dayNumber}/activities/${suggestionId}`);
     }
 
     getBudgetSummary(id: number): Observable<{

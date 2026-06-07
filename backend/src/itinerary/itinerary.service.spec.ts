@@ -262,4 +262,61 @@ describe('ItineraryService', () => {
                 .toThrow('Itinerary not found');
         });
     });
+
+    describe('removeActivity', () => {
+        const makeItinerary = () => ({
+            id: 57,
+            createdById: 1,
+            totalCost: 80,
+            days: [
+                {
+                    dayNumber: 1,
+                    date: null,
+                    activities: [
+                        { suggestionId: 101, orderInDay: 1, suggestion: { id: 101, price: 50 } },
+                        { suggestionId: 102, orderInDay: 2, suggestion: { id: 102, price: 30 } },
+                    ],
+                    accommodation: null,
+                },
+            ],
+        });
+
+        it('should remove the activity from the day and reindex remaining activities', async () => {
+            mockItineraryRepository.findOne.mockResolvedValue(makeItinerary());
+            mockItineraryRepository.save.mockImplementation(i => Promise.resolve(i));
+
+            const result = await service.removeActivity(57, 1, 101, 1);
+
+            expect(result.days[0].activities).toHaveLength(1);
+            expect(result.days[0].activities[0].suggestionId).toBe(102);
+            expect(result.days[0].activities[0].orderInDay).toBe(1);
+            // The suggestion itself is NOT deleted, only detached from the itinerary
+            expect(result.totalCost).toBe(30);
+            expect(mockItineraryRepository.save).toHaveBeenCalled();
+        });
+
+        it('should throw if the user is not the creator', async () => {
+            mockItineraryRepository.findOne.mockResolvedValue({ ...makeItinerary(), createdById: 99 });
+
+            await expect(service.removeActivity(57, 1, 101, 1))
+                .rejects
+                .toThrow('You can only modify your own itineraries');
+        });
+
+        it('should throw if the activity is not in the given day', async () => {
+            mockItineraryRepository.findOne.mockResolvedValue(makeItinerary());
+
+            await expect(service.removeActivity(57, 1, 999, 1))
+                .rejects
+                .toThrow('Activity not found in this day');
+        });
+
+        it('should throw if the day number is out of range', async () => {
+            mockItineraryRepository.findOne.mockResolvedValue(makeItinerary());
+
+            await expect(service.removeActivity(57, 5, 101, 1))
+                .rejects
+                .toThrow('Day number out of range');
+        });
+    });
 });
