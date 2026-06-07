@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, Inject, PLATFORM_ID, Destr
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SuggestionsService, Suggestion } from '../../core/services/suggestions';
+import { CurrencyService } from '../../core/services/currency.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as L from 'leaflet';
 
@@ -41,7 +42,7 @@ import * as L from 'leaflet';
       </div>
 
       <div class="price-box" *ngIf="suggestion.price">
-        💰 {{ suggestion.price }}€
+        💰 {{ formatPrice(suggestion) }}
       </div>
 
       <div class="detail-content">
@@ -80,8 +81,14 @@ export class SuggestionDetailComponent implements OnInit, AfterViewInit, OnDestr
   constructor(
     private route: ActivatedRoute,
     private suggestionsService: SuggestionsService,
+    private currencyService: CurrencyService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  formatPrice(suggestion: Suggestion): string {
+    // Display in the suggestion's local currency (same pattern as the itinerary views)
+    return this.currencyService.format(suggestion.price, suggestion.country?.currencyCode || 'JPY');
+  }
 
   private destroyRef = inject(DestroyRef);
 
